@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/*
- * tegra210_dmic.c - Tegra210 DMIC driver
- *
- * Copyright (c) 2014-2020 NVIDIA CORPORATION.  All rights reserved.
- *
- */
+//
+// tegra210_dmic.c - Tegra210 DMIC driver
+//
+// Copyright (c) 2020 NVIDIA CORPORATION.  All rights reserved.
+
 #include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/module.h>
@@ -69,12 +68,6 @@ static int tegra210_dmic_runtime_resume(struct device *dev)
 	return 0;
 }
 
-static const unsigned int tegra210_dmic_fmts[] = {
-	0,
-	TEGRA_ACIF_BITS_16,
-	TEGRA_ACIF_BITS_32,
-};
-
 static int tegra210_dmic_hw_params(struct snd_pcm_substream *substream,
 				   struct snd_pcm_hw_params *params,
 				   struct snd_soc_dai *dai)
@@ -90,8 +83,6 @@ static int tegra210_dmic_hw_params(struct snd_pcm_substream *substream,
 	channels = params_channels(params);
 
 	cif_conf.audio_ch = channels;
-	if (dmic->audio_ch_override)
-		cif_conf.audio_ch = dmic->audio_ch_override;
 
 	switch (dmic->ch_select) {
 	case DMIC_CH_SELECT_LEFT:
@@ -107,8 +98,6 @@ static int tegra210_dmic_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	srate = params_rate(params);
-	if (dmic->srate_override)
-		srate = dmic->srate_override;
 
 	/*
 	 * DMIC clock rate is a multiple of 'Over Sampling Ratio' and
@@ -137,7 +126,7 @@ static int tegra210_dmic_hw_params(struct snd_pcm_substream *substream,
 
 	/*
 	 * Use LP filter gain register to apply boost.
-	 * Boost Gain control has 100x factor.
+	 * Boost Gain Volume control has 100x factor.
 	 */
 	if (dmic->boost_gain)
 		gain_q23 = (gain_q23 * dmic->boost_gain) / 100;
@@ -154,12 +143,8 @@ static int tegra210_dmic_hw_params(struct snd_pcm_substream *substream,
 		break;
 	default:
 		dev_err(dai->dev, "unsupported format!\n");
-		return -ENOTSUPP;
+		return -EOPNOTSUPP;
 	}
-
-	if (dmic->audio_bits_override)
-		cif_conf.audio_bits =
-			tegra210_dmic_fmts[dmic->audio_bits_override];
 
 	cif_conf.client_bits = TEGRA_ACIF_BITS_24;
 	cif_conf.mono_conv = dmic->mono_to_stereo;
@@ -176,7 +161,7 @@ static int tegra210_dmic_get_control(struct snd_kcontrol *kcontrol,
 	struct snd_soc_component *comp = snd_soc_kcontrol_component(kcontrol);
 	struct tegra210_dmic *dmic = snd_soc_component_get_drvdata(comp);
 
-	if (strstr(kcontrol->id.name, "Boost Gain"))
+	if (strstr(kcontrol->id.name, "Boost Gain Volume"))
 		ucontrol->value.integer.value[0] = dmic->boost_gain;
 	else if (strstr(kcontrol->id.name, "Channel Select"))
 		ucontrol->value.integer.value[0] = dmic->ch_select;
@@ -184,12 +169,6 @@ static int tegra210_dmic_get_control(struct snd_kcontrol *kcontrol,
 		ucontrol->value.integer.value[0] = dmic->mono_to_stereo;
 	else if (strstr(kcontrol->id.name, "Stereo To Mono"))
 		ucontrol->value.integer.value[0] = dmic->stereo_to_mono;
-	else if (strstr(kcontrol->id.name, "Audio Bit Format"))
-		ucontrol->value.integer.value[0] = dmic->audio_bits_override;
-	else if (strstr(kcontrol->id.name, "Sample Rate"))
-		ucontrol->value.integer.value[0] = dmic->srate_override;
-	else if (strstr(kcontrol->id.name, "Audio Channels"))
-		ucontrol->value.integer.value[0] = dmic->audio_ch_override;
 	else if (strstr(kcontrol->id.name, "OSR Value"))
 		ucontrol->value.integer.value[0] = dmic->osr_val;
 	else if (strstr(kcontrol->id.name, "LR Polarity Select"))
@@ -205,7 +184,7 @@ static int tegra210_dmic_put_control(struct snd_kcontrol *kcontrol,
 	struct tegra210_dmic *dmic = snd_soc_component_get_drvdata(comp);
 	int value = ucontrol->value.integer.value[0];
 
-	if (strstr(kcontrol->id.name, "Boost Gain"))
+	if (strstr(kcontrol->id.name, "Boost Gain Volume"))
 		dmic->boost_gain = value;
 	else if (strstr(kcontrol->id.name, "Channel Select"))
 		dmic->ch_select = ucontrol->value.integer.value[0];
@@ -213,12 +192,6 @@ static int tegra210_dmic_put_control(struct snd_kcontrol *kcontrol,
 		dmic->mono_to_stereo = value;
 	else if (strstr(kcontrol->id.name, "Stereo To Mono"))
 		dmic->stereo_to_mono = value;
-	else if (strstr(kcontrol->id.name, "Audio Bit Format"))
-		dmic->audio_bits_override = value;
-	else if (strstr(kcontrol->id.name, "Sample Rate"))
-		dmic->srate_override = value;
-	else if (strstr(kcontrol->id.name, "Audio Channels"))
-		dmic->audio_ch_override = value;
 	else if (strstr(kcontrol->id.name, "OSR Value"))
 		dmic->osr_val = value;
 	else if (strstr(kcontrol->id.name, "LR Polarity Select"))
@@ -231,19 +204,22 @@ static const struct snd_soc_dai_ops tegra210_dmic_dai_ops = {
 	.hw_params	= tegra210_dmic_hw_params,
 };
 
-/*
- * Three DAIs are exposed
- * 1. "CIF" DAI for connecting with XBAR
- * 2. "DAP" DAI for connecting with CODEC
- * 3. "DUMMY_SOURCE" can be used when no external
- *    codec connection is available. In such case
- *    "DAP" is connected with "DUMMY_SOURCE"
- */
 static struct snd_soc_dai_driver tegra210_dmic_dais[] = {
 	{
-		.name = "CIF",
+		.name = "DMIC-CIF",
 		.capture = {
-			.stream_name = "DMIC Transmit",
+			.stream_name = "CIF-Capture",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_8000_48000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE |
+				   SNDRV_PCM_FMTBIT_S32_LE,
+		},
+	},
+	{
+		.name = "DMIC-DAP",
+		.capture = {
+			.stream_name = "DAP-Capture",
 			.channels_min = 1,
 			.channels_max = 2,
 			.rates = SNDRV_PCM_RATE_8000_48000,
@@ -253,39 +229,19 @@ static struct snd_soc_dai_driver tegra210_dmic_dais[] = {
 		.ops = &tegra210_dmic_dai_ops,
 		.symmetric_rates = 1,
 	},
-	{
-		.name = "DAP",
-		.playback = {
-			.stream_name = "DMIC Receive",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SNDRV_PCM_RATE_8000_48000,
-			.formats = SNDRV_PCM_FMTBIT_S16_LE |
-				   SNDRV_PCM_FMTBIT_S32_LE,
-		},
-	},
-	{
-		.name = "DUMMY_SOURCE",
-		.capture = {
-			.stream_name = "Dummy Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SNDRV_PCM_RATE_8000_48000,
-			.formats = SNDRV_PCM_FMTBIT_S16_LE |
-				   SNDRV_PCM_FMTBIT_S32_LE,
-		},
-	}
 };
 
 static const struct snd_soc_dapm_widget tegra210_dmic_widgets[] = {
-	SND_SOC_DAPM_AIF_IN("DMIC TX", NULL, 0, TEGRA210_DMIC_ENABLE, 0, 0),
-	SND_SOC_DAPM_MIC("Dummy Input", NULL),
+	SND_SOC_DAPM_AIF_OUT("TX", NULL, 0, TEGRA210_DMIC_ENABLE, 0, 0),
+	SND_SOC_DAPM_MIC("MIC", NULL),
 };
 
 static const struct snd_soc_dapm_route tegra210_dmic_routes[] = {
-	{ "DMIC TX",	   NULL, "DMIC Receive" },
-	{ "DMIC Transmit", NULL, "DMIC TX" },
-	{ "Dummy Capture", NULL, "Dummy Input" },
+	{ "XBAR-RX",		NULL,	"XBAR-Capture" },
+	{ "XBAR-Capture",	NULL,	"CIF-Capture" },
+	{ "CIF-Capture",	NULL,	"TX" },
+	{ "TX",			NULL,	"DAP-Capture" },
+	{ "DAP-Capture",	NULL,	"MIC" },
 };
 
 static const char * const tegra210_dmic_ch_select[] = {
@@ -297,7 +253,7 @@ static const struct soc_enum tegra210_dmic_ch_enum =
 			tegra210_dmic_ch_select);
 
 static const char * const tegra210_dmic_mono_conv_text[] = {
-	"ZERO", "COPY",
+	"Zero", "Copy",
 };
 
 static const char * const tegra210_dmic_stereo_conv_text[] = {
@@ -311,16 +267,6 @@ static const struct soc_enum tegra210_dmic_mono_conv_enum =
 static const struct soc_enum tegra210_dmic_stereo_conv_enum =
 	SOC_ENUM_SINGLE(0, 0, ARRAY_SIZE(tegra210_dmic_stereo_conv_text),
 			tegra210_dmic_stereo_conv_text);
-
-static const char * const tegra210_dmic_format_text[] = {
-	"None",
-	"16",
-	"32",
-};
-
-static const struct soc_enum tegra210_dmic_format_enum =
-	SOC_ENUM_SINGLE(0, 0, ARRAY_SIZE(tegra210_dmic_format_text),
-			tegra210_dmic_format_text);
 
 static const char * const tegra210_dmic_osr_text[] = {
 	"OSR_64", "OSR_128", "OSR_256",
@@ -339,7 +285,7 @@ static const struct soc_enum tegra210_dmic_lrsel_enum =
 			tegra210_dmic_lrsel_text);
 
 static const struct snd_kcontrol_new tegra210_dmic_controls[] = {
-	SOC_SINGLE_EXT("Boost Gain", 0, 0, MAX_BOOST_GAIN, 0,
+	SOC_SINGLE_EXT("Boost Gain Volume", 0, 0, MAX_BOOST_GAIN, 0,
 		       tegra210_dmic_get_control, tegra210_dmic_put_control),
 	SOC_ENUM_EXT("Channel Select", tegra210_dmic_ch_enum,
 		     tegra210_dmic_get_control, tegra210_dmic_put_control),
@@ -349,12 +295,6 @@ static const struct snd_kcontrol_new tegra210_dmic_controls[] = {
 	SOC_ENUM_EXT("Stereo To Mono",
 		     tegra210_dmic_stereo_conv_enum, tegra210_dmic_get_control,
 		     tegra210_dmic_put_control),
-	SOC_ENUM_EXT("Audio Bit Format", tegra210_dmic_format_enum,
-		     tegra210_dmic_get_control, tegra210_dmic_put_control),
-	SOC_SINGLE_EXT("Sample Rate", 0, 0, 48000, 0, tegra210_dmic_get_control,
-		       tegra210_dmic_put_control),
-	SOC_SINGLE_EXT("Audio Channels", 0, 0, 2, 0, tegra210_dmic_get_control,
-		       tegra210_dmic_put_control),
 	SOC_ENUM_EXT("OSR Value", tegra210_dmic_osr_enum,
 		     tegra210_dmic_get_control, tegra210_dmic_put_control),
 	SOC_ENUM_EXT("LR Polarity Select", tegra210_dmic_lrsel_enum,
@@ -428,12 +368,6 @@ static const struct regmap_config tegra210_dmic_regmap_config = {
 	.cache_type = REGCACHE_FLAT,
 };
 
-static const struct of_device_id tegra210_dmic_of_match[] = {
-	{ .compatible = "nvidia,tegra210-dmic" },
-	{},
-};
-MODULE_DEVICE_TABLE(of, tegra210_dmic_of_match);
-
 static int tegra210_dmic_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -498,6 +432,12 @@ static const struct dev_pm_ops tegra210_dmic_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
 				pm_runtime_force_resume)
 };
+
+static const struct of_device_id tegra210_dmic_of_match[] = {
+	{ .compatible = "nvidia,tegra210-dmic" },
+	{},
+};
+MODULE_DEVICE_TABLE(of, tegra210_dmic_of_match);
 
 static struct platform_driver tegra210_dmic_driver = {
 	.driver = {
