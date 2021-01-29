@@ -619,7 +619,6 @@ int oak_net_set_mac_addr(struct net_device *dev, void *p_addr)
 {
 	oak_t *np = netdev_priv(dev);
 	struct sockaddr *addr = p_addr;
-	u32 channel = 0;
 	int rc;
 
 	rc = is_valid_ether_addr(addr->sa_data);
@@ -641,11 +640,6 @@ int oak_net_set_mac_addr(struct net_device *dev, void *p_addr)
 		rc = netif_running(dev);
 
 		if (rc) {
-			while (channel < np->num_rx_chan) {
-				oak_unimac_set_rx_da(np, channel,
-						     dev->dev_addr, 1);
-				++channel;
-			}
 			rc = 0;
 		}
 	}

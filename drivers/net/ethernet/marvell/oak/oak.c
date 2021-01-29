@@ -32,6 +32,7 @@ static struct pci_device_id oak_pci_tbl[] = {
 	{PCI_DEVICE(0x11AB, 0xABCD)}, /* FPGA board */
 	{PCI_DEVICE(0x11AB, 0x0f13)},
 	{PCI_DEVICE(0x11AB, 0x0a72)}, /* Oak */
+	{0,} /* Terminate the table */
 };
 
 #ifdef CONFIG_PM_SLEEP
@@ -78,7 +79,7 @@ static const struct net_device_ops oak_netdev_ops = {
 };
 
 /* global variable declaration */
-u32 debug;
+u32 debug = 0;
 u32 txs = 2048;
 u32 rxs = 2048;
 int chan = MAX_NUM_OF_CHANNELS;
@@ -217,6 +218,9 @@ static int oak_init_software(struct pci_dev *pdev)
 		/* Set the min and max MTU size */
 		oak_set_mtu_config(netdev);
 		spin_lock_init(&oak->lock);
+
+		/* Assign random MAC address */
+		eth_hw_addr_random(netdev);
 	} else {
 		/* If software initialization fails then we need to release the
 		 * device and free allocated structure with retnval as ENOMEM
