@@ -25,7 +25,9 @@ tegra-dce-y += \
 	dce-ipc-signal.o \
 	dce-client-ipc.o \
 	dce-module.o \
-	dce-util-common.o \
+	dce-util-common.o
+
+tegra-dce-$(CONFIG_DEBUG_FS) += \
 	dce-debug.o
 
 ccflags-y += -I$(srctree.nvidia-t23x)/drivers/platform/tegra/dce/include
