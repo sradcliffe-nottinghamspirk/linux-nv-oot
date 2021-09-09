@@ -3,7 +3,7 @@
  * tegra_asoc_utils.c - Harmony machine ASoC driver
  *
  * Author: Stephen Warren <swarren@nvidia.com>
- * Copyright (c) 2010-2021 NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2010-2022 NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/clk.h>
@@ -28,6 +28,7 @@ enum rate_type {
 };
 unsigned int tegra210_pll_base_rate[NUM_RATE_TYPE] = {338688000, 368640000};
 unsigned int tegra186_pll_stereo_base_rate[NUM_RATE_TYPE] = {270950400, 294912000};
+unsigned int tegra239_pll_base_rate[NUM_RATE_TYPE] = {1264435200, 1277952000};
 unsigned int default_pll_out_stereo_rate[NUM_RATE_TYPE] = {45158400, 49152000};
 
 int tegra_asoc_utils_set_rate(struct tegra_asoc_utils_data *data, int srate,
@@ -350,6 +351,8 @@ int tegra_asoc_utils_init(struct tegra_asoc_utils_data *data,
 		data->soc = TEGRA_ASOC_UTILS_SOC_TEGRA194;
 	else if (of_machine_is_compatible("nvidia,tegra234"))
 		data->soc = TEGRA_ASOC_UTILS_SOC_TEGRA234;
+	else if (of_machine_is_compatible("nvidia,tegra239"))
+		data->soc = TEGRA_ASOC_UTILS_SOC_TEGRA239;
 	else {
 		dev_err(data->dev, "SoC unknown to Tegra ASoC utils\n");
 		return -EINVAL;
@@ -382,8 +385,11 @@ int tegra_asoc_utils_init(struct tegra_asoc_utils_data *data,
 
 	if (data->soc < TEGRA_ASOC_UTILS_SOC_TEGRA186)
 		data->pll_base_rate = tegra210_pll_base_rate;
-	else
+	else if (data->soc < TEGRA_ASOC_UTILS_SOC_TEGRA239)
 		data->pll_base_rate = tegra186_pll_stereo_base_rate;
+	else
+		data->pll_base_rate = tegra239_pll_base_rate;
+
 	/*
 	 * If clock parents are not set in DT, configure here to use clk_out_1
 	 * as mclk and extern1 as parent for Tegra30 and higher.

@@ -3,7 +3,7 @@
  * tegra_asoc_utils.h - Definitions for Tegra DAS driver
  *
  * Author: Stephen Warren <swarren@nvidia.com>
- * Copyright (c) 2010,2012-2021, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2010,2012-2022, NVIDIA CORPORATION.  All rights reserved.
  */
 
 #ifndef __TEGRA_ASOC_UTILS_H__
@@ -21,6 +21,7 @@ enum tegra_asoc_utils_soc {
 	TEGRA_ASOC_UTILS_SOC_TEGRA186,
 	TEGRA_ASOC_UTILS_SOC_TEGRA194,
 	TEGRA_ASOC_UTILS_SOC_TEGRA234,
+	TEGRA_ASOC_UTILS_SOC_TEGRA239,
 };
 
 struct tegra_asoc_utils_data {
