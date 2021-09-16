@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
-# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/gpu/host1x/hw/
@@ -52,6 +52,7 @@ obj-m += pinctrl/
 obj-m += platform/tegra/
 obj-m += pwm/
 obj-m += ras/
+obj-m += regulator/
 obj-m += rtc/
 obj-m += cpuidle/
 ifdef CONFIG_SCSI
