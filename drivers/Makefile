@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
-# SPDX-FileCopyrightText: Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/gpu/host1x/hw/
@@ -22,6 +22,7 @@ ifdef CONFIG_PM_DEVFREQ
 obj-m += devfreq/
 endif
 obj-m += firmware/tegra/
+obj-m += gpio/
 ifdef CONFIG_TEGRA_HOST1X
 obj-m += gpu/
 endif
