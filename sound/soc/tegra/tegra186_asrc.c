@@ -2,7 +2,7 @@
 //
 // tegra186_asrc.c - Tegra186 ASRC driver
 //
-// Copyright (c) 2015-2021, NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2015-2022, NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/delay.h>
@@ -25,7 +25,6 @@
 #include "tegra210_ahub.h"
 #include "tegra_cif.h"
 
-#define ASRC_ARAM_START_ADDR 0x3F800000
 #define RATIO_ARAD	0
 #define RATIO_SW	1
 
@@ -171,7 +170,7 @@ static int tegra186_asrc_runtime_resume(struct device *dev)
 	/* Set global starting address of the buffer in ARAM */
 	regmap_write(asrc->regmap,
 		TEGRA186_ASRC_GLOBAL_SCRATCH_ADDR,
-		ASRC_ARAM_START_ADDR);
+		asrc->soc_data->aram_start_addr);
 
 	regmap_write(asrc->regmap, TEGRA186_ASRC_GLOBAL_INT_MASK,
 		0x01);
@@ -1061,9 +1060,18 @@ static void tegra186_asrc_ahc_cb(void *data)
 }
 #endif
 
+static const struct tegra_asrc_soc_data soc_data_tegra186 = {
+	.aram_start_addr	= 0x3F800000,
+};
+
+static const struct tegra_asrc_soc_data soc_data_tegra239 = {
+	.aram_start_addr	= 0x70000000,
+};
+
 static const struct of_device_id tegra186_asrc_of_match[] = {
-	{ .compatible = "nvidia,tegra186-asrc" },
-	{ .compatible = "nvidia,tegra194-asrc" },
+	{ .compatible = "nvidia,tegra186-asrc", .data = &soc_data_tegra186 },
+	{ .compatible = "nvidia,tegra194-asrc", .data = &soc_data_tegra186 },
+	{ .compatible = "nvidia,tegra239-asrc", .data = &soc_data_tegra239 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra186_asrc_of_match);
@@ -1094,6 +1102,8 @@ static int tegra186_asrc_platform_probe(struct platform_device *pdev)
 		dev_err(dev, "regmap init failed\n");
 		return PTR_ERR(asrc->regmap);
 	}
+
+	asrc->soc_data = of_device_get_match_data(&pdev->dev);
 
 	regcache_cache_only(asrc->regmap, true);
 
