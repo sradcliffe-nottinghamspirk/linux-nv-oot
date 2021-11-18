@@ -513,7 +513,7 @@ static int tegra_admaif_get_control(struct snd_kcontrol *kcontrol,
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct soc_enum *ec = (struct soc_enum *)kcontrol->private_value;
 	struct tegra_admaif *admaif = snd_soc_component_get_drvdata(cmpnt);
-	long *uctl_val = &ucontrol->value.integer.value[0];
+	unsigned int *uctl_val = &ucontrol->value.enumerated.item[0];
 
 	if (strstr(kcontrol->id.name, "Playback Audio Channels"))
 		*uctl_val = admaif->audio_ch_override[ADMAIF_TX_PATH][mc->reg];
@@ -545,7 +545,7 @@ static int tegra_admaif_put_control(struct snd_kcontrol *kcontrol,
 	struct snd_soc_component *cmpnt = snd_soc_kcontrol_component(kcontrol);
 	struct soc_enum *ec = (struct soc_enum *)kcontrol->private_value;
 	struct tegra_admaif *admaif = snd_soc_component_get_drvdata(cmpnt);
-	int value = ucontrol->value.integer.value[0];
+	unsigned int value = ucontrol->value.enumerated.item[0];
 
 	if (strstr(kcontrol->id.name, "Playback Audio Channels"))
 		admaif->audio_ch_override[ADMAIF_TX_PATH][mc->reg] = value;
