@@ -1,7 +1,4 @@
 # SPDX-License-Identifier: GPL-2.0
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
-
-obj-m += watchdog/
-
+obj-m += softdog-platform.o
