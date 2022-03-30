@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef __CAPTURE_IVC_PRIV_H__
@@ -39,7 +39,11 @@ struct tegra_capture_ivc {
 	/** Channel write lock */
 	struct mutex ivc_wr_lock;
 	/** Deferred work */
-	struct work_struct work;
+	struct kthread_work work;
+	/** ivc worker thread **/
+	struct kthread_worker ivc_worker;
+	/** task struct **/
+	struct task_struct *ivc_kthread;
 	/** Channel work queue head */
 	wait_queue_head_t write_q;
 	/** Array holding callbacks registered by each channel */
@@ -82,10 +86,10 @@ static struct tegra_capture_ivc *__scivc_capture;
  * @brief Worker thread to handle the asynchronous msgs on the IVC channel.
 	This will further calls callbacks registered by Channel drivers.
  *
- * @param[in]	work	work_struct pointer
+ * @param[in]	work	kthread_work pointer
  */
 static void tegra_capture_ivc_worker(
-	struct work_struct *work);
+	struct kthread_work *work);
 
 /**
  * @brief Implementation of IVC notify operation which gets called when we any

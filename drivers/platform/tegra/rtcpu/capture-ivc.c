@@ -12,7 +12,9 @@
 #include <soc/tegra/ivc_ext.h>
 #include <linux/tegra-ivc-bus.h>
 #include <linux/nospec.h>
-
+#include <linux/kthread.h>
+#include <linux/sched.h>
+#include <linux/version.h>
 #include <asm/barrier.h>
 
 #include <trace/events/tegra_capture.h>
@@ -375,7 +377,7 @@ static inline void tegra_capture_ivc_recv(struct tegra_capture_ivc *civc)
 	}
 }
 
-static void tegra_capture_ivc_worker(struct work_struct *work)
+static void tegra_capture_ivc_worker(struct kthread_work *work)
 {
 	struct tegra_capture_ivc *civc;
 	struct tegra_ivc_channel *chan;
@@ -407,7 +409,7 @@ static void tegra_capture_ivc_notify(struct tegra_ivc_channel *chan)
 
 	/* Only 1 thread can wait on write_q, rest wait for write_lock */
 	wake_up(&civc->write_q);
-	schedule_work(&civc->work);
+	kthread_queue_work(&civc->ivc_worker, &civc->work);
 }
 
 #define NV(x) "nvidia," #x
@@ -436,8 +438,20 @@ static int tegra_capture_ivc_probe(struct tegra_ivc_channel *chan)
 	mutex_init(&civc->cb_ctx_lock);
 	mutex_init(&civc->ivc_wr_lock);
 
-	/* Initialize ivc_work */
-	INIT_WORK(&civc->work, tegra_capture_ivc_worker);
+	/* Initialize kworker */
+	kthread_init_work(&civc->work, tegra_capture_ivc_worker);
+
+	kthread_init_worker(&civc->ivc_worker);
+
+	civc->ivc_kthread = kthread_create(&kthread_worker_fn,
+			&civc->ivc_worker, service);
+	if (IS_ERR(civc->ivc_kthread)) {
+		dev_err(dev, "Cannot allocate ivc worker thread\n");
+		ret = PTR_ERR(civc->ivc_kthread);
+		goto err;
+	}
+	sched_set_fifo_low(civc->ivc_kthread);
+	wake_up_process(civc->ivc_kthread);
 
 	/* Initialize wait queue */
 	init_waitqueue_head(&civc->write_q);
@@ -453,26 +467,37 @@ static int tegra_capture_ivc_probe(struct tegra_ivc_channel *chan)
 	tegra_ivc_channel_set_drvdata(chan, civc);
 
 	if (!strcmp("capture-control", service)) {
-		if (WARN_ON(__scivc_control != NULL))
-			return -EEXIST;
+		if (WARN_ON(__scivc_control != NULL)) {
+			ret = -EEXIST;
+			goto err_service;
+		}
 		__scivc_control = civc;
 	} else if (!strcmp("capture", service)) {
-		if (WARN_ON(__scivc_capture != NULL))
-			return -EEXIST;
+		if (WARN_ON(__scivc_capture != NULL)) {
+			ret = -EEXIST;
+			goto err_service;
+		}
 		__scivc_capture = civc;
 	} else {
 		dev_err(dev, "Unknown ivc channel %s\n", service);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err_service;
 	}
 
 	return 0;
+
+err_service:
+	kthread_stop(civc->ivc_kthread);
+err:
+	return ret;
 }
 
 static void tegra_capture_ivc_remove(struct tegra_ivc_channel *chan)
 {
 	struct tegra_capture_ivc *civc = tegra_ivc_channel_get_drvdata(chan);
 
-	cancel_work_sync(&civc->work);
+	kthread_flush_worker(&civc->ivc_worker);
+	kthread_stop(civc->ivc_kthread);
 
 	if (__scivc_control == civc)
 		__scivc_control = NULL;
