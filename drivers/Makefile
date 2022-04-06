@@ -51,6 +51,7 @@ endif
 endif
 obj-m += pinctrl/
 obj-m += platform/tegra/
+obj-m += power/
 obj-m += pwm/
 obj-m += ras/
 obj-m += regulator/
