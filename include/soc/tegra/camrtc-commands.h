@@ -35,6 +35,35 @@
 #define CAMRTC_HSP_IRQ			MK_U32(0x00)
 
 /**
+ * Configure I2C controller. This will activate the given
+ * I2C controller and configure the base address of a shared memory
+ * buffer for subsequent I2C transfers. Buffer must be page aligned.
+ *
+ * param[23:20]	= I2C bus ID
+ * param[19:0]	= Bits [31:12] of shared memory buffer bus address
+ */
+#define CAMRTC_HSP_I2C_INIT		MK_U32(0x10)
+
+/**
+ * Configure I2C device address. This will set the slave device
+ * for subsequent I2C transfers.
+ *
+ * param[23:20]	= I2C bus ID
+ * param[10:10]	= 10-bit address flag
+ * param[9:0]	= device address
+ */
+#define CAMRTC_HSP_I2C_DEVICE		MK_U32(0x11)
+
+/**
+ * Perform I2C transfer. The same shared memory buffer will be used
+ * for send and receive. Either byte count may be set to zero.
+ *
+ * param[23:12]	= recv byte count
+ * param[11:0]	= send byte count
+ */
+#define CAMRTC_HSP_I2C_XFER		MK_U32(0x12)
+
+/**
  * The HELLO messages are exchanged at the beginning of VM and RCE FW session.
  * The HELLO message exchange ensures there are no unprocessed messages
  * in transit within VM or RCE FW.
@@ -123,6 +152,36 @@
  * between Camera VM and RCE FW.
  */
 #define RTCPU_CMD_CH_SETUP		MK_U32(6)
+
+/**
+ * Configure I2C controller. This will activate the given
+ * I2C controller and configure the base address of a shared memory
+ * buffer for subsequent I2C transfers. Buffer must be page aligned.
+ *
+ * param[23:20]	= I2C bus ID
+ * param[19:0]	= Bits [31:12] of shared memory buffer bus address
+ */
+#define RTCPU_CMD_I2C_INIT		MK_U32(0x10)
+
+/**
+ * Configure I2C device address. This will set the slave device
+ * for subsequent I2C transfers.
+ *
+ * param[23:20]	= I2C bus ID
+ * param[10:10]	= 10-bit address flag
+ * param[9:0]	= device address
+ */
+#define RTCPU_CMD_I2C_DEVICE		MK_U32(0x11)
+
+/**
+ * Perform I2C transfer. The same shared memory buffer will be used
+ * for send and receive. Either byte count may be set to zero.
+ *
+ * param[23:12]	= recv byte count
+ * param[11:0]	= send byte count
+ */
+#define RTCPU_CMD_I2C_XFER		MK_U32(0x12)
+
 #define RTCPU_CMD_RESERVED_5E		MK_U32(0x5E) /* bug 200395605 */
 #define RTCPU_CMD_RESERVED_7D		MK_U32(0x7d)
 #define RTCPU_CMD_RESERVED_7E		MK_U32(0x7e)
@@ -160,6 +219,16 @@
 
 #define RTCPU_RESUME_ERROR		MK_U32(0xFFFFFF)
 
+/** @} */
+
+/**
+ * @defgroup I2C HSP protocol responses
+ * @{
+ */
+#define RTCPU_I2C_DONE			 MK_U32(1)
+#define RTCPU_I2C_ERROR			 MK_U32(2)
+#define RTCPU_I2C_NACK			 MK_U32(3)
+#define RTCPU_I2C_ARBL			 MK_U32(4)
 /** @} */
 
 #endif /* INCLUDE_CAMRTC_COMMANDS_H */
