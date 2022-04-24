@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
+
+/dts-v1/;
+/plugin/;
+
+/ {
+        overlay-name = "Add nvidia,p3737-0000+p3701-0000 Overlay Support";
+        compatible = "nvidia,tegra234";
+};
