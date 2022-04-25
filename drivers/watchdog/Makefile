@@ -2,3 +2,4 @@
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 
 obj-m += softdog-platform.o
+obj-m += watchdog-tegra-t18x.o
