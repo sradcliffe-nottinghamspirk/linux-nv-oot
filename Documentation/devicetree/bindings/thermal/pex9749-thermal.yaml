@@ -31,10 +31,14 @@ additionalProperties: false
 
 examples:
   - |
-     i2c@3180000 {
-         pex9749: pex9749@5f {
-             compatible = "pex9749";
-             reg = <0x5f>;
-             #thermal-sensor-cells = <1>;
-         };
-     };
+    i2c@3180000 {
+        reg = <0x3180000 0x0>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        pex9749: pex9749@5f {
+           compatible = "pex9749";
+           reg = <0x5f>;
+           #thermal-sensor-cells = <1>;
+       };
+    };
+...
