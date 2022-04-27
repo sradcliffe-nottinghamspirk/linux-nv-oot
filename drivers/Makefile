@@ -3,6 +3,7 @@
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
+obj-m += hwmon/
 obj-m += mfd/
 obj-m += thermal/
 obj-m += watchdog/
