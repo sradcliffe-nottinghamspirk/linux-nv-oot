@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/hwmon/generic-pwm-tachometer.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Generic PWM based tachometer HW monitor driver
+
+maintainers:
+  - Laxman Dewangan <ldewangan@nvidia.com>
+
+description: |
+  Generic PWM based tachometer driver which captures the PWM signal and reports
+  the speed of the device which generates the PWM signal. This helps in monitor
+  the speed of fan.
+
+properties:
+  compatible:
+    enum:
+      - generic-pwm-tachometer
+
+  pwms:
+    maxItems: 1
+    description: |
+      This property contains the phandle of the PWM controller which capture the
+      PWM signal.
+
+required:
+  - compatible
+  - pwms
+
+additionalProperties: false
+
+examples:
+  - |
+    tegra_tachometer: tachometer@39c0000 {
+       reg = <0x39c0000 0x0>;
+       #pwm-cells = <2>;
+       /* Other properties of tachometer */
+    };
+
+    generic_pwm_tachometer {
+       compatible = "generic-pwm-tachometer";
+       pwms = <&tegra_tachometer 0 1000000>;
+    };
+...
