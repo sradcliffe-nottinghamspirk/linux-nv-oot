@@ -8,6 +8,7 @@ obj-m += mfd/
 obj-m += pinctrl/
 obj-m += platform/tegra/
 obj-m += pwm/
+obj-m += ras/
 obj-m += thermal/
 obj-m += watchdog/
 
