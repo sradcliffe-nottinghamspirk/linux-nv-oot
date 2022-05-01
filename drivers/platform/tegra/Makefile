@@ -2,4 +2,6 @@
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 
 obj-m += bad.o
-obj-m += cactmon.o
+tegra-cactmon-objs := cactmon.o
+tegra-cactmon-objs += actmon_common.o
+obj-m += tegra-cactmon.o
