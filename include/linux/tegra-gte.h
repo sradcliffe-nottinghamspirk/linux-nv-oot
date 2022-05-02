@@ -1,10 +1,11 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2020-2022, NVIDIA CORPORATION & AFFILIATES.All rights reserved.
+ *
+ * SPDX-License-Identifier: GPL-2.0
  */
 
-#ifndef _LINUX_TEGRA_GTE_ENGINE_H
-#define _LINUX_TEGRA_GTE_ENGINE_H
+#ifndef _TEGRA_GTE_H
+#define _TEGRA_GTE_H
 
 #include <linux/device.h>
 
@@ -21,7 +22,6 @@ struct tegra_gte_ev_detail {
 	int dir; /* direction of the event */
 };
 
-#ifdef CONFIG_TEGRA_HTS_GTE
 /*
  * GTE event registration function
  *
@@ -74,23 +74,4 @@ int tegra_gte_unregister_event(struct tegra_gte_ev_desc *desc);
 int tegra_gte_retrieve_event(const struct tegra_gte_ev_desc *desc,
 			     struct tegra_gte_ev_detail *hts);
 
-#else /* ! CONFIG_TEGRA_HTS_GTE */
-static inline struct tegra_gte_ev_desc *tegra_gte_register_event(
-					struct device_node *np, u32 ev_id)
-{
-	return ERR_PTR(-ENOSYS);
-}
-
-static inline int tegra_gte_unregister_event(struct tegra_gte_ev_desc *desc)
-{
-	return -ENOSYS;
-}
-
-static inline int tegra_gte_retrieve_event(const struct tegra_gte_ev_desc *desc,
-					   struct tegra_gte_ev_detail *hts)
-{
-	return -ENOSYS;
-}
-
-#endif /* ! CONFIG_TEGRA_HTS_GTE */
 #endif

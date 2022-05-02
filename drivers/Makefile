@@ -32,4 +32,6 @@ obj-m += watchdog/
 obj-m += video/tegra/
 obj-m += virt/tegra/
 obj-m += media/
+obj-m  += staging/platform/tegra/gte/
+obj-m += staging/platform/tegra/gte_test/
 
