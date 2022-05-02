@@ -4,6 +4,7 @@
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
 obj-m += hwmon/
+obj-m += i2c/busses/
 obj-m += mfd/
 obj-m += pinctrl/
 obj-m += platform/tegra/
