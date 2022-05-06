@@ -11,6 +11,7 @@ obj-m += platform/tegra/
 obj-m += pwm/
 obj-m += ras/
 obj-m += soc/tegra/
+obj-m += spi/
 obj-m += thermal/
 obj-m += watchdog/
 
