@@ -732,48 +732,6 @@ static ssize_t tegra_fuse_store(struct device *dev,
 	return count;
 }
 
-static ssize_t tegra_fuse_calc_h2_code(struct device *dev,
-	struct device_attribute *attr,
-	char *buf)
-{
-	u32 startrowindex, startbitindex;
-	u32 endrowindex, endbitindex;
-	u32 bitindex;
-	u32 rowindex;
-	u32 rowdata;
-	u32 hammingvalue = 0;
-	u32 pattern = 0x7ff;
-	u32 parity;
-	u32 hammingcode;
-
-	startrowindex = H2_START_MACRO_BIT_INDEX / 32;
-	startbitindex = H2_START_MACRO_BIT_INDEX % 32;
-	endrowindex = H2_END_MACRO_BIT_INDEX / 32;
-	endbitindex = H2_END_MACRO_BIT_INDEX % 32;
-
-	mutex_lock(&fuse_lock);
-	for (rowindex = startrowindex; rowindex <= endrowindex; rowindex++) {
-		rowdata = fuse_cmd_read(rowindex);
-		for (bitindex = 0; bitindex < 32; bitindex++) {
-			pattern++;
-			if ((rowindex == startrowindex) &&
-			    (bitindex < startbitindex))
-				continue;
-			if ((rowindex == endrowindex) &&
-			    (bitindex > endbitindex))
-				continue;
-			if ((rowdata >> bitindex) & 0x1)
-				hammingvalue ^= pattern;
-		}
-	}
-	mutex_unlock(&fuse_lock);
-	parity = tegra_fuse_calculate_parity(hammingvalue);
-	hammingcode = hammingvalue | (1 << 12) | ((parity ^ 1) << 13);
-	sprintf(buf, "0x%08x\n", hammingcode);
-
-	return strlen(buf);
-}
-
 #define TEGRA210_INT_CID 5
 #define TEGRA186_INT_CID 6
 #define TEGRA194_INT_CID 7
