@@ -13,4 +13,5 @@ obj-m += tegra-bootloader-debug.o
 tegra-cactmon-objs := cactmon.o
 tegra-cactmon-objs += actmon_common.o
 obj-m += tegra-cactmon.o
+obj-m += tegra-epl.o
 obj-m += tegra-fsicom.o
