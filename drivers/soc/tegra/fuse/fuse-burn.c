@@ -255,16 +255,6 @@ static void fuse_cmd_write(u32 value, u32 addr)
 	fuse_cmd_read(addr);
 }
 
-static u32 tegra_fuse_calculate_parity(u32 val)
-{
-	u32 i, p = 0;
-
-	for (i = 0; i < 32; i++)
-		p ^= ((val >> i) & 1);
-
-	return p;
-}
-
 static inline int tegra_fuse_acquire_burn_lock(
 			struct tegra_fuse_burn_dev *fuse_dev)
 {
