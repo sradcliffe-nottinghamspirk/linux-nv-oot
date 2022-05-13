@@ -14,4 +14,5 @@ obj-m += soc/tegra/
 obj-m += spi/
 obj-m += thermal/
 obj-m += watchdog/
+obj-m += video/tegra/
 
