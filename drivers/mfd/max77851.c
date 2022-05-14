@@ -193,6 +193,8 @@ static int max77851_config_master_fps(struct max77851_chip *chip)
 		return ret;
 	}
 
+	chip->sleep_on_suspend = of_property_read_bool(np, "maxim,sleep-on-suspend");
+
 	ret = of_property_read_u32(np, "maxim,sleep-exit-slot-period-us", &pval);
 	chip->fps_master_slpx_slot_period = (!ret) ? pval : FPS_PERIOD_4KHZ_050US;
 
@@ -581,11 +583,13 @@ static int max77851_i2c_suspend(struct device *dev)
 	struct i2c_client *client = to_i2c_client(dev);
 	int ret;
 
-	/* FPS on -> sleep */
-	ret = regmap_write(chip->rmap, FPS_SW_REG, FPS_SW_SLP);
-	if (ret < 0) {
-		dev_err(dev, "Reg 0x%02x write failed, %d\n", FPS_SW_REG, ret);
-		return ret;
+	if (chip->sleep_on_suspend) {
+		/* FPS on -> sleep */
+		ret = regmap_write(chip->rmap, FPS_SW_REG, FPS_SW_SLP);
+		if (ret < 0) {
+			dev_err(dev, "Reg 0x%02x write failed, %d\n", FPS_SW_REG, ret);
+			return ret;
+		}
 	}
 
 	disable_irq(client->irq);
@@ -599,11 +603,13 @@ static int max77851_i2c_resume(struct device *dev)
 	struct i2c_client *client = to_i2c_client(dev);
 	int ret;
 
-	/* FPS sleep -> on */
-	ret = regmap_write(chip->rmap, FPS_SW_REG, FPS_SW_ON);
-	if (ret < 0) {
-		dev_err(dev, "Reg 0x%02x write failed, %d\n", FPS_SW_REG, ret);
-		return ret;
+	if (chip->sleep_on_suspend) {
+		/* FPS sleep -> on */
+		ret = regmap_write(chip->rmap, FPS_SW_REG, FPS_SW_ON);
+		if (ret < 0) {
+			dev_err(dev, "Reg 0x%02x write failed, %d\n", FPS_SW_REG, ret);
+			return ret;
+		}
 	}
 
 	enable_irq(client->irq);

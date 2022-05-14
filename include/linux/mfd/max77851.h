@@ -1704,6 +1704,7 @@ struct max77851_chip {
 
 	bool sleep_enable;
 	bool enable_global_lpm;
+	bool sleep_on_suspend;
 
 	unsigned int fps_master_pd_slot_period;
 	unsigned int fps_master_pu_slot_period;
