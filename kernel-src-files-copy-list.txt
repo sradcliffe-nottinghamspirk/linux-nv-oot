@@ -1,0 +1,5 @@
+#files/directory for the nvsciipc module
+copy_dir nvidia/drivers/misc/nvsciipc drivers/misc/nvsciipc
+copy_file nvidia/include/linux/nvscierror.h include/linux/nvscierror.h
+copy_file nvidia/include/linux/nvsciipc_interface.h include/linux/nvsciipc_interface.h
+copy_file nvidia/include/uapi/linux/nvsciipc_ioctl.h include/uapi/linux/nvsciipc_ioctl.h
