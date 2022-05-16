@@ -10,3 +10,8 @@ copy_file nvidia/include/linux/nvmap.h include/linux/nvmap.h
 copy_file nvidia/include/linux/nvmap_t19x.h include/linux/nvmap_t19x.h
 copy_file nvidia/include/trace/events/nvmap.h include/trace/events/nvmap.h
 copy_file nvidia/include/uapi/linux/nvmap.h include/uapi/linux/nvmap.h
+
+# Files/directories for cvnas module
+copy_dir nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra/cvnas
+copy_file nvidia/include/linux/cvnas.h include/linux/cvnas.h
+copy_file nvidia/include/soc/tegra/fuse-helper.h include/soc/tegra/fuse-helper.h
