@@ -24,3 +24,9 @@ copy_dir nvidia/drivers/gpu/host1x-nvhost drivers/gpu/host1x-nvhost
 copy_file nvidia/drivers/gpu/host1x/include/linux/host1x-next.h include/linux/host1x-next.h
 copy_file nvidia/include/linux/nvhost.h include/linux/nvhost.h
 copy_file nvidia/include/uapi/linux/nvdev_fence.h include/uapi/linux/nvdev_fence.h
+
+# Files/directories for NVDLA
+copy_dir nvidia/drivers/video/tegra/host/nvdla drivers/video/tegra/host/nvdla
+copy_file nvidia/include/linux/arm64-barrier.h include/linux/arm64-barrier.h
+copy_file nvidia/include/uapi/linux/nvhost_nvdla_ioctl.h include/uapi/linux/nvhost_nvdla_ioctl.h
+copy_file nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioctl.h
