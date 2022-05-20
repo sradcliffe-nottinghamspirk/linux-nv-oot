@@ -30,3 +30,6 @@ copy_dir nvidia/drivers/video/tegra/host/nvdla drivers/video/tegra/host/nvdla
 copy_file nvidia/include/linux/arm64-barrier.h include/linux/arm64-barrier.h
 copy_file nvidia/include/uapi/linux/nvhost_nvdla_ioctl.h include/uapi/linux/nvhost_nvdla_ioctl.h
 copy_file nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioctl.h
+
+# Files/directories for DRM
+copy_dir nvidia/drivers/gpu/drm/tegra drivers/gpu/drm/tegra
