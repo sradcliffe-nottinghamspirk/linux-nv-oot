@@ -33,3 +33,9 @@ copy_file nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioc
 
 # Files/directories for DRM
 copy_dir nvidia/drivers/gpu/drm/tegra drivers/gpu/drm/tegra
+
+# Files/directories for NVGPU
+copy_dir nvgpu/drivers/gpu/nvgpu drivers/gpu/nvgpu
+copy_dir nvgpu/include include
+copy_dir nvgpu/nvsched nvsched
+copy_file nvidia/drivers/video/tegra/nvmap/include/linux/nvmap_exports.h include/linux/nvmap_exports.h
