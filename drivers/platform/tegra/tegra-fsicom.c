@@ -11,6 +11,7 @@
 #include <linux/kdev_t.h>
 #include <linux/mailbox_client.h>
 #include <linux/sched/signal.h>
+#include <linux/version.h>
 #include <uapi/linux/tegra-fsicom.h>
 
 
@@ -253,6 +254,10 @@ static struct platform_driver fsicom_client = {
 };
 
 module_platform_driver(fsicom_client);
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(5, 15, 0)
+MODULE_IMPORT_NS(DMA_BUF);
+#endif
 
 MODULE_DESCRIPTION("FSI-CCPLEX-COM driver");
 MODULE_AUTHOR("Prashant Shaw <pshaw@nvidia.com>");
