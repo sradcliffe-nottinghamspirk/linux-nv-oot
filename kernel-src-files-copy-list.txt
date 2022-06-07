@@ -39,3 +39,7 @@ copy_dir nvgpu/drivers/gpu/nvgpu drivers/gpu/nvgpu
 copy_dir nvgpu/include include
 copy_dir nvgpu/nvsched nvsched
 copy_file nvidia/drivers/video/tegra/nvmap/include/linux/nvmap_exports.h include/linux/nvmap_exports.h
+
+# Files/directories for PODGOV
+copy_dir nvidia/drivers/devfreq drivers/devfreq
+copy_file nvidia/include/trace/events/nvhost_podgov.h include/trace/events/nvhost_podgov.h
