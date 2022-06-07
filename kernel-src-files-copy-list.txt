@@ -43,3 +43,8 @@ copy_file nvidia/drivers/video/tegra/nvmap/include/linux/nvmap_exports.h include
 # Files/directories for PODGOV
 copy_dir nvidia/drivers/devfreq drivers/devfreq
 copy_file nvidia/include/trace/events/nvhost_podgov.h include/trace/events/nvhost_podgov.h
+
+# Files/directories for NVPVA
+copy_dir nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host/pva
+copy_file nvidia/include/trace/events/nvhost_pva.h include/trace/events/nvhost_pva.h
+copy_file nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
