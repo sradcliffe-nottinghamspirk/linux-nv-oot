@@ -331,8 +331,6 @@ static int max77851_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	u8 data[RTC_NR_TIME];
 	int ret;
 
-	struct rtc_time read_tm;
-
 	ret = max77851_rtc_tm_to_data(tm, data, info);
 	if (ret < 0)
 		return ret;
@@ -350,8 +348,6 @@ static int max77851_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	ret = max77851_rtc_update(info, MAX77851_RTC_WRITE);
 
 	ret = max77851_rtc_update(info, MAX77851_RTC_READ);
-
-	max77851_rtc_read_time(dev, &read_tm);
 
 out:
 	mutex_unlock(&info->lock);
