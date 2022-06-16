@@ -244,7 +244,11 @@ ret:
 	spin_lock_irqsave(&aurix_data->lock, flags);
 	aurix_data->exited = true;
 	spin_unlock_irqrestore(&aurix_data->lock, flags);
-	do_exit(err);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+	complete_and_exit(NULL, err);
+#else
+	kthread_complete_and_exit(NULL, err);
+#endif
 }
 
 static const struct of_device_id aurix_tegra_ids[] = {
