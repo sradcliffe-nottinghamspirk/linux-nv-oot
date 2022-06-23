@@ -9,7 +9,7 @@ cmd_and_fixdep =                                                             \
 	$(objtree)/scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd;\
 	rm -f $(depfile)
 
-include $(srctree)/scripts/Makefile.lib
+include $(oottree)/scripts/Makefile.lib
 
 oot-dtstree = $(oottree)/arch/arm64/boot/dts/nvidia
 
@@ -25,6 +25,8 @@ include $(dts_mfiles)
 dtb-y := $(addprefix nvidia/,$(dtb-y))
 dtbo-y := $(addprefix nvidia/,$(dtbo-y))
 endif
+
+DTC_INCLUDE := $(oottree)/include
 
 DTB_LIST += $(dtb-y)
 DTBO_LIST += $(dtbo-y)
