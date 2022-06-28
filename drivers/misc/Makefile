@@ -2,3 +2,4 @@
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 
 obj-m += nvsciipc/
+obj-m += tegra-pcie-dma-test.o
