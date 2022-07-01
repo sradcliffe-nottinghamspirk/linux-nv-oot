@@ -72,8 +72,22 @@ struct host1x_fence_extract {
 	__u32 reserved[2];
 };
 
+struct host1x_create_pollfd {
+	__s32 fd;
+	__u32 reserved;
+};
+
+struct host1x_trigger_pollfd {
+	__s32 fd;
+	__u32 id;
+	__u32 threshold;
+	__u32 reserved;
+};
+
 #define HOST1X_IOCTL_CREATE_FENCE        _IOWR('X', 0x02, struct host1x_create_fence)
 #define HOST1X_IOCTL_FENCE_EXTRACT       _IOWR('X', 0x05, struct host1x_fence_extract)
+#define HOST1X_IOCTL_CREATE_POLLFD       _IOWR('X', 0x10, struct host1x_create_pollfd)
+#define HOST1X_IOCTL_TRIGGER_POLLFD      _IOWR('X', 0x11, struct host1x_trigger_pollfd)
 
 #if defined(__cplusplus)
 }
