@@ -1398,7 +1398,11 @@ static void pcie_dma_epf_write_msi_msg(struct msi_desc *desc,
 	struct pcie_epf_bar0 *epf_bar0 = (struct pcie_epf_bar0 *)
 							gepfnv->bar0_virt;
 	struct device *cdev = msi_desc_to_dev(desc);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 	int idx = desc->platform.msi_index;
+#else
+	int idx = desc->msi_index;
+#endif
 
 	epf_bar0->msi_data[idx] = msg->data;
 	dev_info(cdev, "%s: MSI idx: %d data: %d\n", __func__, idx, msg->data);
@@ -1446,7 +1450,7 @@ static int pcie_dma_epf_msi_init(struct pci_epf *epf)
 	int ret;
 
 	/* LL DMA in sanity test will not work without MSI for EP */
-	if (!cdev->msi_domain) {
+	if (!dev_get_msi_domain(cdev)) {
 		dev_info(fdev, "msi_domain absent, no interrupts\n");
 		return 0;
 	}
@@ -1458,8 +1462,13 @@ static int pcie_dma_epf_msi_init(struct pci_epf *epf)
 		return ret;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 	for_each_msi_entry(desc, cdev) {
 		switch (desc->platform.msi_index) {
+#else
+	msi_for_each_desc(desc, cdev, MSI_DESC_ALL) {
+		switch (desc->msi_index) {
+#endif
 		case 0:
 			ret = request_irq(desc->irq, pcie_dma_epf_wr0_msi, 0,
 					  "pcie_dma_wr0", epfnv);
@@ -1514,12 +1523,16 @@ static void pcie_dma_epf_msi_deinit(struct pci_epf *epf)
 	struct msi_desc *desc;
 
 	/* LL DMA in sanity test will not work without MSI for EP */
-	if (!cdev->msi_domain) {
+	if (!dev_get_msi_domain(cdev)) {
 		dev_info(fdev, "msi_domain absent, no interrupts\n");
 		return;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 	for_each_msi_entry(desc, cdev)
+#else
+	msi_for_each_desc(desc, cdev, MSI_DESC_ALL)
+#endif
 		free_irq(desc->irq, epfnv);
 
 	platform_msi_domain_free_irqs(cdev);
