@@ -5,6 +5,7 @@
 #
 GCOV_PROFILE := y
 
+ccflags-y += -I$(srctree.nvidia)/drivers/platform/tegra/dce/include
 ccflags-y += -Wno-multichar
 ccflags-y += -Werror
 ccflags-y += -Wno-error=cpp
@@ -39,7 +40,7 @@ tegra-dce-$(CONFIG_TEGRA_DCE) += \
 
 ifeq ($(CONFIG_DEBUG_FS),y)
 tegra-dce-$(CONFIG_TEGRA_DCE) += \
-	dce-debug.o
+	dce-debug.o \
+	dce-admin-debug.o \
+	dce-debug-perf.o
 endif
-
-ccflags-y += -I$(srctree.nvidia-t23x)/drivers/platform/tegra/dce/include
