@@ -4,6 +4,7 @@
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
 obj-m += devfreq/
+obj-m += dma/
 obj-m += gpu/
 obj-m += hwmon/
 obj-m += i2c/busses/
