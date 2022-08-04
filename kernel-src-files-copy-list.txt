@@ -48,3 +48,7 @@ copy_file nvidia/include/trace/events/nvhost_podgov.h include/trace/events/nvhos
 copy_dir nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host/pva
 copy_file nvidia/include/trace/events/nvhost_pva.h include/trace/events/nvhost_pva.h
 copy_file nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
+
+# Files/directories for MODS
+copy_dir nvidia/drivers/misc/mods drivers/misc/mods
+copy_file nvidia/include/uapi/misc/mods.h include/uapi/misc/mods.h
