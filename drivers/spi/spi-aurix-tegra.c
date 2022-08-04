@@ -370,10 +370,17 @@ static int aurix_tegra_start_kthread(struct device *dev)
 /*
  * remove, shutdown, suspend, resume functions
  */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 static int aurix_tegra_spi_remove(struct spi_device *spi)
 {
 	return aurix_tegra_stop_kthread(&spi->dev);
 }
+#else
+static void aurix_tegra_spi_remove(struct spi_device *spi)
+{
+	aurix_tegra_stop_kthread(&spi->dev);
+}
+#endif
 
 static void aurix_tegra_spi_shutdown(struct spi_device *spi)
 {
