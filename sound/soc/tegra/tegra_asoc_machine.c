@@ -476,11 +476,11 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 					goto cleanup;
 			}
 
-			dai_link->dai_fmt =
-				snd_soc_of_parse_daifmt(link_node, NULL,
-							NULL, NULL);
+			asoc_simple_parse_daifmt(&pdev->dev, link_node, codec,
+						 NULL, &dai_link->dai_fmt);
 
-			asoc_simple_canonicalize_platform(dai_link);
+			asoc_simple_canonicalize_platform(dai_link->platforms,
+							  dai_link->cpus);
 
 			of_property_read_u32(link_node, "link-type",
 					     &link_type);
