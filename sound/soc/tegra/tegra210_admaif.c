@@ -655,9 +655,16 @@ static int tegra210_admaif_put_reg_dump(struct snd_kcontrol *kcontrol,
 	admaif->reg_dump_flag = ucontrol->value.integer.value[0];
 
 	if (admaif->reg_dump_flag) {
-#if IS_ENABLED(CONFIG_TEGRA210_ADMA)
-		tegra_adma_dump_ch_reg();
-#endif
+		/*
+		 * Below call is implemented by downstream ADMA driver.
+		 * For Kernel OOT this causes build errors since upstream
+		 * ADMA driver is used there. Disable below call for now
+		 * until future for this is decided (Bug 3798682).
+		 */
+//#if IS_ENABLED(CONFIG_TEGRA210_ADMA)
+//		tegra_adma_dump_ch_reg();
+//#endif
+
 		tegra_admaif_reg_dump(cmpnt->dev);
 	}
 
