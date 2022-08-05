@@ -14,7 +14,9 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regmap.h>
+#ifdef CONFIG_TEGRA186_AHC
 #include <linux/tegra186_ahc.h>
+#endif
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
