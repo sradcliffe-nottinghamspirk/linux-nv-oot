@@ -19,14 +19,9 @@
 #include <linux/module.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
-#include <linux/platform/tegra/isomgr.h>
-#include <linux/platform/tegra/latency_allowance.h>
 #include "tegra_isomgr_bw.h"
-#include <soc/tegra/fuse.h>
 #include <linux/interconnect.h>
-#ifdef CONFIG_ARCH_TEGRA_23x_SOC
 #include <dt-bindings/interconnect/tegra_icc_id.h>
-#endif
 
 #define MAX_BW	393216 /*Maximum KiloByte*/
 #define MAX_DEV_NUM 256
@@ -36,63 +31,9 @@ static struct adma_isomgr {
 	bool device_number[MAX_DEV_NUM];
 	int bw_per_device[MAX_DEV_NUM];
 	struct mutex mutex;
-	/* iso manager handle */
-	tegra_isomgr_handle isomgr_handle;
 	/* icc_path handle handle */
 	struct icc_path *icc_path_handle;
 } *adma;
-
-#if IS_ENABLED(CONFIG_TEGRA_ISOMGR) && IS_ENABLED(CONFIG_NV_TEGRA_MC)
-static long tegra_adma_calc_min_bandwidth(void)
-{
-	int max_srate = 192; /*Khz*/
-	int max_bpp = 4; /* Bytes per sample*/
-	int slot = 8; /* Max Channel per stream*/
-	int num_streams = 4; /* Min simultaneous usecase consideration*/
-	long min_bw;
-
-	min_bw = max_srate * max_bpp * slot * num_streams;
-
-	return min_bw;
-}
-
-void tegra_isomgr_adma_renegotiate(void *p, u32 avail_bw)
-{
-	/* For Audio usecase there is no possibility of renegotiation
-	 * as it may lead to glitches. So currently dummy renegotiate call
-	 * is added to support bandwidth request more than registered bw which
-	 * got initialized during register call
-	 */
-}
-
-static int adma_isomgr_request(uint adma_bw, uint lt)
-{
-	int ret;
-
-	if (!adma->isomgr_handle) {
-		pr_err("%s: adma iso handle not initialized\n", __func__);
-		return -1;
-	}
-
-	/* return value of tegra_isomgr_reserve is dvfs latency in usec */
-	ret = tegra_isomgr_reserve(adma->isomgr_handle,
-				adma_bw,	/* KB/sec */
-				lt);	/* usec */
-	if (!ret) {
-		pr_err("%s: failed to reserve %u KBps\n", __func__, adma_bw);
-		return -1;
-	}
-
-	/* return value of tegra_isomgr_realize is dvfs latency in usec */
-	ret = tegra_isomgr_realize(adma->isomgr_handle);
-	if (!ret) {
-		pr_err("%s: failed to realize %u KBps\n", __func__, adma_bw);
-		return -1;
-	}
-
-	return 0;
-}
-#endif
 
 void tegra_isomgr_adma_setbw(struct snd_pcm_substream *substream,
 				bool is_running)
@@ -149,24 +90,6 @@ void tegra_isomgr_adma_setbw(struct snd_pcm_substream *substream,
 	if (adma->icc_path_handle)
 		icc_set_bw(adma->icc_path_handle, adma->current_bandwidth,
 			   adma->current_bandwidth);
-
-#if IS_ENABLED(CONFIG_TEGRA_ISOMGR) && IS_ENABLED(CONFIG_NV_TEGRA_MC)
-	if (adma->isomgr_handle) {
-		int ret;
-
-		ret = adma_isomgr_request(adma->current_bandwidth, 1000);
-		if (!ret) {
-			/* Call LA/PTSA driver which will configure the
-			 * Memory controller to support APEDMA's new BW
-			 * requirement in MBps
-			 */
-			ret = tegra_set_latency_allowance(TEGRA_LA_APEDMAW,
-					((adma->current_bandwidth + 999)/1000));
-			if (ret)
-				pr_err("%s: LA/PTSA config Failed\n", __func__);
-		}
-	}
-#endif
 }
 EXPORT_SYMBOL(tegra_isomgr_adma_setbw);
 
@@ -179,47 +102,20 @@ void tegra_isomgr_adma_register(struct device *dev)
 	}
 
 	adma->current_bandwidth = 0;
-	adma->isomgr_handle = NULL;
 	adma->icc_path_handle = NULL;
 	memset(&adma->device_number, 0, sizeof(bool) * MAX_DEV_NUM);
 	memset(&adma->bw_per_device, 0, sizeof(int) * MAX_DEV_NUM);
 
 	mutex_init(&adma->mutex);
 
-	switch (tegra_get_chip_id()) {
-	case TEGRA210:
-		/* No Support added for T210 */
+	adma->icc_path_handle = icc_get(dev, TEGRA_ICC_APEDMA,
+					TEGRA_ICC_PRIMARY);
+
+	if (IS_ERR(adma->icc_path_handle)) {
+		pr_err("%s: Failed to register Interconnect. err=%ld\n",
+		__func__, PTR_ERR(adma->icc_path_handle));
+		adma->icc_path_handle = NULL;
 		tegra_isomgr_adma_unregister(dev);
-		break;
-	case TEGRA186:
-	case TEGRA194:
-#if IS_ENABLED(CONFIG_TEGRA_ISOMGR) && IS_ENABLED(CONFIG_NV_TEGRA_MC)
-		/* Register the required BW for adma usecases.*/
-		adma->isomgr_handle = tegra_isomgr_register(
-					TEGRA_ISO_CLIENT_APE_ADMA,
-					tegra_adma_calc_min_bandwidth(),
-					tegra_isomgr_adma_renegotiate,
-					adma);
-		if (IS_ERR(adma->isomgr_handle)) {
-			pr_err(
-			"%s: Failed to register adma isomgr client. err=%ld\n",
-			__func__, PTR_ERR(adma->isomgr_handle));
-			adma->isomgr_handle = NULL;
-			tegra_isomgr_adma_unregister(dev);
-		}
-#endif
-		break;
-	default:
-#ifdef CONFIG_ARCH_TEGRA_23x_SOC
-		adma->icc_path_handle = icc_get(dev, TEGRA_ICC_APEDMA,
-						TEGRA_ICC_PRIMARY);
-#endif
-		if (IS_ERR(adma->icc_path_handle)) {
-			pr_err("%s: Failed to register Interconnect. err=%ld\n",
-			__func__, PTR_ERR(adma->icc_path_handle));
-			adma->icc_path_handle = NULL;
-			tegra_isomgr_adma_unregister(dev);
-		}
 	}
 }
 EXPORT_SYMBOL(tegra_isomgr_adma_register);
@@ -235,13 +131,6 @@ void tegra_isomgr_adma_unregister(struct device *dev)
 		icc_put(adma->icc_path_handle);
 		adma->icc_path_handle = NULL;
 	}
-
-#if IS_ENABLED(CONFIG_TEGRA_ISOMGR) && IS_ENABLED(CONFIG_NV_TEGRA_MC)
-	if (adma->isomgr_handle) {
-		tegra_isomgr_unregister(adma->isomgr_handle);
-		adma->isomgr_handle = NULL;
-	}
-#endif
 
 	kfree(adma);
 	adma = NULL;
