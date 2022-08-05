@@ -443,7 +443,7 @@ static struct snd_soc_dai_driver tegra186_dspk_dais[] = {
 			   SNDRV_PCM_FMTBIT_S32_LE,
 	    },
 	    .ops = &tegra186_dspk_dai_ops,
-	    .symmetric_rates = 1,
+	    .symmetric_rate = 1,
 	},
 	/* The second DAI is used when the output of the DSPK is connected
 	 * to two mono codecs. When the output of the DSPK is connected to
@@ -475,7 +475,7 @@ static struct snd_soc_dai_driver tegra186_dspk_dais[] = {
 		.formats = SNDRV_PCM_FMTBIT_S16_LE |
 			   SNDRV_PCM_FMTBIT_S32_LE,
 	    },
-	    .symmetric_rates = 1,
+	    .symmetric_rate = 1,
 	},
 	{
 	    .name = "DUMMY_SINK",
