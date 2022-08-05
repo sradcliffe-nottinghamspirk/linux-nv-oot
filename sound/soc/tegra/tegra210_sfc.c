@@ -18,9 +18,10 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
+
 #include "tegra210_ahub.h"
 #include "tegra210_sfc.h"
-#include "tegra_cif.h"
 
 static const struct reg_default tegra210_sfc_reg_defaults[] = {
 	{ TEGRA210_SFC_RX_INT_MASK, 0x00000001},

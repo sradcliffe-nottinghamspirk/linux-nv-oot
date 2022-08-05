@@ -16,7 +16,8 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include "tegra210_dmic.h"
-#include "tegra_cif.h"
+
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
 
 static const struct reg_default tegra210_dmic_reg_defaults[] = {
 	{ TEGRA210_DMIC_TX_INT_MASK, 0x00000001 },

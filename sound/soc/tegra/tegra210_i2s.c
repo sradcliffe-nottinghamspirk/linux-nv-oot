@@ -14,8 +14,10 @@
 #include <sound/core.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
+
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
+
 #include "tegra210_i2s.h"
-#include "tegra_cif.h"
 
 #if IS_ENABLED(CONFIG_TEGRA_DPCM)
 #define TEGRA_PLAYBACK_STREAM	SNDRV_PCM_STREAM_PLAYBACK

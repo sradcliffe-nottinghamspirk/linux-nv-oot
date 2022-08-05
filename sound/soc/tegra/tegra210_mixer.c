@@ -18,9 +18,10 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
+
 #include "tegra210_ahub.h"
 #include "tegra210_mixer.h"
-#include "tegra_cif.h"
 
 #define MIXER_RX_REG(reg, id) (reg + (id * TEGRA210_MIXER_RX_STRIDE))
 #define MIXER_TX_REG(reg, id) (reg + (id * TEGRA210_MIXER_TX_STRIDE))

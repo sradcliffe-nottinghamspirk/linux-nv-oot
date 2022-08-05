@@ -15,8 +15,10 @@
 #include <sound/core.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
+
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
+
 #include "tegra186_dspk.h"
-#include "tegra_cif.h"
 
 static const struct reg_default tegra186_dspk_reg_defaults[] = {
 	{ TEGRA186_DSPK_RX_INT_MASK, 0x00000007 },

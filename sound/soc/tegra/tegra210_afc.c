@@ -18,9 +18,10 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
+
 #include "tegra210_afc.h"
 #include "tegra210_ahub.h"
-#include "tegra_cif.h"
 
 static const struct reg_default tegra210_afc_reg_defaults[] = {
 	{ TEGRA210_AFC_AXBAR_RX_CIF_CTRL, 0x00007700},

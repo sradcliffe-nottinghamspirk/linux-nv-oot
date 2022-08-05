@@ -13,10 +13,12 @@
 #include <linux/regmap.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
+
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
+#include <drivers-private/sound/soc/tegra/tegra_pcm.h>
+
 #include "tegra210_admaif.h"
-#include "tegra_cif.h"
 #include "tegra_isomgr_bw.h"
-#include "tegra_pcm.h"
 
 #define CH_REG(offset, reg, id)						       \
 	((offset) + (reg) + (TEGRA_ADMAIF_CHANNEL_REG_STRIDE * (id)))

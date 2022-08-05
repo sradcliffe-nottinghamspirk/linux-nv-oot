@@ -20,9 +20,10 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
+#include <drivers-private/sound/soc/tegra/tegra_cif.h>
+
 #include "tegra186_arad.h"
 #include "tegra186_asrc.h"
-#include "tegra_cif.h"
 
 static struct device *arad_dev;
 
