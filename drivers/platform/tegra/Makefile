@@ -17,3 +17,4 @@ obj-m += tegra-epl.o
 obj-m += tegra-fsicom.o
 
 obj-m += cvnas/
+obj-m += hwpm/
