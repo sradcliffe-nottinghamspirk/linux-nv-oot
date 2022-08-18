@@ -3,6 +3,14 @@
 /dts-v1/;
 /plugin/;
 
+#include <dt-bindings/clock/tegra234-clock.h>
+#include <dt-bindings/clock/tegra234-clock-oot.h>
+#include <dt-bindings/reset/tegra234-reset.h>
+#include <dt-bindings/reset/tegra234-reset-oot.h>
+#include <dt-bindings/memory/tegra234-mc.h>
+#include <dt-bindings/memory/tegra234-mc-oot.h>
+#include <dt-bindings/memory/tegra234-smmu-streamid.h>
+
 / {
         overlay-name = "Add nvidia,p3737-0000+p3701-0000 Overlay Support";
         compatible = "nvidia,tegra234";
