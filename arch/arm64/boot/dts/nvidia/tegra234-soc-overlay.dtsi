@@ -11,6 +11,7 @@
 #include <dt-bindings/memory/tegra234-smmu-streamid.h>
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/gpio/tegra234-gpio.h>
 
 / {
 	overlay-name = "Add nvidia,p3737-0000+p3701-0000 Overlay Support";
@@ -285,6 +286,18 @@
 						<0x0 0x0E190000 0x0 0x00010000>,
 						<0x0 0x0E1A0000 0x0 0x00010000>,
 						<0x0 0x0E1B0000 0x0 0x00010000>;
+				status = "okay";
+			};
+		};
+	};
+
+	fragment-t234@4 {
+		target-path = "/";
+		__overlay__ {
+			scf-pmu {
+				compatible = "nvidia,scf-pmu";
+				interrupts = <GIC_SPI 551 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-affinity = <&cpu0_0>;
 				status = "okay";
 			};
 		};

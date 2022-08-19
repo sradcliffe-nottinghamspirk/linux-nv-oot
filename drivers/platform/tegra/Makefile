@@ -19,3 +19,4 @@ obj-m += tegra-fsicom.o
 obj-m += cvnas/
 obj-m += hwpm/
 obj-m += mce/
+obj-m += uncore_pmu/
