@@ -4,3 +4,4 @@
 obj-m += mods/
 obj-m += nvsciipc/
 obj-m += tegra-pcie-dma-test.o
+obj-m += bluedroid_pm.o
