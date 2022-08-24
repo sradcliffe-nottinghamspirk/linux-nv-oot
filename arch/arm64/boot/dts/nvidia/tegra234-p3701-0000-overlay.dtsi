@@ -2,11 +2,8 @@
 // Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 
 
-/dts-v1/;
-/plugin/;
-
-#include "tegra234-p3737-0000-overlay.dtsi"
-#include "tegra234-p3701-0000-overlay.dtsi"
+#include "tegra234-soc-overlay.dtsi"
 
 / {
+
 };
