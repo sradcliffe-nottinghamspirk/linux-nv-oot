@@ -63,6 +63,19 @@
 
 				status = "okay";
 			};
+
+			serial@3110000 {
+				compatible = "nvidia,tegra194-hsuart";
+				reg = <0x03110000 0x10000>;
+				reg-shift = <2>;
+				interrupts = <0 113 0x04>;
+				clocks = <&bpmp TEGRA234_CLK_UARTB>,
+					 <&bpmp TEGRA234_CLK_PLLP_OUT0>;
+				clock-names = "serial", "parent";
+				resets = <&bpmp TEGRA234_RESET_UARTB>;
+				reset-names = "serial";
+				status = "okay";
+			};
 		};
 	};
 
@@ -120,6 +133,15 @@
 				interconnect-names = "read", "write";
 
 				status = "okay";
+			};
+		};
+	};
+
+	fragment-t234@2 {
+		target-path = "/";
+		 __overlay__ {
+			aliases {
+				serial1 = "/bus@0/serial@3110000";
 			};
 		};
 	};
