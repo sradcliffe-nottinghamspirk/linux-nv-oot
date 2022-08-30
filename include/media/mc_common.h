@@ -2,7 +2,7 @@
 /*
  * Tegra Media controller common APIs
  *
- * Copyright (c) 2012-2022, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2012-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef __CAMERA_MC_COMMON_H__
@@ -157,6 +157,7 @@ struct tegra_channel {
 	unsigned int num_video_formats;
 	struct mutex stop_kthread_lock;
 
+	unsigned int vi_channel_id[TEGRA_CSI_BLOCKS];
 	unsigned char port[TEGRA_CSI_BLOCKS];
 	unsigned int virtual_channel;
 	unsigned int syncpt[TEGRA_CSI_BLOCKS][MAX_SYNCPT_PER_CHANNEL];
