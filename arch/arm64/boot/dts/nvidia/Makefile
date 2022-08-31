@@ -5,6 +5,7 @@
 dtbo-y += tegra194-carveouts.dtbo
 dtbo-y += tegra194-p3509-0000+p3668-0001-overlay.dtbo
 dtbo-y += tegra234-p3737-0000+p3701-0000-overlay.dtbo
+dtbo-y += tegra234-jetson.dtbo
 
 # Nvidia internal DT platforms
 
