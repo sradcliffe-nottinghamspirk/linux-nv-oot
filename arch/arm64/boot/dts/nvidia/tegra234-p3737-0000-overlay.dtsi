@@ -3,5 +3,11 @@
 
 
 / {
-
+	fragment-t234@0 {
+		__overlay__ {
+			ufshci@2500000 {
+				status = "okay";
+			};
+		};
+	};
 };

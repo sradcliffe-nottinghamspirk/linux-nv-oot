@@ -32,6 +32,88 @@
 				status = "okay";
 			};
 
+			tegra_ufs: ufshci@2500000 {
+				compatible = "tegra234,ufs_variant";
+				reg = <0x02500000 0x4000>,
+				      <0x02510000 0x1000>,
+				      <0x02518000 0x1000>,
+				      <0x02520000 0x1000>,
+				      <0x02470000 0x4000>,
+				      <0x02480000 0x4000>;
+				interrupts = < 0 44 0x04 >;
+				interconnects = <&mc TEGRA234_MEMORY_CLIENT_UFSHCR>,
+						<&mc TEGRA234_MEMORY_CLIENT_UFSHCW>;
+				interconnect-names = "dma-mem", "dma-mem";
+				iommus = <&smmu_niso0 TEGRA234_SID_UFSHC>;
+				dma-coherent;
+				clocks = <&bpmp TEGRA234_CLK_PLLREFE_VCOOUT>,
+					 <&bpmp TEGRA234_CLK_MPHY_CORE_PLL_FIXED>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_TX_SYMB>,
+					 <&bpmp TEGRA234_CLK_MPHY_TX_1MHZ_REF>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_RX_ANA>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_RX_SYMB>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_TX_LS_3XBIT>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_RX_LS_BIT>,
+					 <&bpmp TEGRA234_CLK_MPHY_L1_RX_ANA>,
+					 <&bpmp TEGRA234_CLK_UFSHC>,
+					 <&bpmp TEGRA234_CLK_UFSDEV_REF>,
+					 <&bpmp TEGRA234_CLK_PLLP_OUT0>,
+					 <&bpmp TEGRA234_CLK_CLK_M>,
+					 <&bpmp TEGRA234_CLK_MPHY_FORCE_LS_MODE>,
+					 <&bpmp TEGRA234_CLK_UPHY_PLL3>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_TX_LS_3XBIT_DIV>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_TX_LS_SYMB_DIV>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_RX_LS_BIT_DIV>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_RX_LS_SYMB_DIV>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_TX_2X_SYMB>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_TX_HS_SYMB_DIV>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_RX_HS_SYMB_DIV>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_TX_MUX_SYMB_DIV>,
+					 <&bpmp TEGRA234_CLK_MPHY_L0_RX_MUX_SYMB_DIV>,
+					 <&bpmp TEGRA234_CLK_OSC>;
+				clock-names = "pllrefe_vcoout", "mphy_core_pll_fixed",
+					      "mphy_l0_tx_symb", "mphy_tx_1mhz_ref",
+					      "mphy_l0_rx_ana", "mphy_l0_rx_symb",
+					      "mphy_l0_tx_ls_3xbit", "mphy_l0_rx_ls_bit",
+					      "mphy_l1_rx_ana", "ufshc", "ufsdev_ref",
+					      "pll_p", "clk_m", "mphy_force_ls_mode",
+					      "uphy_pll3", "mphy_l0_tx_ls_3xbit_div",
+					      "mphy_l0_tx_ls_symb_div",
+					      "mphy_l0_rx_ls_bit_div",
+					      "mphy_l0_rx_ls_symb_div",
+					      "mphy_l0_tx_2x_symb",
+					      "mphy_l0_tx_hs_symb_div",
+					      "mphy_l0_rx_hs_symb_div",
+					      "mphy_l0_tx_mux_symb_div",
+					      "mphy_l0_rx_mux_symb_div", "osc";
+				resets = <&bpmp TEGRA234_RESET_MPHY_L0_RX>,
+					 <&bpmp TEGRA234_RESET_MPHY_L0_TX>,
+					 <&bpmp TEGRA234_RESET_MPHY_L1_RX>,
+					 <&bpmp TEGRA234_RESET_MPHY_L1_TX>,
+					 <&bpmp TEGRA234_RESET_MPHY_CLK_CTL>,
+					 <&bpmp TEGRA234_RESET_UFSHC>,
+					 <&bpmp TEGRA234_RESET_UFSHC_AXI_M>,
+					 <&bpmp TEGRA234_RESET_UFSHC_LP_SEQ>;
+				reset-names = "mphy-l0-rx-rst", "mphy-l0-tx-rst",
+					      "mphy-l1-rx-rst", "mphy-l1-tx-rst",
+					      "mphy-clk-ctl-rst", "ufs-rst",
+					      "ufs-axi-m-rst", "ufshc-lp-rst";
+				nvidia,enable-x2-config;
+				nvidia,mask-fast-auto-mode;
+				nvidia,enable-hs-mode;
+				nvidia,max-hs-gear = <4>;
+				nvidia,max-pwm-gear = <0>;
+				vcc-max-microamp = <0>;
+				vccq-max-microamp = <0>;
+				vccq2-max-microamp = <0>;
+				nvidia,configure-uphy-pll3;
+				status = "disabled";
+
+				ufs_variant {
+					compatible = "tegra234,ufs_variant";
+				};
+			};
+
 			gpcdma: gpcdma@2600000 {
 				compatible = "nvidia,tegra234-gpcdma";
 				reg = <0x2600000 0x210000>;
