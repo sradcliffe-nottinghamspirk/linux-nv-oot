@@ -1217,10 +1217,6 @@ static struct host1x_bo *tegra_se_cmdbuf_bo_get(struct host1x_bo *host_bo)
 	return host_bo;
 }
 
-static void tegra_se_cmdbuf_bo_release(struct kref *ref)
-{
-}
-
 static void tegra_se_cmdbuf_bo_put(struct host1x_bo *host_bo)
 {
 }
