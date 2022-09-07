@@ -173,6 +173,11 @@
 				reset-names = "serial";
 				status = "okay";
 			};
+
+			hda@3510000 {
+				iommus = <&smmu_niso0 TEGRA234_SID_HDA>;
+				status = "okay";
+			};
 		};
 	};
 
