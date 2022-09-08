@@ -15,6 +15,7 @@ obj-m += mfd/
 obj-m += misc/
 obj-m += net/
 obj-m += nvpps/
+obj-m += nvpmodel/
 obj-m += pci/
 obj-m += pinctrl/
 obj-m += platform/tegra/
