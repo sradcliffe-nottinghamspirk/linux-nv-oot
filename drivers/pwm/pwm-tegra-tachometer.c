@@ -14,6 +14,8 @@
 #include <linux/io.h>
 #include <linux/hwmon.h>
 #include <linux/hwmon-sysfs.h>
+#include <linux/version.h>
+
 #define DRIVER_NAME "pwm_tach"
 
 /* Since oscillator clock (38.4MHz) serves as a clock source for
@@ -140,6 +142,7 @@ static inline void tachometer_writel(struct pwm_tegra_tach *ptt, u32 val,
 	writel(val, ptt->regs + reg);
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0))
 static int tegra_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 			    int duty_ns, int period_ns)
 {
@@ -157,6 +160,14 @@ static void tegra_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	/* Dummy implementation for avoiding error from core */
 }
+#else
+static int tegra_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+			   const struct pwm_state *state)
+{
+	/* Dummy implementation for avoiding error from core */
+	return 0;
+}
+#endif
 
 static inline void tach_update_mask(struct pwm_tegra_tach *ptt,
 					u32 val, u32 reg_offset, u32 mask,
@@ -297,9 +308,13 @@ static irqreturn_t tegra_pwm_tach_irq(int irq, void *dev)
 }
 
 static const struct pwm_ops pwm_tegra_tach_ops = {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0))
 	.config = tegra_pwm_config,
 	.enable = tegra_pwm_enable,
 	.disable = tegra_pwm_disable,
+#else
+	.apply = tegra_pwm_apply,
+#endif
 	.capture = pwm_tegra_tacho_capture,
 	.owner = THIS_MODULE,
 };
