@@ -656,7 +656,7 @@ static const struct regmap_config tegra186_dspk_regmap = {
 };
 
 static const struct of_device_id tegra186_dspk_of_match[] = {
-	{ .compatible = "nvidia,tegra186-dspk" },
+	{ .compatible = "nvidia,tegra186-dspk-oot" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra186_dspk_of_match);

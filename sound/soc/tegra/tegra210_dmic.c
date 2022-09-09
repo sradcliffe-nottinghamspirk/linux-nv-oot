@@ -692,7 +692,7 @@ static const struct dev_pm_ops tegra210_dmic_pm_ops = {
 };
 
 static const struct of_device_id tegra210_dmic_of_match[] = {
-	{ .compatible = "nvidia,tegra210-dmic" },
+	{ .compatible = "nvidia,tegra210-dmic-oot" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_dmic_of_match);

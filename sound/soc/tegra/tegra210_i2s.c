@@ -1270,7 +1270,7 @@ static const struct dev_pm_ops tegra210_i2s_pm_ops = {
 };
 
 static const struct of_device_id tegra210_i2s_of_match[] = {
-	{ .compatible = "nvidia,tegra210-i2s" },
+	{ .compatible = "nvidia,tegra210-i2s-oot" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_i2s_of_match);
