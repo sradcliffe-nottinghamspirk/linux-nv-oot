@@ -8,6 +8,7 @@
 #include "tegra234-soc-overlay.dtsi"
 #include "tegra234-p3737-0000-overlay.dtsi"
 #include "tegra234-p3701-0000-overlay.dtsi"
+#include "tegra234-audio-dai-links-overlay.dtsi"
 
 / {
 	fragment-t234-p3737-p3701@0 {
@@ -80,6 +81,23 @@
 		target-path = "/bus@0/i2c@31e0000";
 		__overlay__ {
 			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@9 {
+		target-path = "/";
+		__overlay__ {
+			sound {
+				compatible = "nvidia,tegra186-ape";
+				clocks = <&bpmp TEGRA234_CLK_PLLA>,
+					 <&bpmp TEGRA234_CLK_PLLA_OUT0>,
+					 <&bpmp TEGRA234_CLK_AUD_MCLK>;
+				clock-names = "pll_a", "pll_a_out0", "extern1";
+				assigned-clocks = <&bpmp TEGRA234_CLK_AUD_MCLK>;
+				assigned-clock-parents = <&bpmp TEGRA234_CLK_PLLA_OUT0>;
+
+				nvidia-audio-card,name = "NVIDIA Jetson AGX Orin APE";
+			};
 		};
 	};
 };
