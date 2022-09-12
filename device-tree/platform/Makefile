@@ -17,8 +17,15 @@ DTC_CPP_FLAGS += -DLINUX_VERSION=504 -DTEGRA_HOST1X_DT_VERSION=1
 
 tegra-dtstree := $(TOP)/hardware/nvidia
 
-# From out/l4t-t186ref-debug-aarch64/nvidia/kernel-nvidia-oot/nvidia-oot/device-tree/platform
-tegra-rel-dtstree := ../../../../../../../hardware/nvidia
+# Get relative path for tegra-dtstree from this makefile
+null :=
+space :=$(null) $(null)
+obj-path := $(obj)
+obj-path-from-top := $(subst $(TOP),,$(obj-path))
+rel-top-path := $(subst /, $(space)/,$(obj-path-from-top))
+rel-top-path := $(patsubst /%,../,$(rel-top-path))
+rel-top-path := $(subst $(space),,$(rel-top-path))
+tegra-rel-dtstree := $(rel-top-path)/hardware/nvidia
 
 DTC_INCLUDE :=
 # SOC independent common include
