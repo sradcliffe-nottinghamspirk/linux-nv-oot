@@ -597,4 +597,22 @@
 			};
 		};
 	};
+
+	fragment-t234@5 {
+		target-path = "/";
+		__overlay__ {
+
+			dce@d800000 {
+				compatible = "nvidia,tegra234-dce";
+				reg = <0x0 0x0d800000 0x0 0x00800000>;
+				interrupts =
+					<0 376 0x4>,
+					<0 377 0x4>;
+				interrupt-names = "wdt-remote",
+					"dce-sm0";
+				iommus = <&smmu_niso0 TEGRA234_SID_DCE>;
+				status = "okay";
+			};
+		};
+	};
 };
