@@ -1304,7 +1304,6 @@ static int tegra_admaif_probe(struct platform_device *pdev)
 			CH_RX_REG(TEGRA_ADMAIF_RX_FIFO_READ, i);
 
 		admaif->playback_dma_data[i].addr_width = 32;
-		admaif->playback_dma_data[i].slave_id = i + 1;
 
 		if (of_property_read_string_index(pdev->dev.of_node,
 				"dma-names", (i * 2) + 1,
@@ -1316,7 +1315,6 @@ static int tegra_admaif_probe(struct platform_device *pdev)
 		}
 
 		admaif->capture_dma_data[i].addr_width = 32;
-		admaif->capture_dma_data[i].slave_id = i + 1;
 
 		if (of_property_read_string_index(pdev->dev.of_node,
 				"dma-names",
