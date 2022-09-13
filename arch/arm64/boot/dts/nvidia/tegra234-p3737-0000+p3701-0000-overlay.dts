@@ -10,5 +10,20 @@
 #include "tegra234-p3701-0000-overlay.dtsi"
 
 / {
-
+	fragment-t234-p3737-p3701@0 {
+		target-path = "/bpmp/i2c";
+		__overlay__ {
+			vrs@3c {
+				compatible = "nvidia,vrs-pseq";
+				reg = <0x3c>;
+				interrupts = <GIC_SPI 209 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-controller;
+				#interrupt-cells = <3>;
+				status = "okay";
+				vrs_rtc: rtc {
+					status = "okay";
+				};
+			};
+		};
+	};
 };

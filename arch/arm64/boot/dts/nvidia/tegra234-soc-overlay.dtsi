@@ -9,6 +9,8 @@
 #include <dt-bindings/memory/tegra234-mc.h>
 #include <dt-bindings/memory/tegra234-mc-oot.h>
 #include <dt-bindings/memory/tegra234-smmu-streamid.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
 
 / {
 	overlay-name = "Add nvidia,p3737-0000+p3701-0000 Overlay Support";
