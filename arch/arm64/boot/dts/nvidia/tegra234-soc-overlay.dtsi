@@ -184,6 +184,20 @@
 			rtc@c2a0000 {
 				status = "okay";
 			};
+
+			tachometer@39c0000 {
+				compatible = "nvidia,pwm-tegra234-tachometer";
+				reg = <0x039c0000 0x10>;
+				#pwm-cells = <2>;
+				clocks = <&bpmp TEGRA234_CLK_TACH0>;
+				clock-names = "tach";
+				resets = <&bpmp TEGRA234_RESET_TACH0>;
+				reset-names = "tach";
+				pulse-per-rev = <2>;
+				capture-window-length = <2>;
+				disable-clk-gate;
+				status = "okay";
+			};
 		};
 	};
 
