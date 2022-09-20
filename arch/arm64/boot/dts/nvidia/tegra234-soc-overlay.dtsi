@@ -180,6 +180,10 @@
 				iommus = <&smmu_niso0 TEGRA234_SID_HDA>;
 				status = "okay";
 			};
+
+			rtc@c2a0000 {
+				status = "okay";
+			};
 		};
 	};
 
