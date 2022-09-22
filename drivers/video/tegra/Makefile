@@ -6,3 +6,4 @@ obj-m += host/nvdla/
 obj-m += host/pva/
 obj-m += tsec/
 obj-m += dc/bridge/
+obj-m += camera/
