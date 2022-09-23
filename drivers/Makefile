@@ -25,4 +25,5 @@ obj-m += spi/
 obj-m += thermal/
 obj-m += watchdog/
 obj-m += video/tegra/
+obj-m += virt/tegra/
 
