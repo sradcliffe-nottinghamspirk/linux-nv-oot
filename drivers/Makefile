@@ -3,6 +3,7 @@
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
+obj-m += block/tegra_virt_storage/
 obj-m += crypto/
 obj-m += devfreq/
 obj-m += dma/
