@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
+
 #include <linux/debugfs.h>
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
@@ -83,14 +84,14 @@ static const char *get_filename(struct tegra_bpmp *bpmp,
 	if (!root_path_buf)
 		goto out;
 
-	root_path = dentry_path(bpmp->debugfs_mirror, root_path_buf,
+	root_path = dentry_path_raw(bpmp->debugfs_mirror, root_path_buf,
 				root_path_buf_len);
 	if (IS_ERR(root_path))
 		goto out;
 
 	root_len = strlen(root_path);
 
-	filename = dentry_path(file->f_path.dentry, buf, size);
+	filename = dentry_path_raw(file->f_path.dentry, buf, size);
 	if (IS_ERR(filename)) {
 		filename = NULL;
 		goto out;
