@@ -23,6 +23,7 @@ copy_dir nvidia/drivers/gpu/host1x drivers/gpu/host1x
 copy_dir nvidia/drivers/gpu/host1x-nvhost drivers/gpu/host1x-nvhost
 copy_file nvidia/drivers/gpu/host1x/include/linux/host1x-next.h include/linux/host1x-next.h
 copy_file nvidia/include/linux/nvhost.h include/linux/nvhost.h
+copy_file nvidia/include/linux/nvhost_t194.h include/linux/nvhost_t194.h
 copy_file nvidia/include/uapi/linux/nvdev_fence.h include/uapi/linux/nvdev_fence.h
 
 # Files/directories for NVDLA
