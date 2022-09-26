@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 # Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
+LINUXINCLUDE += -I$(srctree.nvidia-oot)
+
 obj-m += bad.o
 
 obj-m += firmwares-class.o
@@ -15,6 +17,8 @@ tegra-cactmon-objs += actmon_common.o
 obj-m += tegra-cactmon.o
 obj-m += tegra-fsicom.o
 
+obj-m += tegra-camera-rtcpu.o
+
 obj-m += cvnas/
 obj-m += hwpm/
 obj-m += mce/
@@ -22,3 +26,4 @@ obj-m += uncore_pmu/
 obj-m += mc-hwpm.o
 obj-m += mc-utils.o
 obj-m += dce/
+obj-m += rtcpu/
