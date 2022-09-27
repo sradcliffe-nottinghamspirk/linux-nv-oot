@@ -1319,14 +1319,6 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 			return -ENOMEM;
 	}
 
-	err = nvhost_module_busy(se_dev->pdev);
-	if (err) {
-		dev_err(se_dev->dev, "nvhost_module_busy failed for se_dev\n");
-		if (priv)
-			devm_kfree(se_dev->dev, priv);
-		return err;
-	}
-
 	if (!se_dev->channel) {
 		se_dev->channel = host1x_channel_request(&se_dev->client);
 		if (err) {
@@ -1358,6 +1350,10 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 	syncpt_id = se_dev->syncpt_id;
 
 	/* initialize job data */
+	/* FIXME: Remove 'pdata' dependency here. Since 'pdata' is a static
+	 * variable this causes failure when multiple instances of driver
+	 * with same compatible is run.
+	 * */
 	job->syncpt = host1x_syncpt_get_by_id(pdata->host1x, syncpt_id);
 	job->syncpt_incrs = 1;
 	job->client = &se_dev->client;
@@ -1478,7 +1474,6 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 error:
 	host1x_job_put(job);
 exit:
-	nvhost_module_idle(se_dev->pdev);
 	if (err)
 		devm_kfree(se_dev->dev, priv);
 
@@ -1904,23 +1899,6 @@ static u32 tegra_se_get_crypto_config(struct tegra_se_dev *se_dev,
 		val |= SE_CRYPTO_HASH(HASH_ENABLE);
 
 	if (mode == SE_AES_OP_MODE_RNG_DRBG) {
-		/* Make sure engine is powered ON*/
-		err = nvhost_module_busy(se_dev->pdev);
-		if (err < 0) {
-			dev_err(se_dev->dev,
-			"nvhost_module_busy failed for se with err: %d\n",
-			err);
-
-			/*
-			 * Do not program force reseed if nvhost_module_busy
-			 * failed. This can result in a crash as clocks might
-			 * be disabled.
-			 *
-			 * Return val if unable to power on SE
-			 */
-			return val;
-		}
-
 		if (force_reseed_count <= 0) {
 			se_writel(se_dev,
 				  SE_RNG_CONFIG_MODE(DRBG_MODE_FORCE_RESEED) |
@@ -1937,9 +1915,6 @@ static u32 tegra_se_get_crypto_config(struct tegra_se_dev *se_dev,
 
 		se_writel(se_dev, RNG_RESEED_INTERVAL,
 			  SE_RNG_RESEED_INTERVAL_REG_OFFSET);
-
-		/* Power off device after register access done */
-		nvhost_module_idle(se_dev->pdev);
 	}
 
 	pr_debug("%s:%d crypto_config val = 0x%x\n", __func__, __LINE__, val);
@@ -2100,15 +2075,6 @@ static int tegra_se_read_cmac_result(struct tegra_se_dev *se_dev, u8 *pdata,
 	u32 i;
 	int err = 0;
 
-	/* Make SE engine is powered ON */
-	err = nvhost_module_busy(se_dev->pdev);
-	if (err < 0) {
-		dev_err(se_dev->dev,
-			"nvhost_module_busy failed for se with err: %d\n",
-			err);
-		return err;
-	}
-
 	for (i = 0; i < nbytes / 4; i++) {
 		if (se_dev->chipdata->kac_type == SE_KAC_T23X) {
 			result[i] = se_readl(se_dev,
@@ -2123,8 +2089,6 @@ static int tegra_se_read_cmac_result(struct tegra_se_dev *se_dev, u8 *pdata,
 			result[i] = be32_to_cpu(result[i]);
 	}
 
-	nvhost_module_idle(se_dev->pdev);
-
 	return 0;
 }
 
@@ -2132,14 +2096,6 @@ static int tegra_se_clear_cmac_result(struct tegra_se_dev *se_dev, u32 nbytes)
 {
 	u32 i;
 	int err = 0;
-
-	err = nvhost_module_busy(se_dev->pdev);
-	if (err < 0) {
-		dev_err(se_dev->dev,
-			"nvhost_module_busy failed for se with err: %d\n",
-			err);
-		return err;
-	}
 
 	for (i = 0; i < nbytes / 4; i++) {
 		if (se_dev->chipdata->kac_type == SE_KAC_T23X) {
@@ -2152,8 +2108,6 @@ static int tegra_se_clear_cmac_result(struct tegra_se_dev *se_dev, u32 nbytes)
 				  (i * sizeof(u32)));
 		}
 	}
-
-	nvhost_module_idle(se_dev->pdev);
 
 	return 0;
 }
@@ -7420,6 +7374,36 @@ reg_fail:
 
 }
 
+static int tegra_se_clk_init(struct platform_device *pdev)
+{
+	struct nvhost_device_data *pdata = platform_get_drvdata(pdev);
+	unsigned int i;
+	int err;
+
+	err = devm_clk_bulk_get_all(&pdev->dev, &pdata->clks);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to get clocks %d\n", err);
+		return err;
+	}
+
+	pdata->num_clks = err;
+
+	for (i = 0; i < pdata->num_clks; i++) {
+		err = clk_set_rate(pdata->clks[i].clk, ULONG_MAX);
+		if (err < 0) {
+			dev_err(&pdev->dev, "failed to set clock rate!\n");
+			return err;
+		}
+	}
+
+	err = clk_bulk_prepare_enable(pdata->num_clks, pdata->clks);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to enabled clocks: %d\n", err);
+		return err;
+	}
+
+	return 0;
+}
 
 static int tegra_se_client_init(struct host1x_client *client)
 {
@@ -7507,10 +7491,11 @@ static int tegra_se_probe(struct platform_device *pdev)
 		return err;
 	}
 
-	err = nvhost_module_init(pdev);
+	err = tegra_se_clk_init(pdev);
 	if (err) {
 		dev_err(se_dev->dev,
-			"nvhost_module_init failed for SE(%s)\n", pdev->name);
+			"Enabling clocks failed for SE(%s)\n",
+			pdev->name);
 		return err;
 	}
 
@@ -7646,20 +7631,11 @@ static int tegra_se_probe(struct platform_device *pdev)
 				sizeof(rsa_alg.base.cra_name) - 1);
 
 	if (is_algo_supported(node, "drbg")) {
-		/* Make sure engine is powered ON with clk enabled */
-		err = nvhost_module_busy(pdev);
-		if (err) {
-			dev_err(se_dev->dev,
-				"nvhost_module_busy failed for se_dev\n");
-			goto reg_fail;
-		}
 		se_writel(se_dev,
 			  SE_RNG_SRC_CONFIG_RO_ENT_SRC(DRBG_RO_ENT_SRC_ENABLE) |
 			  SE_RNG_SRC_CONFIG_RO_ENT_SRC_LOCK(
 						DRBG_RO_ENT_SRC_LOCK_ENABLE),
 			  SE_RNG_SRC_CONFIG_REG_OFFSET);
-		/* Power OFF after SE register update */
-		nvhost_module_idle(pdev);
 	}
 
 	tegra_se_crypto_register(se_dev);
@@ -7765,7 +7741,6 @@ static struct platform_driver tegra_se_driver = {
 		.name   = "tegra-se-nvhost",
 		.owner  = THIS_MODULE,
 		.of_match_table = of_match_ptr(tegra_se_of_match),
-		.pm = &nvhost_module_pm_ops,
 		.suppress_bind_attrs = true,
 	},
 };
