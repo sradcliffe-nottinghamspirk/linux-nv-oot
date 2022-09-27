@@ -68,11 +68,11 @@ struct tegra210_ope {
 	u32 peq_biquad_shifts[TEGRA210_PEQ_SHIFT_PARAM_SIZE_PER_CH];
 };
 
-extern int tegra210_peq_init(struct platform_device *pdev, int id);
+extern int tegra210_peq_regmap_init(struct platform_device *pdev);
 extern int tegra210_peq_codec_init(struct snd_soc_component *cmpnt);
 extern void tegra210_peq_restore(struct tegra210_ope *ope);
 extern void tegra210_peq_save(struct tegra210_ope *ope);
-extern int tegra210_mbdrc_init(struct platform_device *pdev, int id);
+extern int tegra210_mbdrc_regmap_init(struct platform_device *pdev);
 extern int tegra210_mbdrc_codec_init(struct snd_soc_component *cmpnt);
 extern int tegra210_mbdrc_hw_params(struct snd_soc_component *cmpnt);
 

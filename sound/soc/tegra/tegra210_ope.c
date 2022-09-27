@@ -328,21 +328,17 @@ static int tegra210_ope_platform_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(dev, ope);
 
-	err = tegra210_peq_init(pdev, TEGRA210_PEQ_IORESOURCE_MEM);
+	err = tegra210_peq_regmap_init(pdev);
 	if (err < 0) {
-		dev_err(dev, "peq init failed\n");
+		dev_err(dev, "PEQ init failed\n");
 		return err;
 	}
 
-	regcache_cache_only(ope->peq_regmap, true);
-
-	err = tegra210_mbdrc_init(pdev, TEGRA210_MBDRC_IORESOURCE_MEM);
+	err = tegra210_mbdrc_regmap_init(pdev);
 	if (err < 0) {
-		dev_err(dev, "mbdrc init failed\n");
+		dev_err(dev, "MBDRC init failed\n");
 		return err;
 	}
-
-	regcache_cache_only(ope->mbdrc_regmap, true);
 
 	err = devm_snd_soc_register_component(dev, &tegra210_ope_cmpnt,
 					      tegra210_ope_dais,

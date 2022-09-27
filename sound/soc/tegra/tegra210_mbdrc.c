@@ -7,6 +7,7 @@
 #include <linux/device.h>
 #include <linux/io.h>
 #include <linux/module.h>
+#include <linux/of_address.h>
 #include <linux/pm_runtime.h>
 #include <linux/regmap.h>
 #include <sound/core.h>
@@ -867,16 +868,31 @@ int tegra210_mbdrc_codec_init(struct snd_soc_component *cmpnt)
 }
 EXPORT_SYMBOL_GPL(tegra210_mbdrc_codec_init);
 
-int tegra210_mbdrc_init(struct platform_device *pdev, int id)
+int tegra210_mbdrc_regmap_init(struct platform_device *pdev)
 {
-	struct tegra210_ope *ope = dev_get_drvdata(&pdev->dev);
-	struct resource *mem;
+	struct device *dev = &pdev->dev;
+	struct tegra210_ope *ope = dev_get_drvdata(dev);
+	struct device_node *child;
+	struct resource mem;
 	void __iomem *regs;
+	int err;
 
-	mem = platform_get_resource(pdev, IORESOURCE_MEM, id);
-	regs = devm_ioremap_resource(&pdev->dev, mem);
+	child = of_get_child_by_name(dev->of_node, "dynamic-range-compressor");
+	if (!child)
+		return -ENODEV;
+
+	err = of_address_to_resource(child, 0, &mem);
+	of_node_put(child);
+	if (err < 0) {
+		dev_err(dev, "fail to get MBDRC resource\n");
+		return err;
+	}
+
+	mem.flags = IORESOURCE_MEM;
+	regs = devm_ioremap_resource(&pdev->dev, &mem);
 	if (IS_ERR(regs))
 		return PTR_ERR(regs);
+
 	ope->mbdrc_regmap =
 		devm_regmap_init_mmio(&pdev->dev, regs,
 				      &tegra210_mbdrc_regmap_config);
@@ -885,9 +901,11 @@ int tegra210_mbdrc_init(struct platform_device *pdev, int id)
 		return PTR_ERR(ope->mbdrc_regmap);
 	}
 
+	regcache_cache_only(ope->mbdrc_regmap, true);
+
 	return 0;
 }
-EXPORT_SYMBOL_GPL(tegra210_mbdrc_init);
+EXPORT_SYMBOL_GPL(tegra210_mbdrc_regmap_init);
 
 MODULE_AUTHOR("Sumit Bhattacharya <sumitb@nvidia.com>");
 MODULE_DESCRIPTION("Tegra210 MBDRC module");

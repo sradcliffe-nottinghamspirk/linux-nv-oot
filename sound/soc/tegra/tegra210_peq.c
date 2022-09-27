@@ -9,6 +9,7 @@
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
@@ -354,15 +355,28 @@ int tegra210_peq_codec_init(struct snd_soc_component *cmpnt)
 }
 EXPORT_SYMBOL_GPL(tegra210_peq_codec_init);
 
-int tegra210_peq_init(struct platform_device *pdev, int id)
+int tegra210_peq_regmap_init(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct tegra210_ope *ope = dev_get_drvdata(dev);
-	struct resource *mem;
+	struct device_node *child;
+	struct resource mem;
 	void __iomem *regs;
+	int err;
 
-	mem = platform_get_resource(pdev, IORESOURCE_MEM, id);
-	regs = devm_ioremap_resource(dev, mem);
+	child = of_get_child_by_name(dev->of_node, "equalizer");
+	if (!child)
+		return -ENODEV;
+
+	err = of_address_to_resource(child, 0, &mem);
+	of_node_put(child);
+	if (err < 0) {
+		dev_err(dev, "fail to get PEQ resource\n");
+		return err;
+	}
+
+	mem.flags = IORESOURCE_MEM;
+	regs = devm_ioremap_resource(dev, &mem);
 	if (IS_ERR(regs))
 		return PTR_ERR(regs);
 	ope->peq_regmap = devm_regmap_init_mmio(dev, regs,
@@ -372,9 +386,11 @@ int tegra210_peq_init(struct platform_device *pdev, int id)
 		return PTR_ERR(ope->peq_regmap);
 	}
 
+	regcache_cache_only(ope->peq_regmap, true);
+
 	return 0;
 }
-EXPORT_SYMBOL_GPL(tegra210_peq_init);
+EXPORT_SYMBOL_GPL(tegra210_peq_regmap_init);
 
 MODULE_AUTHOR("Sumit Bhattacharya <sumitb@nvidia.com>");
 MODULE_DESCRIPTION("Tegra210 PEQ module");
