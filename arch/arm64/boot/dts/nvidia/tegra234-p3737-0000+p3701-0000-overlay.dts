@@ -26,4 +26,60 @@
 			};
 		};
 	};
+
+	fragment-t234-p3737-p3701@1 {
+		target-path = "/bus@0/i2c@3160000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@2 {
+		target-path = "/bus@0/i2c@c240000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@3 {
+		target-path = "/bus@0/i2c@3180000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@4 {
+		target-path = "/bus@0/i2c@3190000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@5 {
+		target-path = "/bus@0/i2c@31b0000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@6 {
+		target-path = "/bus@0/i2c@31c0000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@7 {
+		target-path = "/bus@0/i2c@c250000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment-t234-p3737-p3701@8 {
+		target-path = "/bus@0/i2c@31e0000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
 };
