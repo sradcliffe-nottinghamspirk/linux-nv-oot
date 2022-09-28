@@ -3,3 +3,6 @@
 
 obj-m += drivers/
 obj-m += sound/soc/tegra/
+ifeq ($(shell test $$VERSION -lt 6; echo $$?),0)
+obj-m += sound/tegra-safety-audio/
+endif
