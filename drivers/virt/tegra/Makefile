@@ -8,4 +8,5 @@
 obj-m		+= tegra_hv.o
 obj-m		+= tegra_hv_pm_ctl.o
 obj-m		+= hvc_sysfs.o
+obj-m		+= ivc-cdev.o
 
