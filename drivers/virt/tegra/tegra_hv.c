@@ -359,7 +359,7 @@ static void tegra_hv_ivc_cleanup(struct tegra_hv_data *hvd)
 	hvd->ivc_devs = NULL;
 }
 
-static void __init tegra_hv_cleanup(struct tegra_hv_data *hvd)
+static void tegra_hv_cleanup(struct tegra_hv_data *hvd)
 {
 	/*
 	 * Destroying IVC channels in use is not supported. Once it's possible
