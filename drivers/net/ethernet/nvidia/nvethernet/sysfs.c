@@ -2581,6 +2581,11 @@ static ssize_t hsi_enable_show(struct device *dev,
 	struct ether_priv_data *pdata = netdev_priv(ndev);
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 
+	if (osi_core->use_virtualization == OSI_ENABLE) {
+		dev_err(pdata->dev, "Not supported with Ethernet virtualization enabled\n");
+		return 0;
+	}
+
 	return scnprintf(buf, PAGE_SIZE, "%s\n",
 			 (osi_core->hsi.enabled == OSI_ENABLE) ?
 			 "enabled" : "disabled");
@@ -2611,6 +2616,12 @@ static ssize_t hsi_enable_store(struct device *dev,
 	u32 inst_id = osi_core->instance_id;
 	u32 ip_type[2] = {IP_EQOS, IP_MGBE};
 #endif
+
+	if (osi_core->use_virtualization == OSI_ENABLE) {
+		dev_err(pdata->dev, "Not supported with Ethernet virtualization enabled\n");
+		return size;
+	}
+
 	if (!netif_running(ndev)) {
 		dev_err(pdata->dev, "Not Allowed. Ether interface is not up\n");
 		return size;
