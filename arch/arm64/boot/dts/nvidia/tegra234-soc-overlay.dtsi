@@ -13,6 +13,8 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/gpio/tegra234-gpio.h>
 
+#define TEGRA234_POWER_DOMAIN_GPU		35U
+
 / {
 	overlay-name = "Add nvidia,p3737-0000+p3701-0000 Overlay Support";
 	compatible = "nvidia,tegra234";
@@ -197,6 +199,30 @@
 				pulse-per-rev = <2>;
 				capture-window-length = <2>;
 				disable-clk-gate;
+				status = "okay";
+			};
+
+			gpu@17000000 {
+				compatible = "nvidia,ga10b";
+				reg = <0x17000000 0x01000000>,
+				      <0x18000000 0x01000000>,
+				      <0x03b41000 0x00001000>;
+				interrupt-parent = <&gic>;
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "stall0", "stall1", "stall2", "nonstall";
+				power-domains = <&bpmp TEGRA234_POWER_DOMAIN_GPU>;
+				clocks = <&bpmp TEGRA234_CLK_GPUSYS>,
+					 <&bpmp TEGRA234_CLK_GPC0CLK>,
+					 <&bpmp TEGRA234_CLK_GPC1CLK>;
+				clock-names = "sysclk", "gpc0clk", "gpc1clk";
+				resets = <&bpmp TEGRA234_RESET_GPU>;
+				dma-coherent;
+
+				nvidia,bpmp = <&bpmp>;
+
 				status = "okay";
 			};
 		};
