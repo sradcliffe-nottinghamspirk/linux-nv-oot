@@ -2,3 +2,4 @@
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 
 obj-m += ethernet/
+obj-m += tegra_hv_net.o
