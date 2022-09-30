@@ -1,57 +1,57 @@
 #files/directory for the nvsciipc module
-copy_dir nvidia/drivers/misc/nvsciipc drivers/misc/nvsciipc
-copy_file nvidia/include/linux/nvscierror.h include/linux/nvscierror.h
-copy_file nvidia/include/linux/nvsciipc_interface.h include/linux/nvsciipc_interface.h
-copy_file nvidia/include/uapi/linux/nvsciipc_ioctl.h include/uapi/linux/nvsciipc_ioctl.h
+nvidia/drivers/misc/nvsciipc drivers/misc
+nvidia/include/linux/nvscierror.h include/linux/nvscierror.h
+nvidia/include/linux/nvsciipc_interface.h include/linux/nvsciipc_interface.h
+nvidia/include/uapi/linux/nvsciipc_ioctl.h include/uapi/linux/nvsciipc_ioctl.h
 
 # Files/directories for the nvmap module
-copy_dir nvidia/drivers/video/tegra/nvmap drivers/video/tegra/nvmap
-copy_file nvidia/include/linux/nvmap.h include/linux/nvmap.h
-copy_file nvidia/include/linux/nvmap_t19x.h include/linux/nvmap_t19x.h
-copy_file nvidia/include/trace/events/nvmap.h include/trace/events/nvmap.h
-copy_file nvidia/include/uapi/linux/nvmap.h include/uapi/linux/nvmap.h
+nvidia/drivers/video/tegra/nvmap drivers/video/tegra
+nvidia/include/linux/nvmap.h include/linux/nvmap.h
+nvidia/include/linux/nvmap_t19x.h include/linux/nvmap_t19x.h
+nvidia/include/trace/events/nvmap.h include/trace/events/nvmap.h
+nvidia/include/uapi/linux/nvmap.h include/uapi/linux/nvmap.h
 
 # Files/directories for cvnas module
-copy_dir nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra/cvnas
-copy_file nvidia/include/linux/cvnas.h include/linux/cvnas.h
-copy_file nvidia/include/soc/tegra/fuse-helper.h include/soc/tegra/fuse-helper.h
+nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
+nvidia/include/linux/cvnas.h include/linux/cvnas.h
+nvidia/include/soc/tegra/fuse-helper.h include/soc/tegra/fuse-helper.h
 
 # Files/directories for host1x module
-copy_dir nvidia/drivers/gpu/host1x drivers/gpu/host1x
+nvidia/drivers/gpu/host1x drivers/gpu
 
 # Files/directories for host1x-nvhost module
-copy_dir nvidia/drivers/gpu/host1x-nvhost drivers/gpu/host1x-nvhost
-copy_file nvidia/include/linux/nvhost.h include/linux/nvhost.h
-copy_file nvidia/include/linux/nvhost_t194.h include/linux/nvhost_t194.h
-copy_file nvidia/include/uapi/linux/nvdev_fence.h include/uapi/linux/nvdev_fence.h
+nvidia/drivers/gpu/host1x-nvhost drivers/gpu
+nvidia/include/linux/nvhost.h include/linux/nvhost.h
+nvidia/include/linux/nvhost_t194.h include/linux/nvhost_t194.h
+nvidia/include/uapi/linux/nvdev_fence.h include/uapi/linux/nvdev_fence.h
 
 # Files/directories for NVDLA
-copy_dir nvidia/drivers/video/tegra/host/nvdla drivers/video/tegra/host/nvdla
-copy_file nvidia/include/linux/arm64-barrier.h include/linux/arm64-barrier.h
-copy_file nvidia/include/uapi/linux/nvhost_nvdla_ioctl.h include/uapi/linux/nvhost_nvdla_ioctl.h
-copy_file nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioctl.h
+nvidia/drivers/video/tegra/host/nvdla drivers/video/tegra/host
+nvidia/include/linux/arm64-barrier.h include/linux/arm64-barrier.h
+nvidia/include/uapi/linux/nvhost_nvdla_ioctl.h include/uapi/linux/nvhost_nvdla_ioctl.h
+nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioctl.h
 
 # Files/directories for DRM
-copy_dir nvidia/drivers/gpu/drm/tegra drivers/gpu/drm/tegra
+nvidia/drivers/gpu/drm/tegra drivers/gpu/drm
 
 # Files/directories for NVGPU
-copy_dir nvgpu/drivers/gpu/nvgpu drivers/gpu/nvgpu
-copy_dir nvgpu/include include
-copy_dir nvgpu/nvsched nvsched
+nvgpu/drivers/gpu/nvgpu drivers/gpu
+nvgpu/include
+nvgpu/nvsched
 
 # Files/directories for PODGOV
-copy_dir nvidia/drivers/devfreq drivers/devfreq
-copy_file nvidia/include/trace/events/nvhost_podgov.h include/trace/events/nvhost_podgov.h
+nvidia/drivers/devfreq drivers
+nvidia/include/trace/events/nvhost_podgov.h include/trace/events/nvhost_podgov.h
 
 # Files/directories for NVPVA
-copy_dir nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host/pva
-copy_file nvidia/include/trace/events/nvhost_pva.h include/trace/events/nvhost_pva.h
-copy_file nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
+nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host
+nvidia/include/trace/events/nvhost_pva.h include/trace/events/nvhost_pva.h
+nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
 
 # Files/directories for NVHWPM
-copy_dir nvidia/drivers/platform/tegra/hwpm drivers/platform/tegra/hwpm
-copy_file nvidia/include/uapi/linux/tegra-soc-hwpm-uapi.h include/uapi/linux/tegra-soc-hwpm-uapi.h
+nvidia/drivers/platform/tegra/hwpm drivers/platform/tegra
+nvidia/include/uapi/linux/tegra-soc-hwpm-uapi.h include/uapi/linux/tegra-soc-hwpm-uapi.h
 
 # Files/directories for MODS
-copy_dir nvidia/drivers/misc/mods drivers/misc/mods
-copy_file nvidia/include/uapi/misc/mods.h include/uapi/misc/mods.h
+nvidia/drivers/misc/mods drivers/misc
+nvidia/include/uapi/misc/mods.h include/uapi/misc/mods.h
