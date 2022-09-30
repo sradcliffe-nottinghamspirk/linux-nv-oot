@@ -918,14 +918,18 @@ static void setup_device(struct vblk_dev *vblkdev)
 
 	if (vblkdev->config.blk_config.req_ops_supported
 		& VS_BLK_DISCARD_OP_F) {
+#if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
 		blk_queue_flag_set(QUEUE_FLAG_DISCARD, vblkdev->queue);
+#endif
 		blk_queue_max_discard_sectors(vblkdev->queue,
 			vblkdev->config.blk_config.max_erase_blks_per_io);
 		vblkdev->queue->limits.discard_granularity =
 			vblkdev->config.blk_config.hardblk_size;
+#if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
 		if (vblkdev->config.blk_config.req_ops_supported &
 			VS_BLK_SECURE_ERASE_OP_F)
 			blk_queue_flag_set(QUEUE_FLAG_SECERASE, vblkdev->queue);
+#endif
 	}
 
 	/* And the gendisk structure. */
