@@ -1,5 +1,6 @@
 ccflags-y += -Wno-implicit-fallthrough
 ccflags-y += -I$(srctree.nvidia)/drivers/gpu/host1x/hw/
+ccflags-y += -I$(srctree.nvidia)/drivers/gpu/host1x/include
 ccflags-y += -I$(srctree.nvidia)/include
 ccflags-y += -I$(srctree)/include
 

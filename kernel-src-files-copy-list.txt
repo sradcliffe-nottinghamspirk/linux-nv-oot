@@ -21,7 +21,6 @@ copy_dir nvidia/drivers/gpu/host1x drivers/gpu/host1x
 
 # Files/directories for host1x-nvhost module
 copy_dir nvidia/drivers/gpu/host1x-nvhost drivers/gpu/host1x-nvhost
-copy_file nvidia/drivers/gpu/host1x/include/linux/host1x-next.h include/linux/host1x-next.h
 copy_file nvidia/include/linux/nvhost.h include/linux/nvhost.h
 copy_file nvidia/include/linux/nvhost_t194.h include/linux/nvhost_t194.h
 copy_file nvidia/include/uapi/linux/nvdev_fence.h include/uapi/linux/nvdev_fence.h
@@ -39,7 +38,6 @@ copy_dir nvidia/drivers/gpu/drm/tegra drivers/gpu/drm/tegra
 copy_dir nvgpu/drivers/gpu/nvgpu drivers/gpu/nvgpu
 copy_dir nvgpu/include include
 copy_dir nvgpu/nvsched nvsched
-copy_file nvidia/drivers/video/tegra/nvmap/include/linux/nvmap_exports.h include/linux/nvmap_exports.h
 
 # Files/directories for PODGOV
 copy_dir nvidia/drivers/devfreq drivers/devfreq
