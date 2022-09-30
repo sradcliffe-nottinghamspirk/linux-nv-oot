@@ -7,7 +7,7 @@
 #define __TEGRA_IVC_EXT_H
 
 #include <linux/types.h>
-#include <soc/tegra/ivc.h>
+#include <soc/tegra/ivc-priv.h>
 
 /**
  * tegra_ivc_channel_notified - notifies the peer device

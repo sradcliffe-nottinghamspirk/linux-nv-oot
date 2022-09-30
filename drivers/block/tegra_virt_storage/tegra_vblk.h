@@ -10,7 +10,7 @@
 #include <linux/blkdev.h>
 #include <linux/blk-mq.h>
 #include <linux/bio.h>
-#include <soc/tegra/ivc.h>
+#include <soc/tegra/ivc-priv.h>
 #include <soc/tegra/ivc_ext.h>
 #include <soc/tegra/virt/hv-ivc.h>
 #include <linux/workqueue.h>
