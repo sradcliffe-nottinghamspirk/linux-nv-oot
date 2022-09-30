@@ -366,4 +366,24 @@
 			};
 		};
 	};
+
+	fragment@2 {
+		target-path = "/";
+		__overlay__ {
+			reserved-memory {
+				#address-cells = <2>;
+				#size-cells = <2>;
+				ranges;
+
+				linux,cma { /* Needed for nvgpu comptags */
+					compatible = "shared-dma-pool";
+					reusable;
+					size = <0x0 0x10000000>; /* 256MB */
+					alignment = <0x0 0x10000>;
+					linux,cma-default;
+					status = "okay";
+				};
+			};
+		};
+	};
 };
