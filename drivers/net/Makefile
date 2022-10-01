@@ -3,3 +3,4 @@
 
 obj-m += ethernet/
 obj-m += tegra_hv_net.o
+obj-m += can/
