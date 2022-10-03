@@ -267,7 +267,7 @@
 			};
 
 			se@15840000 {
-				compatible = "nvidia,tegra234-se2-nvhost";
+				compatible = "nvidia,tegra234-se4-nvhost";
 				reg = <0x15840000 0x10000>;
 				supported-algos = "sha", "sha3", "hmac";
 				nvidia,io-coherent;
