@@ -106,7 +106,7 @@ dtbs: $(DTB_OBJS) $(DTBO_OBJS) FORCE
 	if [ ! -d $(obj)/dtbs/ ] ; then \
 		mkdir -p $(obj)/dtbs/ ; \
 	fi
-	if [ ! -z $(DTBS_DTBOS) ] ; then \
+	if [ ! -z "$(DTBS_DTBOS)" ] ; then \
 		cp -u $(DTB_OBJS) $(DTBO_OBJS) $(obj)/dtbs/ ; \
 	fi
 	if [ -d $(obj)/hardware/ ] ; then \
