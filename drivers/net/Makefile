@@ -3,4 +3,6 @@
 
 obj-m += ethernet/
 obj-m += tegra_hv_net.o
+ifeq ($(shell test $$VERSION -lt 6; echo $$?),0)
 obj-m += can/
+endif
