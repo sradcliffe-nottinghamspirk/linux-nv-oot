@@ -57,7 +57,7 @@ static int host1x_fence_create_fd(struct host1x_syncpt *sp, u32 threshold)
 	struct dma_fence *f;
 	int fd;
 
-	f = host1x_fence_create(sp, threshold);
+	f = host1x_fence_create(sp, threshold, true);
 	if (IS_ERR(f))
 		return PTR_ERR(f);
 
