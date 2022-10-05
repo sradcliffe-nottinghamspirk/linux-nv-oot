@@ -9,7 +9,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
-#include <linux/tegra-ivc.h>
+#include <soc/tegra/ivc_ext.h>
 #include <linux/tegra-ivc-bus.h>
 #include <linux/nospec.h>
 
@@ -41,7 +41,7 @@ static int tegra_capture_ivc_tx_(struct tegra_capture_ivc *civc,
 	ret = wait_event_interruptible(civc->write_q,
 				tegra_ivc_can_write(&chan->ivc));
 	if (likely(ret == 0))
-		ret = tegra_ivc_write(&chan->ivc, req, len);
+		ret = tegra_ivc_write(&chan->ivc, NULL, req, len);
 
 	mutex_unlock(&civc->ivc_wr_lock);
 
@@ -352,7 +352,7 @@ static inline void tegra_capture_ivc_recv_msg(
 
 static inline void tegra_capture_ivc_recv(struct tegra_capture_ivc *civc)
 {
-	struct ivc *ivc = &civc->chan->ivc;
+	struct tegra_ivc *ivc = &civc->chan->ivc;
 	struct device *dev = &civc->chan->dev;
 
 	while (tegra_ivc_can_read(ivc)) {
@@ -486,6 +486,7 @@ static struct of_device_id tegra_capture_ivc_channel_of_match[] = {
 	{ .compatible = "nvidia,tegra186-camera-ivc-protocol-capture" },
 	{ },
 };
+MODULE_DEVICE_TABLE(of, tegra_capture_ivc_channel_of_match);
 
 static const struct tegra_ivc_channel_ops tegra_capture_ivc_ops = {
 	.probe	= tegra_capture_ivc_probe,

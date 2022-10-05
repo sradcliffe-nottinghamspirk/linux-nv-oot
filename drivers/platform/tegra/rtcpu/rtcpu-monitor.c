@@ -11,9 +11,6 @@
 #include <linux/tegra-camera-rtcpu.h>
 #include <linux/tegra-rtcpu-monitor.h>
 
-#include "drivers/video/tegra/host/vi/vi_notify.h"
-#include "vi-notify.h"
-
 struct tegra_camrtc_mon {
 	struct device *rce_dev;
 	int wdt_irq;

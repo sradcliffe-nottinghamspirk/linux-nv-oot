@@ -7,9 +7,9 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/slab.h>
-#include <linux/tegra-ivc.h>
+#include <soc/tegra/ivc_ext.h>
 #include <linux/tegra-ivc-bus.h>
-#include <linux/tegra-ivc-instance.h>
+#include <soc/tegra/ivc-priv.h>
 
 static int tegra_camera_diagnostics_probe(struct tegra_ivc_channel *ch)
 {
@@ -32,6 +32,8 @@ static const struct of_device_id camera_diagnostics_of_match[] = {
 	{ .compatible = "nvidia,tegra186-camera-diagnostics", },
 	{ },
 };
+
+MODULE_DEVICE_TABLE(of, camera_diagnostics_of_match);
 
 static struct tegra_ivc_driver camera_diagnostics_driver = {
 	.driver = {

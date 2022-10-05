@@ -28,7 +28,6 @@
 #include <linux/seq_buf.h>
 #include <linux/slab.h>
 #include <linux/tegra-firmwares.h>
-#include <linux/tegra-hsp.h>
 #include <linux/tegra-ivc-bus.h>
 #include <linux/pm_domain.h>
 #include <soc/tegra/fuse.h>
@@ -37,15 +36,12 @@
 #include <linux/version.h>
 #include <linux/wait.h>
 
-#include <dt-bindings/memory/tegra-swgroup.h>
-
 #include "rtcpu/clk-group.h"
 #include "rtcpu/device-group.h"
 #include "rtcpu/reset-group.h"
-#include "rtcpu/hsp-combo.h"
+#include "linux/tegra-hsp-combo.h"
 
 #include "soc/tegra/camrtc-commands.h"
-#include <linux/tegra-rtcpu-coverage.h>
 
 #define CAMRTC_NUM_REGS		2
 #define CAMRTC_NUM_RESETS	2
@@ -131,7 +127,6 @@ struct tegra_cam_rtcpu {
 	struct device_dma_parameters dma_parms;
 	struct camrtc_hsp *hsp;
 	struct tegra_rtcpu_trace *tracer;
-	struct tegra_rtcpu_coverage *coverage;
 	u32 cmd_timeout;
 	u32 fw_version;
 	u8 fw_hash[RTCPU_FW_HASH_SIZE];
@@ -351,13 +346,9 @@ static void tegra_camrtc_init_membw(struct device *dev)
 
 	if (of_property_read_u32(dev->of_node, "nvidia,memory-bw", &bw) != 0) {
 		;
-	} else if (tegra_get_chip_id() == TEGRA234) {
+	} else {
 #if IS_ENABLED(CONFIG_INTERCONNECT)
 		tegra_camrtc_init_icc(dev, bw);
-#endif
-	} else {
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-		tegra_camrtc_init_bwmgr(dev, bw);
 #endif
 	}
 }
@@ -578,23 +569,9 @@ static int tegra_camrtc_setup_shared_memory(struct device *dev)
 		dev_err(dev, "trace boot sync failed: %d\n", ret);
 
 	/*
-	 * Set-up coverage buffer
-	 */
-	ret = tegra_rtcpu_coverage_boot_sync(rtcpu->coverage);
-	if (ret < 0) {
-		/*
-		 * Not a fatal error, don't stop the sync.
-		 * But go ahead and remove the coverage debug FS
-		 * entries and release the memory.
-		 */
-		tegra_rtcpu_coverage_destroy(rtcpu->coverage);
-		rtcpu->coverage = NULL;
-	}
-
-	/*
 	 * Set-up and activate the IVC services in firmware
 	 */
-	ret = tegra_ivc_bus_boot_sync(rtcpu->ivc);
+	ret = tegra_ivc_bus_boot_sync(rtcpu->ivc, &tegra_camrtc_iovm_setup);
 	if (ret < 0)
 		dev_err(dev, "ivc-bus boot sync failed: %d\n", ret);
 
@@ -635,14 +612,6 @@ static void tegra_camrtc_ivc_notify(struct device *dev, u16 group)
 	if (rtcpu->ivc)
 		tegra_ivc_bus_notify(rtcpu->ivc, group);
 }
-
-void tegra_camrtc_ivc_ring(struct device *dev, u16 group)
-{
-	struct tegra_cam_rtcpu *rtcpu = dev_get_drvdata(dev);
-
-	camrtc_hsp_group_ring(rtcpu->hsp, group);
-}
-EXPORT_SYMBOL(tegra_camrtc_ivc_ring);
 
 static int tegra_camrtc_poweron(struct device *dev, bool full_speed)
 {
@@ -862,8 +831,6 @@ static int tegra_cam_rtcpu_remove(struct platform_device *pdev)
 
 	tegra_rtcpu_trace_destroy(rtcpu->tracer);
 	rtcpu->tracer = NULL;
-	tegra_rtcpu_coverage_destroy(rtcpu->coverage);
-	rtcpu->coverage = NULL;
 
 	tegra_camrtc_poweroff(&pdev->dev);
 #if IS_ENABLED(CONFIG_TEGRA_BWMGR)
@@ -927,10 +894,6 @@ static int tegra_cam_rtcpu_probe(struct platform_device *pdev)
 	(void)of_property_read_u32(dev->of_node, NV(max-reboot),
 			&rtcpu->max_reboot_retry);
 	timeout = 2000;
-#if 0 /* disabled for OOT kernel */
-	if (tegra_platform_is_vdk())
-		timeout = 5000;
-#endif
 
 	(void)of_property_read_u32(dev->of_node, "nvidia,cmd-timeout", &timeout);
 
@@ -950,8 +913,6 @@ static int tegra_cam_rtcpu_probe(struct platform_device *pdev)
 
 	rtcpu->tracer = tegra_rtcpu_trace_create(dev, rtcpu->camera_devices);
 
-	rtcpu->coverage = tegra_rtcpu_coverage_create(dev);
-
 	ret = tegra_camrtc_hsp_init(dev);
 	if (ret)
 		goto fail;
@@ -961,7 +922,7 @@ static int tegra_cam_rtcpu_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto fail;
 
-	rtcpu->ivc = tegra_ivc_bus_create(dev);
+	rtcpu->ivc = tegra_ivc_bus_create(dev, rtcpu->hsp);
 	if (IS_ERR(rtcpu->ivc)) {
 		ret = PTR_ERR(rtcpu->ivc);
 		rtcpu->ivc = NULL;

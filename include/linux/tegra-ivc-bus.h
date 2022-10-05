@@ -6,19 +6,22 @@
 #ifndef _LINUX_TEGRA_IVC_BUS_H
 #define _LINUX_TEGRA_IVC_BUS_H
 
-#include <linux/tegra-ivc-instance.h>
+#include <soc/tegra/ivc-priv.h>
 #include <linux/types.h>
+#include <linux/tegra-hsp-combo.h>
 
 extern struct bus_type tegra_ivc_bus_type;
 extern struct device_type tegra_ivc_bus_dev_type;
 struct tegra_ivc_bus;
 struct tegra_ivc_rpc_data;
 
-struct tegra_ivc_bus *tegra_ivc_bus_create(struct device *);
+struct tegra_ivc_bus *tegra_ivc_bus_create(struct device *dev,
+	struct camrtc_hsp *camhsp);
 
 void tegra_ivc_bus_ready(struct tegra_ivc_bus *bus, bool online);
 void tegra_ivc_bus_destroy(struct tegra_ivc_bus *bus);
-int tegra_ivc_bus_boot_sync(struct tegra_ivc_bus *bus);
+int tegra_ivc_bus_boot_sync(struct tegra_ivc_bus *bus,
+	int (*iovm_setup)(struct device*, dma_addr_t));
 void tegra_ivc_bus_notify(struct tegra_ivc_bus *bus, u16 group);
 
 struct tegra_ivc_driver {
@@ -59,7 +62,7 @@ tegra_ivc_subsys_driver(__driver, \
 extern struct device_type tegra_ivc_channel_type;
 
 struct tegra_ivc_channel {
-	struct ivc ivc;
+	struct tegra_ivc ivc;
 	struct device dev;
 	const struct tegra_ivc_channel_ops __rcu *ops;
 	struct tegra_ivc_channel *next;

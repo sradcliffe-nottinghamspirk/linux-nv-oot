@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
-#include "hsp-combo.h"
+#include "linux/tegra-hsp-combo.h"
 
 #include <linux/version.h>
 
@@ -326,15 +326,27 @@ static int camrtc_hsp_vm_get_fw_hash(struct camrtc_hsp *camhsp, u32 index,
 	return camrtc_hsp_vm_sendrecv(camhsp, request, timeout);
 }
 
+static struct device_node *hsp_vm_get_available(const struct device_node *parent)
+{
+	const char *compatible = "nvidia,tegra-camrtc-hsp-vm";
+	struct device_node *child;
+
+	for_each_child_of_node(parent, child) {
+		if (of_device_is_compatible(child, compatible) &&
+			of_device_is_available(child))
+			break;
+	}
+	return child;
+}
+
 static int camrtc_hsp_vm_probe(struct camrtc_hsp *camhsp)
 {
 	struct device_node *np = camhsp->dev.parent->of_node;
 	int err = -ENOTSUPP;
 	const char *obtain = "";
 
-	np = of_get_compatible_child(np, "nvidia,tegra-camrtc-hsp-vm");
-	if (!of_device_is_available(np)) {
-		of_node_put(np);
+	np = hsp_vm_get_available(np);
+	if (np == NULL) {
 		dev_err(&camhsp->dev, "no hsp protocol \"%s\"\n",
 			"nvidia,tegra-camrtc-hsp-vm");
 		return -ENOTSUPP;

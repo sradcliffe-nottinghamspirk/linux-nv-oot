@@ -24,15 +24,13 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/tegra-camera-rtcpu.h>
-#include <linux/tegra-ivc.h>
+#include <soc/tegra/ivc_ext.h>
 #include <linux/tegra-ivc-bus.h>
 #include <linux/platform/tegra/common.h>
 #if IS_ENABLED(CONFIG_TEGRA_BWMGR)
 #include <linux/platform/tegra/emc_bwmgr.h>
 #endif
 #include <soc/tegra/fuse.h>
-
-#include <dt-bindings/memory/tegra-swgroup.h>
 
 #define CAMRTC_TEST_CAM_DEVICES 4
 
@@ -287,7 +285,7 @@ static int camrtc_ivc_dbg_full_frame_xact(
 		goto out;
 	}
 
-	ret = tegra_ivc_write(&ch->ivc, req, req_size);
+	ret = tegra_ivc_write(&ch->ivc, NULL, req, req_size);
 	if (ret < 0) {
 		dev_err(&ch->dev, "IVC write error: %d\n", ret);
 		goto out;
@@ -309,7 +307,7 @@ static int camrtc_ivc_dbg_full_frame_xact(
 
 		dev_dbg(&ch->dev, "rx msg\n");
 
-		ret = tegra_ivc_read_peek(&ch->ivc, resp, 0, resp_size);
+		ret = tegra_ivc_read_peek(&ch->ivc, NULL, resp, 0, resp_size);
 		if (ret < 0) {
 			dev_err(&ch->dev, "IVC read error: %d\n", ret);
 			break;
@@ -919,7 +917,7 @@ static void camrtc_membw_set(struct camrtc_run_membw *membw, u32 bw)
 
 	if (bw == 0) {
 		;
-	} else if (tegra_get_chip_id() == TEGRA234) {
+	} else {
 #if IS_ENABLED(CONFIG_INTERCONNECT)
 		struct icc_path *icc_path;
 		int ret;
@@ -935,31 +933,6 @@ static void camrtc_membw_set(struct camrtc_run_membw *membw, u32 bw)
 				dev_dbg(dev, "requested icc bw %u\n", bw);
 
 			membw->icc_path = icc_path;
-		}
-#endif
-	} else {
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-		struct tegra_bwmgr_client *bwmgr;
-		unsigned long emc_rate;
-		int ret;
-
-		bwmgr = tegra_bwmgr_register(TEGRA_BWMGR_CLIENT_CAMERA_NON_ISO);
-
-		if (!IS_ERR_OR_NULL(bwmgr)) {
-			if (bw == 0xFFFFFFFFU)
-				emc_rate = tegra_bwmgr_get_max_emc_rate();
-			else
-				emc_rate = tegra_bwmgr_round_rate(bw);
-
-			ret = tegra_bwmgr_set_emc(bwmgr,
-						emc_rate, TEGRA_BWMGR_SET_EMC_SHARED_BW);
-
-			if (ret < 0)
-				dev_info(dev, "emc request rate %lu failed, %d\n", emc_rate, ret);
-			else
-				dev_dbg(dev, "requested emc rate %lu\n", emc_rate);
-
-			membw->bwmgr = bwmgr;
 		}
 #endif
 	}
@@ -1979,6 +1952,7 @@ static const struct of_device_id camrtc_debug_of_match[] = {
 	{ .compatible = "nvidia,tegra186-camera-ivc-protocol-debug" },
 	{ },
 };
+MODULE_DEVICE_TABLE(of, camrtc_debug_of_match);
 
 static struct tegra_ivc_driver camrtc_debug_driver = {
 	.driver = {

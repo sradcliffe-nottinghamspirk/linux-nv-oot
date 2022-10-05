@@ -16,9 +16,9 @@
 #include <linux/sched/signal.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
-#include <linux/tegra-ivc.h>
+#include <soc/tegra/ivc_ext.h>
 #include <linux/tegra-ivc-bus.h>
-#include <linux/tegra-ivc-instance.h>
+#include <soc/tegra/ivc-priv.h>
 #include <linux/wait.h>
 #include <asm/ioctls.h>
 #include <asm/uaccess.h>
@@ -113,7 +113,7 @@ static ssize_t tegra_camchar_read(struct file *fp, char __user *buffer, size_t l
 			break;
 		prepare_to_wait(&dev_data->waitq, &wait, TASK_INTERRUPTIBLE);
 
-		ret = tegra_ivc_read_user(&ch->ivc, buffer, len);
+		ret = tegra_ivc_read(&ch->ivc, buffer, NULL, len);
 		mutex_unlock(&dev_data->io_lock);
 
 		if (ret != -ENOMEM)
@@ -153,7 +153,7 @@ static ssize_t tegra_camchar_write(struct file *fp, const char __user *buffer,
 			break;
 
 		prepare_to_wait(&dev_data->waitq, &wait, TASK_INTERRUPTIBLE);
-		ret = tegra_ivc_write_user(&ch->ivc, buffer, len);
+		ret = tegra_ivc_write(&ch->ivc, buffer, NULL, len);
 		mutex_unlock(&dev_data->io_lock);
 
 		if (ret > 0)
@@ -200,7 +200,7 @@ static long tegra_camchar_ioctl(struct file *fp, unsigned int cmd,
 		break;
 	/* ioctls specific to this device */
 	case CCIOGNFRAMES:
-		val = ch->ivc.nframes;
+		val = ch->ivc.num_frames;
 		ret = put_user(val, (int __user *)arg);
 		break;
 	case CCIOGNBYTES:
@@ -385,6 +385,7 @@ static const struct of_device_id camchar_of_match[] = {
 		.data = (void *)"camchar-dbg", },
 	{ },
 };
+MODULE_DEVICE_TABLE(of, camchar_of_match);
 
 static struct tegra_ivc_driver camchar_driver = {
 	.driver = {

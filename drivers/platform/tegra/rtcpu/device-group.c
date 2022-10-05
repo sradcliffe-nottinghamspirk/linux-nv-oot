@@ -9,7 +9,6 @@
 #include <linux/platform_device.h>
 #include <linux/types.h>
 #include <linux/module.h>
-#include "drivers/video/tegra/host/nvhost_acm.h"
 
 struct camrtc_device_group {
 	struct device *dev;
