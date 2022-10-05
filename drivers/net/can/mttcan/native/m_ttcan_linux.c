@@ -617,7 +617,9 @@ static void mttcan_tx_complete(struct net_device *dev)
 	while (completed_tx) {
 		msg_no = ffs(completed_tx) - 1;
 		can_get_echo_skb(dev, msg_no, NULL);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 		can_led_event(dev, CAN_LED_EVENT_TX);
+#endif
 		clear_bit(msg_no, &ttcan->tx_object);
 		stats->tx_packets++;
 		stats->tx_bytes += ttcan->tx_buf_dlc[msg_no];
@@ -1303,7 +1305,9 @@ static int mttcan_open(struct net_device *dev)
 	}
 
 	napi_enable(&priv->napi);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 	can_led_event(dev, CAN_LED_EVENT_OPEN);
+#endif
 
 	mttcan_start(dev);
 	netif_start_queue(dev);
@@ -1330,7 +1334,9 @@ static int mttcan_close(struct net_device *dev)
 	mttcan_power_down(dev);
 	mttcan_pm_runtime_put_sync(priv);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 	can_led_event(dev, CAN_LED_EVENT_STOP);
+#endif
 	return 0;
 }
 
@@ -1529,8 +1535,10 @@ static int register_mttcan_dev(struct net_device *dev)
 
 	dev->netdev_ops = &mttcan_netdev_ops;
 	err = register_candev(dev);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 	if (!err)
 		devm_can_led_init(dev);
+#endif
 
 	return err;
 }
