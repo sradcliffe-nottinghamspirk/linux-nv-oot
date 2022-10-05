@@ -932,8 +932,12 @@ static void setup_device(struct vblk_dev *vblkdev)
 #endif
 	}
 
+#if KERNEL_VERSION(5, 19, 0) >= LINUX_VERSION_CODE
 	/* And the gendisk structure. */
 	vblkdev->gd = __alloc_disk_node(vblkdev->queue, NUMA_NO_NODE, NULL);
+#else
+	vblkdev->gd = blk_mq_alloc_disk_for_queue(vblkdev->queue, NULL);
+#endif
 	if (!vblkdev->gd) {
 		dev_err(vblkdev->device, "alloc_disk failure\n");
 		return;
@@ -1172,8 +1176,10 @@ static int tegra_hv_vblk_remove(struct platform_device *pdev)
 		put_disk(vblkdev->gd);
 	}
 
+#if KERNEL_VERSION(5, 19, 0) >= LINUX_VERSION_CODE
 	if (vblkdev->queue)
 		blk_cleanup_queue(vblkdev->queue);
+#endif
 
 	destroy_workqueue(vblkdev->wq);
 	tegra_hv_ivc_unreserve(vblkdev->ivck);
