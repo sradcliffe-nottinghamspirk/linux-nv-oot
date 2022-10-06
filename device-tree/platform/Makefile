@@ -13,7 +13,7 @@ include $(oottree)/scripts/Makefile.lib
 
 DTC_CPP_FLAGS += $(EXTRA_CPP_FLAGS)
 
-DTC_CPP_FLAGS += -DLINUX_VERSION=504 -DTEGRA_HOST1X_DT_VERSION=1
+DTC_CPP_FLAGS += -DLINUX_VERSION=515 -DTEGRA_HOST1X_DT_VERSION=1
 
 tegra-dtstree := $(TOP)/hardware/nvidia
 
