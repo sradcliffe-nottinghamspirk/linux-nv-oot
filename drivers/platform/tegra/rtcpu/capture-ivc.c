@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <linux/tegra-capture-ivc.h>
 
@@ -29,7 +29,7 @@ static int tegra_capture_ivc_tx_(struct tegra_capture_ivc *civc,
 		return -ENODEV;
 
 	chan = civc->chan;
-	if (WARN_ON(!chan->is_ready))
+	if (chan == NULL || WARN_ON(!chan->is_ready))
 		return -EIO;
 
 	ret = mutex_lock_interruptible(&civc->ivc_wr_lock);
