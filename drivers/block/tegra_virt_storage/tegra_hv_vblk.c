@@ -932,11 +932,13 @@ static void setup_device(struct vblk_dev *vblkdev)
 #endif
 	}
 
-#if KERNEL_VERSION(5, 19, 0) >= LINUX_VERSION_CODE
 	/* And the gendisk structure. */
+#if KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE
+	vblkdev->gd = blk_mq_alloc_disk_for_queue(vblkdev->queue, NULL);
+#elif KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE
 	vblkdev->gd = __alloc_disk_node(vblkdev->queue, NUMA_NO_NODE, NULL);
 #else
-	vblkdev->gd = blk_mq_alloc_disk_for_queue(vblkdev->queue, NULL);
+	vblkdev->gd = __alloc_disk_node(vblkdev->queue, NUMA_NO_NODE);
 #endif
 	if (!vblkdev->gd) {
 		dev_err(vblkdev->device, "alloc_disk failure\n");

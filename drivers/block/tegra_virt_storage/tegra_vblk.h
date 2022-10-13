@@ -7,7 +7,7 @@
 #define _TEGRA_VBLK_H_
 
 #include <linux/version.h>
-#if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
+#if KERNEL_VERSION(5, 18, 0) > LINUX_VERSION_CODE
 #include <linux/genhd.h>
 #endif
 #include <linux/blkdev.h>
