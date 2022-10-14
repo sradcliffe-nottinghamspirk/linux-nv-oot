@@ -1788,7 +1788,6 @@ static u32 tegra_se_get_crypto_config(struct tegra_se_dev *se_dev,
 {
 	u32 val = 0;
 	unsigned long freq = 0;
-	int err = 0;
 
 	switch (mode) {
 	case SE_AES_OP_MODE_XTS:
@@ -2073,7 +2072,6 @@ static int tegra_se_read_cmac_result(struct tegra_se_dev *se_dev, u8 *pdata,
 {
 	u32 *result = (u32 *)pdata;
 	u32 i;
-	int err = 0;
 
 	for (i = 0; i < nbytes / 4; i++) {
 		if (se_dev->chipdata->kac_type == SE_KAC_T23X) {
@@ -2095,7 +2093,6 @@ static int tegra_se_read_cmac_result(struct tegra_se_dev *se_dev, u8 *pdata,
 static int tegra_se_clear_cmac_result(struct tegra_se_dev *se_dev, u32 nbytes)
 {
 	u32 i;
-	int err = 0;
 
 	for (i = 0; i < nbytes / 4; i++) {
 		if (se_dev->chipdata->kac_type == SE_KAC_T23X) {
