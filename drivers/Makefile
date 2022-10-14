@@ -8,7 +8,6 @@ obj-m += c2c/
 obj-m += clink/
 obj-m += crypto/
 obj-m += devfreq/
-obj-m += dma/
 obj-m += firmware/tegra/
 obj-m += gpu/
 obj-m += hwmon/
