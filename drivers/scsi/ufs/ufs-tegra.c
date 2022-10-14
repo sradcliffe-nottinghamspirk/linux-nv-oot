@@ -22,16 +22,16 @@
 #include <linux/debugfs.h>
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 #include <drivers-private/scsi/ufs/k515/ufshcd-pltfrm.h>
 #include <drivers-private/scsi/ufs/k515/ufshcd.h>
 #include <drivers-private/scsi/ufs/k515/unipro.h>
 #include <drivers-private/scsi/ufs/k515/ufshci.h>
 #else
-#include <drivers-private/scsi/ufs/k517/ufshcd-pltfrm.h>
-#include <drivers-private/scsi/ufs/k517/ufshcd.h>
-#include <drivers-private/scsi/ufs/k517/unipro.h>
-#include <drivers-private/scsi/ufs/k517/ufshci.h>
+#include <drivers-private/scsi/ufs/k516/ufshcd-pltfrm.h>
+#include <drivers-private/scsi/ufs/k516/ufshcd.h>
+#include <drivers-private/scsi/ufs/k516/unipro.h>
+#include <drivers-private/scsi/ufs/k516/ufshci.h>
 #endif
 
 #include "ufs-tegra.h"
