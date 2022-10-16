@@ -3,7 +3,7 @@
  * tegra210_adsp.c - Tegra ADSP audio driver
  *
  * Author: Sumit Bhattacharya <sumitb@nvidia.com>
- * Copyright (c) 2014-2021 NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2022 NVIDIA CORPORATION.  All rights reserved.
  *
  */
 
@@ -4438,6 +4438,8 @@ static struct snd_soc_component_driver tegra210_adsp_cmpnt = {
 	.compress_ops		= &tegra210_adsp_compress_ops,
 	.read			= tegra210_adsp_read,
 	.write			= tegra210_adsp_write,
+
+	.use_dai_pcm_id		= 1,
 };
 
 static u64 tegra_dma_mask = DMA_BIT_MASK(32);

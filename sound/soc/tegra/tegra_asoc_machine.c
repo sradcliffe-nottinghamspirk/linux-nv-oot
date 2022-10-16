@@ -2,7 +2,7 @@
 /*
  * tegra_asoc_machine.c - Tegra DAI links parser
  *
- * Copyright (c) 2014-2021 NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2022 NVIDIA CORPORATION.  All rights reserved.
  *
  */
 
@@ -424,6 +424,7 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 		struct device_node *codec = NULL, *cpu = NULL;
 		struct snd_soc_dai_link *dai_link;
 		int link_type = 0, codec_count = 0;
+		char *link_addr;
 
 		if (!of_dai_link_is_available(link_node)) {
 			link_node = of_get_next_child(top, link_node);
@@ -505,6 +506,28 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 				goto cleanup;
 			}
 
+			/*
+			 * Assign DAI link ID based on DT link address.
+			 * This is done to use consistent PCM/Compress device
+			 * IDs irrespective of parsing order of DT DAI links.
+			 */
+			link_addr = strrchr(link_node->full_name, '@');
+			if (!link_addr) {
+				dev_err(&pdev->dev,
+					"Invalid link node (%pOF)\n",
+					link_node);
+				ret = -EINVAL;
+				goto cleanup;
+			}
+
+			ret = kstrtos32(++link_addr, 10, &dai_link->id);
+			if (ret < 0) {
+				dev_err(&pdev->dev,
+					"Failed to get link node (%pOF) ID\n",
+					link_node);
+				goto cleanup;
+			}
+
 			link_count++;
 			codec_count++;
 		}
@@ -544,7 +567,7 @@ int parse_card_info(struct snd_soc_card *card, struct snd_soc_ops *pcm_ops,
 			return ret;
 	}
 
-	/*
+	/*str
 	 * Below property of routing map is required only when there
 	 * are DAPM input/output widgets available for external codec,
 	 * which require them to be connected to machine source/sink

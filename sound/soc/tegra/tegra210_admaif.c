@@ -1174,6 +1174,7 @@ static const struct snd_soc_component_driver tegra210_admaif_cmpnt = {
 	.close			= tegra_pcm_close,
 	.hw_params		= tegra_pcm_hw_params,
 	.pointer		= tegra_pcm_pointer,
+	.use_dai_pcm_id		= 1,
 };
 
 static const struct snd_soc_component_driver tegra186_admaif_cmpnt = {
@@ -1188,6 +1189,7 @@ static const struct snd_soc_component_driver tegra186_admaif_cmpnt = {
 	.close			= tegra_pcm_close,
 	.hw_params		= tegra_pcm_hw_params,
 	.pointer		= tegra_pcm_pointer,
+	.use_dai_pcm_id		= 1,
 };
 
 static const struct tegra_admaif_soc_data soc_data_tegra210 = {
