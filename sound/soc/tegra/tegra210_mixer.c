@@ -13,6 +13,7 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regmap.h>
+#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -515,7 +516,9 @@ static struct snd_soc_component_driver tegra210_mixer_cmpnt = {
 	.num_dapm_routes = ARRAY_SIZE(tegra210_mixer_routes),
 	.controls = tegra210_mixer_gain_ctls,
 	.num_controls = ARRAY_SIZE(tegra210_mixer_gain_ctls),
+#if (KERNEL_VERSION(6, 0, 0) > LINUX_VERSION_CODE)
 	.non_legacy_dai_naming	= 1,
+#endif
 };
 
 static bool tegra210_mixer_wr_reg(struct device *dev,

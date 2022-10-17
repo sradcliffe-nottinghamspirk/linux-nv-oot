@@ -12,6 +12,7 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regmap.h>
+#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
@@ -598,7 +599,9 @@ static const struct snd_soc_component_driver tegra186_dspk_cmpnt = {
 	.num_dapm_routes = ARRAY_SIZE(tegra186_dspk_routes),
 	.controls = tegrat186_dspk_controls,
 	.num_controls = ARRAY_SIZE(tegrat186_dspk_controls),
+#if (KERNEL_VERSION(6, 0, 0) > LINUX_VERSION_CODE)
 	.non_legacy_dai_naming	= 1,
+#endif
 };
 
 static bool tegra186_dspk_wr_reg(struct device *dev, unsigned int reg)

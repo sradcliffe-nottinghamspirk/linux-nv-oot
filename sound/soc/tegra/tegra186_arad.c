@@ -17,6 +17,7 @@
 #ifdef CONFIG_TEGRA186_AHC
 #include <linux/tegra186_ahc.h>
 #endif
+#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -535,7 +536,9 @@ static struct snd_soc_component_driver tegra186_arad_cmpnt = {
 	.num_dapm_routes = ARRAY_SIZE(tegra186_arad_routes),
 	.controls = tegra186_arad_controls,
 	.num_controls = ARRAY_SIZE(tegra186_arad_controls),
+#if (KERNEL_VERSION(6, 0, 0) > LINUX_VERSION_CODE)
 	.non_legacy_dai_naming	= 1,
+#endif
 };
 
 static bool tegra186_arad_wr_reg(struct device *dev, unsigned int reg)
