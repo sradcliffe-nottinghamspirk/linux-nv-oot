@@ -12,9 +12,10 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/gpio/tegra234-gpio.h>
-
 #include "tegra234-soc-display-overlay.dtsi"
 
+
+#define TEGRA234_POWER_DOMAIN_PVA		30U
 #define TEGRA234_POWER_DOMAIN_GPU		35U
 
 / {
@@ -522,6 +523,14 @@
 	fragment-t234@1 {
 		target-path = "/bus@0/host1x@13e00000";
 		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			interrupt-parent = <&gic>;
+
+			ranges = <0x14800000 0x14800000 0x02000000>,
+				 <0x24700000 0x24700000 0x00080000>;
+
 			se@15810000 {
 				compatible = "nvidia,tegra234-se1-nvhost";
 				reg = <0x15810000 0x10000>;
@@ -697,6 +706,87 @@
 				reset-names = "la", "hwpm";
 				iommus = <&smmu_niso1 TEGRA234_SID_HWMP_PMA>;
 				status = "okay";
+			};
+
+			pva0: pva0@16000000 {
+				compatible = "nvidia,tegra234-pva";
+				power-domains = <&bpmp TEGRA234_POWER_DOMAIN_PVA>;
+				reg = <0x16000000 0x800000>,
+				      <0x24700000 0x080000>;
+				interrupts = <0 234 0x04>,
+					<0 432 0x04>,
+					<0 433 0x04>,
+					<0 434 0x04>,
+					<0 435 0x04>,
+					<0 436 0x04>,
+					<0 437 0x04>,
+					<0 438 0x04>,
+					<0 439 0x04>;
+				resets = <&bpmp TEGRA234_RESET_PVA0_ALL>;
+				clocks = <&bpmp TEGRA234_CLK_PVA0_CPU_AXI>,
+					 <&bpmp TEGRA234_CLK_NAFLL_PVA0_VPS>,
+					 <&bpmp TEGRA234_CLK_PVA0_VPS>;
+				clock-names = "axi", "vps0", "vps1";
+
+				iommus = <&smmu_niso1 TEGRA234_SID_PVA0>;
+				dma-coherent;
+				status = "okay";
+
+				pva0_ctx0n1: pva0_niso1_ctx0 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM0>;
+					dma-coherent;
+					status = "okay";
+				};
+
+				pva0_ctx1n1: pva0_niso1_ctx1 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM1>;
+					dma-coherent;
+					status = "okay";
+				};
+
+				pva0_ctx2n1: pva0_niso1_ctx2 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM2>;
+					dma-coherent;
+					status = "okay";
+				};
+
+				pva0_ctx3n1: pva0_niso1_ctx3 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM3>;
+					dma-coherent;
+					status = "okay";
+				};
+
+				pva0_ctx4n1: pva0_niso1_ctx4 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM4>;
+					dma-coherent;
+					status = "okay";
+				};
+
+				pva0_ctx5n1: pva0_niso1_ctx5 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM5>;
+					dma-coherent;
+					status = "okay";
+				};
+
+				pva0_ctx6n1: pva0_niso1_ctx6 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM6>;
+					dma-coherent;
+					status = "okay";
+				};
+
+				pva0_ctx7n1: pva0_niso1_ctx7 {
+					compatible = "nvidia,pva-tegra186-iommu-context";
+					iommus = <&smmu_niso1 TEGRA234_SID_PVA0_VM7>;
+					dma-coherent;
+					status = "okay";
+				};
 			};
 		};
 	};
