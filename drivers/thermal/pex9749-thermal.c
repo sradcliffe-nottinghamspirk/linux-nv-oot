@@ -5,6 +5,7 @@
 #include <linux/i2c.h>
 #include <linux/thermal.h>
 #include <linux/delay.h>
+#include <linux/version.h>
 
 #define TS_ENABLE           BIT(7)
 #define TS_DATA_VALID       BIT(31)
@@ -107,9 +108,15 @@ static int pex9749_calc_temp(u16 v)
 	return temp;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static int pex9749_get_temp(struct thermal_zone_device *tz, int *temp)
+{
+	struct pex9749_priv *priv = tz->devdata;
+#else
 static int pex9749_get_temp(void *data, int *temp)
 {
 	struct pex9749_priv *priv = data;
+#endif
 	struct i2c_client *client = priv->client;
 	u32 reg;
 	int ret, retry = 3;
@@ -149,7 +156,11 @@ out:
 	return ret;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static struct thermal_zone_device_ops pex9749_ops = {
+#else
 static struct thermal_zone_of_device_ops pex9749_ops = {
+#endif
 	.get_temp = pex9749_get_temp,
 };
 
@@ -190,7 +201,11 @@ static int pex9749_probe(struct i2c_client *client, const struct i2c_device_id *
 		return -ENOMEM;
 
 	priv->client = client;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	priv->tzd = devm_thermal_of_zone_register(dev, PEX9749, priv, &pex9749_ops);
+#else
 	priv->tzd = devm_thermal_zone_of_sensor_register(dev, PEX9749, priv, &pex9749_ops);
+#endif
 	if (IS_ERR(priv->tzd))
 		return PTR_ERR(priv->tzd);
 
