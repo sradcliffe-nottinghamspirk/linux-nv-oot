@@ -7,7 +7,7 @@
 
 #include <linux/module.h>
 #include <linux/delay.h>
-#include <linux/dma-iommu.h>
+#include <linux/dma-mapping.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
 #include <linux/of_platform.h>
