@@ -55,7 +55,7 @@ static int pwm_tach_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, ptt);
 	dev_set_drvdata(&pdev->dev, ptt);
 
-	ptt->pwm = devm_of_pwm_get(&pdev->dev, pdev->dev.of_node, NULL);
+	ptt->pwm = devm_fwnode_pwm_get(&pdev->dev, &pdev->dev.of_node->fwnode, NULL);
 	if (IS_ERR(ptt->pwm)) {
 		if (PTR_ERR(ptt->pwm) != -EPROBE_DEFER) {
 			dev_err(&pdev->dev, "Failed to get pwm:  %ld\n",
