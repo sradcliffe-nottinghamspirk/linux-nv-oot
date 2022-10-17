@@ -19,6 +19,9 @@ nvidia/include/soc/tegra/fuse-helper.h include/soc/tegra/fuse-helper.h
 # Files/directories for host1x module
 nvidia/drivers/gpu/host1x drivers/gpu
 
+# Files/directories for the tsec module
+nvidia/drivers/video/tegra/tsec drivers/video/tegra
+
 # Files/directories for host1x-nvhost module
 nvidia/drivers/gpu/host1x-nvhost drivers/gpu
 nvidia/include/linux/nvhost.h include/linux/nvhost.h
