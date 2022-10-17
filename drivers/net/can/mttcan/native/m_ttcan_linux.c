@@ -1186,7 +1186,11 @@ static struct net_device *alloc_mttcan_dev(void)
 	    CAN_CTRLMODE_LISTENONLY | CAN_CTRLMODE_FD | CAN_CTRLMODE_FD_NON_ISO
 	    | CAN_CTRLMODE_BERR_REPORTING | CAN_CTRLMODE_ONE_SHOT;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	netif_napi_add_weight(dev, &priv->napi, mttcan_poll_ir, MTT_CAN_NAPI_WEIGHT);
+#else
 	netif_napi_add(dev, &priv->napi, mttcan_poll_ir, MTT_CAN_NAPI_WEIGHT);
+#endif
 
 	return dev;
 }

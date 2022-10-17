@@ -742,7 +742,11 @@ static int tegra_hv_net_probe(struct platform_device *pdev)
 		goto out_unreserve;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	netif_napi_add_weight(ndev, &hvn->napi, tegra_hv_net_poll, 64);
+#else
 	netif_napi_add(ndev, &hvn->napi, tegra_hv_net_poll, 64);
+#endif
 	ret = register_netdev(ndev);
 	if (ret) {
 		dev_err(dev, "Failed to register netdev\n");

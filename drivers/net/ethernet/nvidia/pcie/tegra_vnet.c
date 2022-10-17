@@ -9,6 +9,7 @@
 #include <linux/netdevice.h>
 #include <linux/pci.h>
 #include <linux/tegra_vnet.h>
+#include <linux/version.h>
 
 struct tvnet_priv {
 	struct net_device *ndev;
@@ -792,7 +793,11 @@ static int tvnet_host_probe(struct pci_dev *pdev,
 	/* Setup BAR0 meta data */
 	tvnet_host_setup_bar0_md(tvnet);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	netif_napi_add_weight(ndev, &tvnet->napi, tvnet_host_poll, TVNET_NAPI_WEIGHT);
+#else
 	netif_napi_add(ndev, &tvnet->napi, tvnet_host_poll, TVNET_NAPI_WEIGHT);
+#endif
 
 	ndev->mtu = TVNET_DEFAULT_MTU;
 
