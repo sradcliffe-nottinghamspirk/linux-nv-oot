@@ -129,6 +129,16 @@ struct trapped_access {
 	uint32_t guest_id;
 };
 
+/* Structure to store the IPA, Length and Name. */
+struct trace_buf {
+/* @brief IPA of trace buffer region. */
+	uint64_t ipa;
+/* @brief Length of trace buffer region. */
+	uint64_t size;
+/* @brief Name */
+	char name[32];
+};
+
 struct hyp_server_page {
 	/* guest reset protocol */
 	uint32_t guest_reset_virq;
@@ -157,6 +167,10 @@ struct hyp_server_page {
 
 	/* all vm mappings ipa */
 	uint64_t mappings_ipa;
+
+	/* IPA, Length and Name for trace buffer region. */
+	struct trace_buf trace_buffs[2*NGUESTS_MAX];
+
 };
 
 /* For backwards compatibility, alias the old name for hyp_server_name. */
