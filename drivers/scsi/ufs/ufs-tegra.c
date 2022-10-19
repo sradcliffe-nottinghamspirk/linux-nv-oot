@@ -17,6 +17,7 @@
 #include <linux/of_device.h>
 #include <linux/of_platform.h>
 #include <linux/of_gpio.h>
+#include <linux/iommu.h>
 
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
@@ -1063,6 +1064,13 @@ static int ufs_tegra_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 		 * T234 does not require context restore
 		 */
 		ufs_tegra_context_restore(ufs_tegra);
+	} else {
+		writel(UFS_AUX_ADDR_VIRT_CTRL_EN,
+			ufs_tegra->ufs_virtualization_base +
+			UFS_AUX_ADDR_VIRT_CTRL_0);
+		writel(ufs_tegra->streamid,
+			ufs_tegra->ufs_virtualization_base +
+			UFS_AUX_ADDR_VIRT_REG_0);
 	}
 
 	ufs_tegra_set_clk_div(hba, UFS_VNDR_HCLKDIV_1US_TICK);
@@ -1390,6 +1398,9 @@ static void ufs_tegra_config_soc_data(struct ufs_tegra_host *ufs_tegra)
 
 	ufs_tegra->enable_scramble =
 		of_property_read_bool(np, "nvidia,enable-scramble");
+
+	if (ufs_tegra->soc->chip_id == TEGRA234)
+		ufs_tegra->hba->quirks |= UFSHCD_QUIRK_ENABLE_STREAM_ID;
 }
 
 static void ufs_tegra_eq_timeout(struct ufs_tegra_host *ufs_tegra)
@@ -1421,6 +1432,7 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	struct device *dev = hba->dev;
 	int err = 0;
 	resource_size_t ufs_aux_base_addr, ufs_aux_addr_range, mphy_addr_range;
+	struct iommu_fwspec *fwspec;
 
 	ufs_tegra = devm_kzalloc(dev, sizeof(*ufs_tegra), GFP_KERNEL);
 	if (!ufs_tegra) {
@@ -1470,6 +1482,17 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 		goto out;
 	}
 
+	if (ufs_tegra->soc->chip_id == TEGRA234) {
+		ufs_tegra->ufs_virtualization_base = devm_ioremap(dev,
+				NV_ADDRESS_MAP_T23X_UFSHC_VIRT_BASE,
+				UFS_AUX_ADDR_VIRT_RANGE_23X);
+		if (!ufs_tegra->ufs_virtualization_base) {
+			err = -ENOMEM;
+			dev_err(dev, "UFS Virtualization failed\n");
+			goto out;
+		}
+	}
+
 	err = ufs_tegra_init_ufs_clks(ufs_tegra);
 	if (err)
 		goto out_host_free;
@@ -1491,6 +1514,23 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	err = ufs_tegra_enable_ufs_clks(ufs_tegra);
 	if (err)
 		goto out_host_free;
+
+	if (ufs_tegra->soc->chip_id == TEGRA234) {
+		fwspec = dev_iommu_fwspec_get(dev);
+		if (fwspec == NULL) {
+			err = -ENODEV;
+			dev_err(dev, "Failed to get MC streamidd\n");
+			goto out;
+		} else {
+			ufs_tegra->streamid = fwspec->ids[0] & 0xffff;
+			writel(UFS_AUX_ADDR_VIRT_CTRL_EN,
+				ufs_tegra->ufs_virtualization_base +
+				UFS_AUX_ADDR_VIRT_CTRL_0);
+			writel(ufs_tegra->streamid,
+				ufs_tegra->ufs_virtualization_base +
+				UFS_AUX_ADDR_VIRT_REG_0);
+		}
+	}
 
 	err = ufs_tegra_enable_mphylane_clks(ufs_tegra);
 	if (err)

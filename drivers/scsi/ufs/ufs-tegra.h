@@ -9,8 +9,10 @@
 
 #define NV_ADDRESS_MAP_MPHY_L0_BASE		0x02470000
 #define NV_ADDRESS_MAP_MPHY_L1_BASE		0x02480000
+#define NV_ADDRESS_MAP_T23X_UFSHC_VIRT_BASE	0x02520000
 #define MPHY_ADDR_RANGE_T234			0x2268
 #define MPHY_ADDR_RANGE				0x200
+#define UFS_AUX_ADDR_VIRT_RANGE_23X		0x14f
 
 /* UFS AUX Base address for T194 */
 #define NV_ADDRESS_MAP_UFSHC_AUX_BASE		0x02460000
@@ -21,7 +23,9 @@
 #define NV_ADDRESS_MAP_T23X_UFSHC_AUX_BASE	0x02510000
 /* UFS AUX address range in T234 */
 #define UFS_AUX_ADDR_RANGE_23X			0x20
-
+#define UFS_AUX_ADDR_VIRT_CTRL_0		0x0
+#define UFS_AUX_ADDR_VIRT_CTRL_EN		0x1
+#define UFS_AUX_ADDR_VIRT_REG_0			0x4
 
 /*
  * M-PHY Registers
@@ -320,6 +324,7 @@ struct ufs_tegra_host {
 	void __iomem *mphy_l0_base;
 	void __iomem *mphy_l1_base;
 	void __iomem *ufs_aux_base;
+	void __iomem *ufs_virtualization_base;
 	struct reset_control *ufs_rst;
 	struct reset_control *ufs_axi_m_rst;
 	struct reset_control *ufshc_lp_rst;
@@ -366,6 +371,7 @@ struct ufs_tegra_host {
 	bool enable_scramble;
 	u32 ref_clk_freq;
 	struct ufs_tegra_soc_data *soc;
+	u32 streamid;
 #ifdef CONFIG_DEBUG_FS
 	u32 refclk_value;
 	long program_refclk;
