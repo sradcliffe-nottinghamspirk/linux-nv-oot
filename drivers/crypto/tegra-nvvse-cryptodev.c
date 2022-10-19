@@ -244,7 +244,7 @@ static int tnvvse_crypto_sha_init(struct tnvvse_crypto_ctx *ctx,
 	/* Shake128/Shake256 have variable digest size */
 	if ((init_ctl->sha_type == TEGRA_NVVSE_SHA_TYPE_SHAKE128) ||
 	     (init_ctl->sha_type == TEGRA_NVVSE_SHA_TYPE_SHAKE256)) {
-//		req->dst_size = init_ctl->digest_size;
+		sha_ctx->digest_size = init_ctl->digest_size;
 		if (init_ctl->digest_size > NVVSE_MAX_ALLOCATED_SHA_RESULT_BUFF_SIZE) {
 			result_buff = kzalloc(init_ctl->digest_size, GFP_KERNEL);
 			if (!result_buff) {
