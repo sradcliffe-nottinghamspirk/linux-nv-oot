@@ -840,9 +840,9 @@ int tegra_machine_add_codec_jack_control(struct snd_soc_card *card,
 		.private_value	= (unsigned long)&tegra_machine_jack_state,
 	};
 
-	if (rtd->dais[rtd->num_cpus]->component->name_prefix)
+	if (rtd->dais[rtd->dai_link->num_cpus]->component->name_prefix)
 		snprintf(name, sizeof(name), "%s Jack-state",
-			 rtd->dais[rtd->num_cpus]->component->name_prefix);
+			 rtd->dais[rtd->dai_link->num_cpus]->component->name_prefix);
 	else
 		snprintf(name, sizeof(name), "Jack-state");
 

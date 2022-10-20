@@ -1398,11 +1398,11 @@ static int tegra210_adsp_compr_open(struct snd_soc_component *component,
 	struct snd_soc_pcm_runtime *rtd = cstream->device->private_data;
 	struct tegra210_adsp *adsp = snd_soc_component_get_drvdata(component);
 	struct tegra210_adsp_compr_rtd *prtd;
-	uint32_t fe_reg = rtd->dais[rtd->num_cpus]->id + 1;
+	uint32_t fe_reg = rtd->dais[rtd->dai_link->num_cpus]->id + 1;
 	int ret = 0;
 	int i;
 
-	dev_vdbg(adsp->dev, "%s : DAI ID %d", __func__, rtd->dais[rtd->num_cpus]->id);
+	dev_vdbg(adsp->dev, "%s : DAI ID %d", __func__, rtd->dais[rtd->dai_link->num_cpus]->id);
 
 	mutex_lock(&adsp->mutex);
 	if (!adsp->init_done) {
@@ -1741,7 +1741,7 @@ static int tegra210_adsp_pcm_open(struct snd_soc_component *component,
 	struct snd_soc_component *cmpnt = snd_soc_rtdcom_lookup(rtd, DRV_NAME);
 	struct tegra210_adsp *adsp = snd_soc_component_get_drvdata(cmpnt);
 	struct tegra210_adsp_pcm_rtd *prtd;
-	uint32_t fe_reg = rtd->dais[rtd->num_cpus]->id + 1;
+	uint32_t fe_reg = rtd->dais[rtd->dai_link->num_cpus]->id + 1;
 	uint32_t source;
 	int i, ret = 0;
 
