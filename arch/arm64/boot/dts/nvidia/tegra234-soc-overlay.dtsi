@@ -13,6 +13,8 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/gpio/tegra234-gpio.h>
 
+#include "tegra234-soc-display-overlay.dtsi"
+
 #define TEGRA234_POWER_DOMAIN_GPU		35U
 
 / {
@@ -728,24 +730,6 @@
 				compatible = "nvidia,scf-pmu";
 				interrupts = <GIC_SPI 551 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-affinity = <&cpu0_0>;
-				status = "okay";
-			};
-		};
-	};
-
-	fragment-t234@5 {
-		target-path = "/";
-		__overlay__ {
-
-			dce@d800000 {
-				compatible = "nvidia,tegra234-dce";
-				reg = <0x0 0x0d800000 0x0 0x00800000>;
-				interrupts =
-					<0 376 0x4>,
-					<0 377 0x4>;
-				interrupt-names = "wdt-remote",
-					"dce-sm0";
-				iommus = <&smmu_niso0 TEGRA234_SID_DCE>;
 				status = "okay";
 			};
 		};

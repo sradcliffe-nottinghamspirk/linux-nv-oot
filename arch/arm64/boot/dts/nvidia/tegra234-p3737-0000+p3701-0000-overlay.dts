@@ -10,6 +10,8 @@
 #include "tegra234-p3701-0000-overlay.dtsi"
 #include "tegra234-audio-dai-links-overlay.dtsi"
 
+#include "tegra234-dcb-p3737-0000-p3701-0000.dtsi"
+
 / {
 	fragment-t234-p3737-p3701@0 {
 		target-path = "/bpmp/i2c";
@@ -59,6 +61,7 @@
 	fragment-t234-p3737-p3701@5 {
 		target-path = "/bus@0/i2c@31b0000";
 		__overlay__ {
+			nvidia,hw-instance-id = <0x5>;
 			status = "okay";
 		};
 	};

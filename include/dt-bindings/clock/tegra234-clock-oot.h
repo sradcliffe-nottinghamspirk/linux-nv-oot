@@ -86,6 +86,8 @@
 #define TEGRA234_CLK_EXTPERIPH3			38U
 /** @brief output of mux controlled by CLK_RST_CONTROLLER_CLK_SOURCE_EXTPERIPH4 */
 #define TEGRA234_CLK_EXTPERIPH4			39U
+/** @brief output of gate CLK_ENB_FUSE */
+#define TEGRA234_CLK_FUSE			40U
 /** @brief output of GPU GPC0 clkGen (in 1x mode same rate as GPC0 MUX2 out) */
 #define TEGRA234_CLK_GPC0CLK			41U
 /** @brief TODO */
