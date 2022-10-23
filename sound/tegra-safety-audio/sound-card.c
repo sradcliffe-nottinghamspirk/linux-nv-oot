@@ -13,6 +13,7 @@
 #include <linux/dmaengine.h>
 #include <linux/clk.h>
 #include <linux/reset.h>
+#include <linux/version.h>
 
 #include "tegra_i2s.h"
 
@@ -455,7 +456,10 @@ static int gpcdma_hw_params(struct snd_pcm_substream *substream,
 		slave_config.src_maxburst = 2;
 	}
 
+#if (KERNEL_VERSION(5, 17, 0) > LINUX_VERSION_CODE)
+	//TODO: Read from DT later on
 	slave_config.slave_id = dma_data->req_sel;
+#endif
 
 	ret = dmaengine_slave_config(chan, &slave_config);
 	if (ret < 0) {
