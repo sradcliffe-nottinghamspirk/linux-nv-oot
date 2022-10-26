@@ -10,6 +10,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
+#include <linux/of_platform.h>
 #include <linux/slab.h>
 #include <linux/seq_file.h>
 #include <linux/spinlock.h>
@@ -29,6 +30,7 @@
 
 #define ERR(...) pr_err("tegra_hv: " __VA_ARGS__)
 #define INFO(...) pr_info("tegra_hv: " __VA_ARGS__)
+#define DRV_NAME	"tegra_hv"
 
 struct tegra_hv_data;
 
@@ -607,52 +609,6 @@ static int __init tegra_hv_setup(struct tegra_hv_data *hvd)
 	return 0;
 }
 
-static int __init tegra_hv_init(void)
-{
-	struct tegra_hv_data *hvd;
-	int ret;
-
-	if (!is_tegra_hypervisor_mode())
-		return -ENODEV;
-
-	hvd = kzalloc(sizeof(*hvd), GFP_KERNEL);
-	if (!hvd) {
-		ERR("failed to allocate hvd\n");
-		return -ENOMEM;
-	}
-
-	ret = tegra_hv_setup(hvd);
-	if (ret != 0) {
-		tegra_hv_cleanup(hvd);
-		kfree(hvd);
-		return ret;
-	}
-
-	/*
-	 * Ensure that all contents of hvd are visible before they are visible
-	 * to other threads.
-	 */
-	smp_wmb();
-
-	BUG_ON(tegra_hv_data);
-	tegra_hv_data = hvd;
-	INFO("initialized\n");
-
-	return 0;
-}
-
-static void __exit tegra_hv_exit(void)
-{
-	if (!is_tegra_hypervisor_mode())
-		return;
-
-	tegra_hv_cleanup(tegra_hv_data);
-	kfree(tegra_hv_data);
-	tegra_hv_data = NULL;
-
-	INFO("de-initialized\n");
-}
-
 static int ivc_dump(struct hv_ivc *ivc)
 {
 	INFO("IVC#%d: IRQ=%d(%d) nframes=%d frame_size=%d offset=%d\n",
@@ -967,6 +923,85 @@ void tegra_hv_ivc_channel_reset(struct tegra_hv_ivc_cookie *ivck)
 	tegra_ivc_reset(&ivc->ivc);
 }
 EXPORT_SYMBOL(tegra_hv_ivc_channel_reset);
+
+static int tegra_hv_probe(struct platform_device *pdev)
+{
+	struct tegra_hv_data *hvd;
+	int ret;
+
+	if (!is_tegra_hypervisor_mode())
+		return -ENODEV;
+
+	hvd = kzalloc(sizeof(*hvd), GFP_KERNEL);
+	if (!hvd) {
+		ERR("failed to allocate hvd\n");
+		return -ENOMEM;
+	}
+
+	ret = tegra_hv_setup(hvd);
+	if (ret != 0) {
+		tegra_hv_cleanup(hvd);
+		kfree(hvd);
+		return ret;
+	}
+
+	/*
+	 * Ensure that all contents of hvd are visible before they are visible
+	 * to other threads.
+	 */
+	smp_wmb();
+
+	BUG_ON(tegra_hv_data);
+	tegra_hv_data = hvd;
+	INFO("tegra_hv driver probed successfully\n");
+
+	return 0;
+}
+
+static int tegra_hv_remove(struct platform_device *pdev)
+{
+	if (!is_tegra_hypervisor_mode())
+		return 0;
+
+	tegra_hv_cleanup(tegra_hv_data);
+	kfree(tegra_hv_data);
+	tegra_hv_data = NULL;
+
+	INFO("tegra_hv driver removed successfully\n");
+
+	return 0;
+}
+
+static const struct of_device_id tegra_hv_match[] = {
+	{ .compatible = "nvidia,tegra-hv", },
+	{},
+};
+
+static struct platform_driver tegra_hv_driver = {
+	.driver = {
+		.name = DRV_NAME,
+		.owner = THIS_MODULE,
+		.of_match_table = of_match_ptr(tegra_hv_match),
+	},
+	.probe = tegra_hv_probe,
+	.remove = tegra_hv_remove,
+};
+
+static int __init tegra_hv_init(void)
+{
+	int ret;
+
+	ret = platform_driver_register(&tegra_hv_driver);
+	if (ret)
+		pr_err("Error: tegra_hv driver registration failed\n");
+
+	return ret;
+}
+
+static void __exit tegra_hv_exit(void)
+{
+	platform_driver_unregister(&tegra_hv_driver);
+}
 
 module_init(tegra_hv_init);
 module_exit(tegra_hv_exit);
