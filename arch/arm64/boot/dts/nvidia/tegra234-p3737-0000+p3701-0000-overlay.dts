@@ -164,4 +164,112 @@
 			};
 		};
 	};
+
+	fragment-t234-p3737-p3701@10 {
+		target-path = "/cpus";
+		__overlay__ {
+			cpu_core_power_states {
+				C1: c1 {
+					compatible = "arm,idle-state";
+					state-name = "Clock gated";
+					wakeup-latency-us = <1>;
+					min-residency-us = <1>;
+					status = "okay";
+				};
+
+				C7: c7 {
+					compatible = "arm,idle-state";
+					state-name = "Core powergate";
+					wakeup-latency-us = <5000>;
+					arm,psci-suspend-param= <0x40000007>;
+					min-residency-us = <30000>;
+					status = "okay";
+				};
+			};
+		};
+	};
+
+	fragment-t234-p3737-p3701@11 {
+		target-path = "/cpus/cpu@0";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@12 {
+		target-path = "/cpus/cpu@100";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@13 {
+		target-path = "/cpus/cpu@200";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@14 {
+		target-path = "/cpus/cpu@300";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@15 {
+		target-path = "/cpus/cpu@10000";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@16 {
+		target-path = "/cpus/cpu@10100";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@17 {
+		target-path = "/cpus/cpu@10200";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@18 {
+		target-path = "/cpus/cpu@10300";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@19 {
+		target-path = "/cpus/cpu@20000";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@20 {
+		target-path = "/cpus/cpu@20100";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@21 {
+		target-path = "/cpus/cpu@20200";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
+
+	fragment-t234-p3737-p3701@22 {
+		target-path = "/cpus/cpu@20300";
+		__overlay__ {
+			cpu-idle-states = <&C7>;
+		};
+	};
 };
