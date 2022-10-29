@@ -138,19 +138,9 @@ struct nvcsi_deskew_context {
 	struct completion thread_done;
 };
 
-#if IS_ENABLED(CONFIG_TEGRA_GRHOST_NVCSI)
+
 int nvcsi_deskew_apply_check(struct nvcsi_deskew_context *ctx);
 int nvcsi_deskew_setup(struct nvcsi_deskew_context *ctx);
-#else
-static int inline nvcsi_deskew_apply_check(struct nvcsi_deskew_context *ctx)
-{
-	return 0;
-}
-static int inline nvcsi_deskew_setup(struct nvcsi_deskew_context *ctx)
-{
-	return 0;
-}
-#endif
 
 void nvcsi_deskew_platform_setup(struct tegra_csi_device *dev, bool is_t19x);
 

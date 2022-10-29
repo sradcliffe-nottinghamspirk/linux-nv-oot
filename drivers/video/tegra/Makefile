@@ -7,3 +7,7 @@ obj-m += host/pva/
 obj-m += tsec/
 obj-m += dc/bridge/
 obj-m += camera/
+obj-m += host/capture/
+obj-m += host/nvcsi/
+obj-m += host/vi/
+obj-m += host/isp/
