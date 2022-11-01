@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2018-2022, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+/* SPDX-License-Identifier: GPL-2.0-only */
+/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #ifndef ETHER_LINUX_H
 #define ETHER_LINUX_H
@@ -47,17 +34,12 @@
 #include <linux/version.h>
 #include <linux/list.h>
 #include <net/pkt_sched.h>
-#include <linux/tegra-ivc.h>
-#if (KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE)
-#include <soc/tegra/chip-id.h>
-#else
+#include <soc/tegra/ivc_ext.h>
+#include <soc/tegra/virt/hv-ivc.h>
 #include <soc/tegra/fuse.h>
-#endif
 #if IS_ENABLED(CONFIG_PAGE_POOL)
-#if (KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE)
 #include <net/page_pool.h>
 #define ETHER_PAGE_POOL
-#endif
 #endif
 #include <osi_core.h>
 #include <osi_dma.h>
@@ -72,6 +54,11 @@
 #include <uapi/linux/ip.h>
 #include <net/udp.h>
 #endif /* ETHER_NVGRO */
+
+/**
+ * @brief Define for default DMA bit mask
+ */
+#define DMA_MASK_NONE 0x0ULL
 
 /**
  * @brief Constant for CBS value calculate
@@ -717,25 +704,10 @@ int ether_conf_eee(struct ether_priv_data *pdata, unsigned int tx_lpi_enable);
  */
 int ether_padctrl_mii_rx_pins(void *priv, unsigned int enable);
 
-#if IS_ENABLED(CONFIG_NVETHERNET_SELFTESTS)
 void ether_selftest_run(struct net_device *dev,
 			struct ethtool_test *etest, u64 *buf);
 void ether_selftest_get_strings(struct ether_priv_data *pdata, u8 *data);
 int ether_selftest_get_count(struct ether_priv_data *pdata);
-#else
-static inline void ether_selftest_run(struct net_device *dev,
-				      struct ethtool_test *etest, u64 *buf)
-{
-}
-static inline void ether_selftest_get_strings(struct ether_priv_data *pdata,
-					      u8 *data)
-{
-}
-static inline int ether_selftest_get_count(struct ether_priv_data *pdata)
-{
-	return -EOPNOTSUPP;
-}
-#endif /* CONFIG_NVETHERNET_SELFTESTS */
 
 /**
  * @brief ether_assign_osd_ops - Assigns OSD ops for OSI
@@ -769,7 +741,6 @@ int osd_ivc_send_cmd(void *priv, ivc_msg_common_t *ivc_buf,
 
 void ether_set_rx_mode(struct net_device *dev);
 
-#if (KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE)
 /**
  * @brief Function to configure traffic class
  *
@@ -804,7 +775,6 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 int ether_tc_setup_cbs(struct ether_priv_data *pdata,
 		       struct tc_cbs_qopt_offload *qopt);
 
-#endif
 
 /**
  * @brief Get Tx done timestamp from OSI and update in skb

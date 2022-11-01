@@ -1,28 +1,17 @@
-# Copyright (c) 2018-2022, NVIDIA CORPORATION.  All rights reserved.
-#
-# This program is free software; you can redistribute it and/or modify it
-# under the terms and conditions of the GNU General Public License,
-# version 2, as published by the Free Software Foundation.
-#
-# This program is distributed in the hope it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-# more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#SPDX-License-Identifier: GPL-2.0-only
+#Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 OSI_COMMON := nvethernetrm/osi/common
 OSI_CORE := nvethernetrm/osi/core
 OSI_DMA := nvethernetrm/osi/dma
 
-obj-$(CONFIG_NVETHERNET) += nvethernet.o
+obj-m += nvethernet.o
 
 ccflags-y += -DLINUX_IVC -DUPDATED_PAD_CAL \
 	     -I$(srctree.nvidia)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/include \
 	     -I$(srctree.nvidia)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/osi/common/include
 
-ccflags-y += -DMACSEC_SUPPORT -DNET30 -DDEBUG_MACSEC -DOSI_DEBUG -DHSI_SUPPORT -DLINUX_OS -DNVPKCS_MACSEC
+ccflags-y += -DMACSEC_SUPPORT -DNET30 -DDEBUG_MACSEC -DOSI_DEBUG $(if $(CONFIG_TEGRA_EPL),-DHSI_SUPPORT,) -DLINUX_OS -DNVPKCS_MACSEC
 
 nvethernet-objs:= ether_linux.o \
 		  osd.o \
@@ -32,6 +21,7 @@ nvethernet-objs:= ether_linux.o \
 		  ioctl.o \
 		  ptp.o \
 		  macsec.o \
+		  selftests.o \
 		  $(OSI_CORE)/osi_core.o \
 		  $(OSI_CORE)/osi_hal.o \
 		  $(OSI_CORE)/macsec.o \
@@ -55,5 +45,3 @@ nvethernet-objs:= ether_linux.o \
 		  $(OSI_CORE)/frp.o \
 		  $(OSI_CORE)/vlan_filter.o \
 		  $(OSI_CORE)/debug.o
-
-nvethernet-$(CONFIG_NVETHERNET_SELFTESTS) += selftests.o

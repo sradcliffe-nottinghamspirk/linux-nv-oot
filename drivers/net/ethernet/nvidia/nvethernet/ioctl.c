@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #include "ether_linux.h"
 
@@ -322,11 +309,7 @@ static int ether_config_ptp_offload(struct ether_priv_data *pdata,
 	unsigned int snap_type = 0x0;
 	unsigned int master = 0x0;
 	struct osi_ioctl ioctl_data = {};
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	struct timespec64 now;
-#else
-	struct timespec now;
-#endif
 
 	if (!ifrd_p->ptr) {
 		dev_err(pdata->dev, "%s: Invalid data for priv ioctl %d\n",
@@ -342,11 +325,7 @@ static int ether_config_ptp_offload(struct ether_priv_data *pdata,
 
 	pdata->osi_core->ptp_config.ptp_clock = pdata->ptp_ref_clock_speed;
 	/* initialize system time */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	ktime_get_real_ts64(&now);
-#else
-	getnstimeofday(&now);
-#endif
 	/* Store sec and nsec */
 	pdata->osi_core->ptp_config.sec = now.tv_sec;
 	pdata->osi_core->ptp_config.nsec = now.tv_nsec;

@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2018-2022, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #include <linux/version.h>
 #include <linux/iommu.h>
@@ -20,6 +7,9 @@
 #include <linux/tegra-epl.h>
 #endif
 #include "ether_linux.h"
+#include <linux/of.h>
+#include <soc/tegra/fuse.h>
+#include <soc/tegra/virt/hv-ivc.h>
 
 int ether_get_tx_ts(struct ether_priv_data *pdata)
 {
@@ -2988,12 +2978,8 @@ static int ether_handle_tso(struct osi_tx_pkt_cx *tx_pkt_cx,
 		}
 	}
 
-#if (KERNEL_VERSION(5, 9, 0) < LINUX_VERSION_CODE)
 	/* Start filling packet details in Tx_pkt_cx */
 	if (skb_shinfo(skb)->gso_type & (SKB_GSO_UDP_L4)) {
-#else
-	if (skb_shinfo(skb)->gso_type & (SKB_GSO_UDP)) {
-#endif
 		tx_pkt_cx->tcp_udp_hdrlen = sizeof(struct udphdr);
 		tx_pkt_cx->mss = skb_shinfo(skb)->gso_size -
 			sizeof(struct udphdr);
@@ -3080,11 +3066,7 @@ static int ether_tx_swcx_alloc(struct ether_priv_data *pdata,
 	struct device *dev = pdata->dev;
 	unsigned int len = 0, offset = 0, size = 0;
 	int cnt = 0, ret = 0, i, num_frags;
-#if (KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE)
 	skb_frag_t *frag;
-#else
-	struct skb_frag_struct *frag;
-#endif
 	unsigned int page_idx, page_offset;
 	unsigned int max_data_len_per_txd = (unsigned int)
 					ETHER_TX_MAX_BUFF_SIZE;
@@ -3221,19 +3203,10 @@ static int ether_tx_swcx_alloc(struct ether_priv_data *pdata,
 			}
 
 			size = min(len, max_data_len_per_txd);
-#if (KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE)
 			page_idx = (frag->bv_offset + offset) >> PAGE_SHIFT;
 			page_offset = (frag->bv_offset + offset) & ~PAGE_MASK;
-#else
-			page_idx = (frag->page_offset + offset) >> PAGE_SHIFT;
-			page_offset = (frag->page_offset + offset) & ~PAGE_MASK;
-#endif
 			tx_swcx->buf_phy_addr = dma_map_page(dev,
-#if (KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE)
 						(frag->bv_page + page_idx),
-#else
-						(frag->page.p + page_idx),
-#endif
 						page_offset, size,
 						DMA_TO_DEVICE);
 			if (unlikely(dma_mapping_error(dev,
@@ -3283,12 +3256,7 @@ dma_map_failed:
  */
 static unsigned short ether_select_queue(struct net_device *dev,
 					 struct sk_buff *skb,
-#if (KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE)
-					void *accel_priv,
-					select_queue_fallback_t fallback)
-#else
 					 struct net_device *sb_dev)
-#endif
 {
 	struct ether_priv_data *pdata = netdev_priv(dev);
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
@@ -3702,7 +3670,6 @@ void ether_set_rx_mode(struct net_device *dev)
 static int ether_handle_priv_rmdio_ioctl(struct ether_priv_data *pdata,
 					 struct ifreq *ifr)
 {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 9, 0))
 	struct mii_ioctl_data *mii_data = if_mii(ifr);
 	unsigned int prtad, devad;
 	int ret = 0;
@@ -3728,10 +3695,6 @@ static int ether_handle_priv_rmdio_ioctl(struct ether_priv_data *pdata,
 	mii_data->val_out = ret;
 
 	return 0;
-#else
-	dev_err(pdata->dev, "Not supported for kernel versions less than 5.10");
-	return -ENOTSUPP;
-#endif
 }
 
 /**
@@ -3749,7 +3712,6 @@ static int ether_handle_priv_rmdio_ioctl(struct ether_priv_data *pdata,
 static int ether_handle_priv_wmdio_ioctl(struct ether_priv_data *pdata,
 					 struct ifreq *ifr)
 {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 9, 0))
 	struct mii_ioctl_data *mii_data = if_mii(ifr);
 	unsigned int prtad, devad;
 
@@ -3767,10 +3729,6 @@ static int ether_handle_priv_wmdio_ioctl(struct ether_priv_data *pdata,
 
 	return osi_write_phy_reg(pdata->osi_core, prtad, devad,
 				 mii_data->val_in);
-#else
-	dev_err(pdata->dev, "Not supported for kernel versions less than 5.10");
-	return -ENOTSUPP;
-#endif
 }
 
 /**
@@ -4106,7 +4064,6 @@ static int ether_vlan_rx_kill_vid(struct net_device *ndev, __be16 vlan_proto,
 	return ret;
 }
 
-#if (KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE)
 /**
  * @brief ether_setup_tc - TC HW offload support
  *
@@ -4142,7 +4099,6 @@ static int ether_setup_tc(struct net_device *ndev, enum tc_setup_type type,
 		return -EOPNOTSUPP;
 	}
 }
-#endif
 
 /**
  * @brief Ethernet network device operations
@@ -4159,9 +4115,7 @@ static const struct net_device_ops ether_netdev_ops = {
 	.ndo_set_rx_mode = ether_set_rx_mode,
 	.ndo_vlan_rx_add_vid = ether_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid = ether_vlan_rx_kill_vid,
-#if (KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE)
 	.ndo_setup_tc = ether_setup_tc,
-#endif
 };
 
 /**
@@ -4596,6 +4550,7 @@ static int ether_get_mac_address(struct ether_priv_data *pdata)
 	struct net_device *ndev = pdata->ndev;
 	struct device_node *np = dev->of_node;
 	const char *eth_mac_addr = NULL;
+	u8 *addr = NULL;
 	unsigned char mac_addr[ETH_ALEN] = {0};
 	/* Default choesn node property name for MAC address */
 	char str_mac_address[ETH_MAC_STR_LEN] = "nvidia,ether-mac";
@@ -4642,7 +4597,10 @@ static int ether_get_mac_address(struct ether_priv_data *pdata)
 		 * upstream driver should have only this call to get
 		 * MAC address
 		 */
-		eth_mac_addr = of_get_mac_address(np);
+		ret = of_get_mac_address(np, addr);
+		if (!ret)
+			return ret;
+		eth_mac_addr = addr;
 
 		if (IS_ERR_OR_NULL(eth_mac_addr)) {
 			dev_err(dev, "No MAC address in local DT!\n");
@@ -5309,13 +5267,9 @@ static int ether_parse_phy_dt(struct ether_priv_data *pdata,
 {
 	int err;
 
-#if KERNEL_VERSION(5, 5, 0) > LINUX_VERSION_CODE
-	pdata->interface = of_get_phy_mode(node);
-#else
 	err = of_get_phy_mode(node, &pdata->interface);
 	if (err < 0)
 		pr_debug("%s(): phy interface not found\n", __func__);
-#endif
 
 	pdata->phy_node = of_parse_phandle(node, "phy-handle", 0);
 	if (pdata->phy_node == NULL)
@@ -6151,10 +6105,8 @@ static void ether_set_ndev_features(struct net_device *ndev,
 		features |= NETIF_F_SG;
 	}
 
-#if (KERNEL_VERSION(5, 9, 0) < LINUX_VERSION_CODE)
 	if (pdata->osi_core->mac == OSI_MAC_HW_MGBE)
 		features |= NETIF_F_GSO_UDP_L4;
-#endif
 
 	if (pdata->hw_feat.tx_coe_sel) {
 		features |= NETIF_F_IP_CSUM;
@@ -6855,13 +6807,8 @@ static int ether_resume_noirq(struct device *dev)
 }
 
 static const struct dev_pm_ops ether_pm_ops = {
-#if (KERNEL_VERSION(5, 9, 0) < LINUX_VERSION_CODE)
 	.suspend = ether_suspend_noirq,
 	.resume = ether_resume_noirq,
-#else
-	.suspend_noirq = ether_suspend_noirq,
-	.resume_noirq = ether_resume_noirq,
-#endif
 };
 #endif
 
@@ -6891,21 +6838,8 @@ static struct platform_driver ether_driver = {
 	},
 };
 
-static int __init nvethernet_driver_init(void)
-{
-	return platform_driver_register(&ether_driver);
-}
+module_platform_driver(ether_driver);
 
-#if IS_MODULE(CONFIG_NVETHERNET)
-static void __exit nvethernet_driver_deinit(void)
-{
-	platform_driver_unregister(&ether_driver);
-}
-
-module_init(nvethernet_driver_init);
-module_exit(nvethernet_driver_deinit);
-#else
-late_initcall(nvethernet_driver_init);
-#endif
-
+MODULE_DESCRIPTION("NVIDIA ETHERNET DRIVER");
+MODULE_AUTHOR("Revanth Kumar Uppala <ruppala@nvidia.com>");
 MODULE_LICENSE("GPL v2");

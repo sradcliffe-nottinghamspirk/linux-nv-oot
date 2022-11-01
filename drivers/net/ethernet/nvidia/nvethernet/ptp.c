@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2018-2022, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #include <linux/version.h>
 #include "ether_linux.h"
@@ -272,11 +259,7 @@ static int ether_early_ptp_init(struct ether_priv_data *pdata)
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 	struct osi_ioctl ioctl_data = {};
 	int ret = 0;
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-	struct timespec now;
-#else
 	struct timespec64 now;
-#endif
 
 	osi_core->ptp_config.ptp_filter =
 		OSI_MAC_TCR_TSENA | OSI_MAC_TCR_TSCFUPDT |
@@ -288,11 +271,7 @@ static int ether_early_ptp_init(struct ether_priv_data *pdata)
 	 * can make use of it for coarse correction */
 	osi_core->ptp_config.ptp_clock = pdata->ptp_ref_clock_speed;
 	/* initialize system time */
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-	getnstimeofday(&now);
-#else
 	ktime_get_real_ts64(&now);
-#endif
 	/* Store sec and nsec */
 	osi_core->ptp_config.sec = now.tv_sec;
 	osi_core->ptp_config.nsec = now.tv_nsec;
@@ -410,11 +389,7 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 	struct hwtstamp_config config;
 	unsigned int hwts_rx_en = 1;
 	int ret;
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-	struct timespec now;
-#else
 	struct timespec64 now;
-#endif
 
 	if (pdata->hw_feat.tsstssel == OSI_DISABLE) {
 		dev_info(pdata->dev, "HW timestamping not available\n");
@@ -574,11 +549,7 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 		 * can make use of it for coarse correction */
 		osi_core->ptp_config.ptp_clock = pdata->ptp_ref_clock_speed;
 		/* initialize system time */
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-		getnstimeofday(&now);
-#else
 		ktime_get_real_ts64(&now);
-#endif
 		/* Store sec and nsec */
 		osi_core->ptp_config.sec = now.tv_sec;
 		osi_core->ptp_config.nsec = now.tv_nsec;
@@ -666,11 +637,7 @@ int ether_handle_priv_ts_ioctl(struct ether_priv_data *pdata,
 
 	raw_spin_unlock_irqrestore(&ether_ts_lock, flags);
 
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-	dev_dbg(pdata->dev, "tv_sec = %ld, tv_nsec = %ld\n",
-#else
 	dev_dbg(pdata->dev, "tv_sec = %lld, tv_nsec = %ld\n",
-#endif
 		req.hw_ptp_ts.tv_sec, req.hw_ptp_ts.tv_nsec);
 
 	if (copy_to_user(ifr->ifr_data, &req, sizeof(req))) {

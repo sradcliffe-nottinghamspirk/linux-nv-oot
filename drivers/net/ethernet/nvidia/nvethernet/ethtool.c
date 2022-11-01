@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2018-2022, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #include <linux/version.h>
 #include "ether_linux.h"
@@ -43,15 +30,9 @@ struct ether_stats {
  * @brief Name of FRP statistics, with length of name not more than
  * ETH_GSTRING_LEN
  */
-#if KERNEL_VERSION(5, 5, 0) > LINUX_VERSION_CODE
-#define ETHER_PKT_FRP_STAT(y) \
-{ (#y), FIELD_SIZEOF(struct osi_pkt_err_stats, y), \
-	offsetof(struct osi_dma_priv_data, pkt_err_stats.y)}
-#else
 #define ETHER_PKT_FRP_STAT(y) \
 { (#y), sizeof_field(struct osi_pkt_err_stats, y), \
 	offsetof(struct osi_dma_priv_data, pkt_err_stats.y)}
-#endif
 
 /**
  * @brief FRP statistics
@@ -72,15 +53,9 @@ static const struct ether_stats ether_frpstrings_stats[] = {
  * @brief Name of pkt_err statistics, with length of name not more than
  * ETH_GSTRING_LEN
  */
-#if KERNEL_VERSION(5, 5, 0) > LINUX_VERSION_CODE
-#define ETHER_PKT_ERR_STAT(y) \
-{ (#y), FIELD_SIZEOF(struct osi_pkt_err_stats, y), \
-	offsetof(struct osi_dma_priv_data, pkt_err_stats.y)}
-#else
 #define ETHER_PKT_ERR_STAT(y) \
 { (#y), sizeof_field(struct osi_pkt_err_stats, y), \
 	offsetof(struct osi_dma_priv_data, pkt_err_stats.y)}
-#endif
 
 /**
  * @brief ETHER pkt_err statistics
@@ -110,15 +85,9 @@ static const struct ether_stats ether_cstrings_stats[] = {
 /**
  * @brief Name of extra DMA stat, with length of name not more than ETH_GSTRING_LEN
  */
-#if KERNEL_VERSION(5, 5, 0) > LINUX_VERSION_CODE
-#define ETHER_DMA_EXTRA_STAT(a) \
-{ (#a), FIELD_SIZEOF(struct osi_xtra_dma_stat_counters, a), \
-	offsetof(struct osi_dma_priv_data, dstats.a)}
-#else
 #define ETHER_DMA_EXTRA_STAT(a) \
 { (#a), sizeof_field(struct osi_xtra_dma_stat_counters, a), \
 	offsetof(struct osi_dma_priv_data, dstats.a)}
-#endif
 /**
  * @brief Ethernet DMA extra statistics
  */
@@ -173,15 +142,9 @@ static const struct ether_stats ether_dstrings_stats[] = {
  * @brief Name of extra Ethernet stats, with length of name not more than
  * ETH_GSTRING_LEN MAC
  */
-#if KERNEL_VERSION(5, 5, 0) > LINUX_VERSION_CODE
-#define ETHER_EXTRA_STAT(b) \
-{ #b, FIELD_SIZEOF(struct ether_xtra_stat_counters, b), \
-	offsetof(struct ether_priv_data, xstats.b)}
-#else
 #define ETHER_EXTRA_STAT(b) \
 { #b, sizeof_field(struct ether_xtra_stat_counters, b), \
 	offsetof(struct ether_priv_data, xstats.b)}
-#endif
 /**
  * @brief Ethernet extra statistics
  */
@@ -242,15 +205,9 @@ static const struct ether_stats ether_gstrings_stats[] = {
  * @brief HW MAC Management counters
  * 	  Structure variable name MUST up to MAX length of ETH_GSTRING_LEN
  */
-#if KERNEL_VERSION(5, 5, 0) > LINUX_VERSION_CODE
-#define ETHER_MMC_STAT(c) \
-{ #c, FIELD_SIZEOF(struct osi_mmc_counters, c), \
-	offsetof(struct osi_core_priv_data, mmc.c)}
-#else
 #define ETHER_MMC_STAT(c) \
 { #c, sizeof_field(struct osi_mmc_counters, c), \
 	offsetof(struct osi_core_priv_data, mmc.c)}
-#endif
 
 /**
  * @brief MMC statistics
@@ -440,15 +397,9 @@ static const struct ether_stats ether_mmc[] = {
  * @brief Name of extra Ethernet stats, with length of name not more than
  * ETH_GSTRING_LEN MAC
  */
-#if KERNEL_VERSION(5, 5, 0) > LINUX_VERSION_CODE
-#define ETHER_CORE_STATS(r) \
-{ (#r), FIELD_SIZEOF(struct osi_stats, r), \
-	offsetof(struct osi_core_priv_data, stats.r)}
-#else
 #define ETHER_CORE_STATS(r) \
 { (#r), sizeof_field(struct osi_stats, r), \
 	offsetof(struct osi_core_priv_data, stats.r)}
-#endif
 
 /**
  * @brief Ethernet extra statistics
@@ -791,13 +742,8 @@ static void ether_get_pauseparam(struct net_device *ndev,
 
 	/* return if pause frame is not supported */
 	if ((pdata->osi_core->pause_frames == OSI_PAUSE_FRAMES_DISABLE) ||
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 	    (!linkmode_test_bit(ETHTOOL_LINK_MODE_Pause_BIT, phydev->supported) ||
 	    !linkmode_test_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, phydev->supported))) {
-#else
-	    (!(phydev->supported & SUPPORTED_Pause) ||
-	    !(phydev->supported & SUPPORTED_Asym_Pause))) {
-#endif
 		dev_err(pdata->dev, "FLOW control not supported\n");
 		return;
 	}
@@ -847,13 +793,8 @@ static int ether_set_pauseparam(struct net_device *ndev,
 
 	/* return if pause frame is not supported */
 	if ((pdata->osi_core->pause_frames == OSI_PAUSE_FRAMES_DISABLE) ||
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 	    (!linkmode_test_bit(ETHTOOL_LINK_MODE_Pause_BIT, phydev->supported) ||
 	    !linkmode_test_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, phydev->supported))) {
-#else
-	    (!(phydev->supported & SUPPORTED_Pause) ||
-	    !(phydev->supported & SUPPORTED_Asym_Pause))) {
-#endif
 		dev_err(pdata->dev, "FLOW control not supported\n");
 		return -EOPNOTSUPP;
 	}
@@ -954,7 +895,9 @@ static int ether_get_ts_info(struct net_device *ndev,
  * @retval "negative value" on failure.
  */
 static int ether_set_coalesce(struct net_device *dev,
-			      struct ethtool_coalesce *ec)
+			      struct ethtool_coalesce *ec,
+			      struct kernel_ethtool_coalesce *kernel_coal,
+			      struct netlink_ext_ack *extack)
 {
 	struct ether_priv_data *pdata = netdev_priv(dev);
 	struct osi_dma_priv_data *osi_dma = pdata->osi_dma;
@@ -1088,7 +1031,9 @@ static int ether_set_coalesce(struct net_device *dev,
  * @retval 0 on Success.
  */
 static int ether_get_coalesce(struct net_device *dev,
-			      struct ethtool_coalesce *ec)
+			      struct ethtool_coalesce *ec,
+			      struct kernel_ethtool_coalesce *kernel_coal,
+			      struct netlink_ext_ack *extack)
 {
 	struct ether_priv_data *pdata = netdev_priv(dev);
 	struct osi_dma_priv_data *osi_dma = pdata->osi_dma;
@@ -1540,8 +1485,15 @@ static int ether_set_rxfh(struct net_device *ndev, const u32 *indir,
 
 }
 
+#if (KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE)
+static void ether_get_ringparam(struct net_device *ndev,
+				struct ethtool_ringparam *ring,
+				struct kernel_ethtool_ringparam *kernel_ring,
+				struct netlink_ext_ack *extack)
+#else
 static void ether_get_ringparam(struct net_device *ndev,
 				struct ethtool_ringparam *ring)
+#endif
 {
 	struct ether_priv_data *pdata = netdev_priv(ndev);
 	struct osi_dma_priv_data *osi_dma = pdata->osi_dma;
@@ -1553,8 +1505,15 @@ static void ether_get_ringparam(struct net_device *ndev,
 	ring->tx_pending = osi_dma->tx_ring_sz;
 }
 
+#if (KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE)
+static int ether_set_ringparam(struct net_device *ndev,
+			       struct ethtool_ringparam *ring,
+			       struct kernel_ethtool_ringparam *kernel_ring,
+			       struct netlink_ext_ack *extack)
+#else
 static int ether_set_ringparam(struct net_device *ndev,
 			       struct ethtool_ringparam *ring)
+#endif
 {
 	struct ether_priv_data *pdata = netdev_priv(ndev);
 	struct osi_dma_priv_data *osi_dma = pdata->osi_dma;
@@ -1618,10 +1577,8 @@ static const struct ethtool_ops ether_ethtool_ops = {
 	.get_ethtool_stats = ether_get_ethtool_stats,
 	.get_sset_count = ether_get_sset_count,
 	.get_coalesce = ether_get_coalesce,
-#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE
 	.supported_coalesce_params = (ETHTOOL_COALESCE_USECS |
 		ETHTOOL_COALESCE_MAX_FRAMES),
-#endif
 	.set_coalesce = ether_set_coalesce,
 	.get_wol = ether_get_wol,
 	.set_wol = ether_set_wol,

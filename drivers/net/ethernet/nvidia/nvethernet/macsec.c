@@ -1,18 +1,5 @@
-/*
- * Copyright (c) 2021-2022, NVIDIA CORPORATION.  All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #ifdef MACSEC_SUPPORT
 #include "ether_linux.h"
@@ -450,7 +437,7 @@ static struct macsec_priv_data *genl_to_macsec_pdata(struct genl_info *info)
 
 	PRINT_ENTRY();
 
-	nla_strlcpy(ifname, attrs[NV_MACSEC_ATTR_IFNAME], sizeof(ifname));
+	nla_strscpy(ifname, attrs[NV_MACSEC_ATTR_IFNAME], sizeof(ifname));
 	ndev = dev_get_by_name(genl_info_net(info),
 			       ifname);
 	if (!ndev) {
