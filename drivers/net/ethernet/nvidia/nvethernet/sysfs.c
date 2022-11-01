@@ -519,6 +519,17 @@ static ssize_t hsi_enable_store(struct device *dev,
 		} else {
 			osi_core->hsi.enabled = OSI_ENABLE;
 			dev_info(pdata->dev, "HSI Enabled\n");
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+			if (osi_core->instance_id == OSI_INSTANCE_ID_EQOS)
+				inst_id = 0;
+
+			ret = hsierrrpt_reg_cb(ip_type[osi_core->mac], inst_id,
+					       hsi_inject_err_fsi, pdata);
+			if (ret != 0) {
+				dev_err(pdata->dev, "Err inj callback registration failed: %d",
+					ret);
+			}
+#endif
 		}
 	} else if (strncmp(buf, "disable", 7) == OSI_NONE) {
 		ioctl_data.arg1_u32 = OSI_DISABLE;
@@ -529,6 +540,16 @@ static ssize_t hsi_enable_store(struct device *dev,
 		} else {
 			osi_core->hsi.enabled = OSI_DISABLE;
 			dev_info(pdata->dev, "HSI Disabled\n");
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+			if (osi_core->instance_id == OSI_INSTANCE_ID_EQOS)
+				inst_id = 0;
+
+			ret = hsierrrpt_dereg_cb(ip_type[osi_core->mac], inst_id);
+			if (ret != 0) {
+				dev_err(pdata->dev, "Err inj callback deregistration failed: %d",
+					ret);
+			}
+#endif
 		}
 	} else {
 		dev_err(pdata->dev,
@@ -3278,6 +3299,20 @@ int ether_sysfs_register(struct ether_priv_data *pdata)
 	if (ret < 0)
 		return ret;
 #endif
+
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ)) && defined(HSI_SUPPORT)
+	if (osi_core->use_virtualization == OSI_ENABLE) {
+		if (osi_core->instance_id == OSI_INSTANCE_ID_EQOS)
+			inst_id = 0;
+		ret = hsierrrpt_reg_cb(ip_type[osi_core->mac], inst_id,
+				       hsi_inject_err_fsi, pdata);
+		if (ret != 0) {
+			dev_err(pdata->dev, "Err inj callback registration failed: %d",
+				ret);
+			return ret;
+		}
+	}
+#endif
 	/* Create nvethernet sysfs group under /sys/devices/<ether_device>/ */
 	return sysfs_create_group(&dev->kobj, &ether_attribute_group);
 }
@@ -3288,6 +3323,18 @@ void ether_sysfs_unregister(struct ether_priv_data *pdata)
 
 #ifdef CONFIG_DEBUG_FS
 	ether_remove_debugfs(pdata);
+#endif
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ)) && defined(HSI_SUPPORT)
+	if (osi_core->use_virtualization == OSI_ENABLE) {
+		if (osi_core->instance_id == OSI_INSTANCE_ID_EQOS)
+			inst_id = 0;
+
+		ret = hsierrrpt_dereg_cb(ip_type[osi_core->mac], inst_id);
+		if (ret != 0) {
+			dev_err(pdata->dev, "Err inj callback deregistration failed: %d",
+				ret);
+		}
+	}
 #endif
 	/* Remove nvethernet sysfs group under /sys/devices/<ether_device>/ */
 	sysfs_remove_group(&dev->kobj, &ether_attribute_group);
