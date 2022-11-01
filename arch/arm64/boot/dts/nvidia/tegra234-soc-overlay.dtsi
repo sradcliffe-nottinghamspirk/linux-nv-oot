@@ -181,6 +181,12 @@
 				status = "okay";
 			};
 
+			smmu_test {
+				compatible = "nvidia,smmu_test";
+				iommus = <&smmu_niso0 TEGRA234_SID_SMMU_TEST>;
+				status = "okay";
+			};
+
 			aconnect@2900000 {
 				ahub@2900800 {
 					compatible = "nvidia,tegra234-ahub-oot";
