@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef __M_TTCAN_DEF
@@ -287,6 +287,9 @@ struct ttcan_controller {
 	struct list_head rx_q1;
 	struct list_head rx_b;
 	struct list_head tx_evt;
+#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
+	struct tegra_prod *prod_list;
+#endif
 	void __iomem *base;	/* controller regs space should be remapped. */
 	void __iomem *xbase;    /* extra registers are mapped */
 	void __iomem *mram_vbase;
@@ -494,7 +497,7 @@ void ttcan_set_tx_cancel_request(struct ttcan_controller *ttcan, u32 txbcr);
 u32 ttcan_read_tx_cancelled_reg(struct ttcan_controller *ttcan);
 u32 ttcan_read_psr(struct ttcan_controller *ttcan);
 int ttcan_read_rx_buffer(struct ttcan_controller *ttcan);
-int ttcan_set_bitrate(struct ttcan_controller *ttcan);
+int ttcan_set_bitrate(struct mttcan_priv *priv);
 int ttcan_tx_req_pending(struct ttcan_controller *ttcan);
 int ttcan_tx_buff_req_pending(struct ttcan_controller *ttcan, u8 index);
 

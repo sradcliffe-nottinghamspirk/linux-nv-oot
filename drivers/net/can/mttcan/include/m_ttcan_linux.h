@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef _M_TTCAN_LINUX_H
@@ -31,6 +31,9 @@
 #include <linux/net_tstamp.h>
 #include <linux/spinlock.h>
 #include <linux/clocksource.h>
+#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
+#include <linux/tegra_prod.h>
+#endif
 #include <linux/platform/tegra/ptp-notifier.h>
 #include <linux/mailbox_client.h>
 #ifdef CONFIG_CLK_SRC_TEGRA18_US_TIMER
