@@ -39,6 +39,14 @@
 				status = "okay";
 			};
 
+			tegra_pinctrl: pinmux@2430000 {
+				compatible = "nvidia,tegra234-pinmux";
+				reg = <0x2430000 0x19100>,
+					<0xc300000 0x4000>;
+				#gpio-range-cells = <3>;
+				status = "okay";
+			};
+
 			tegra_ufs: ufshci@2500000 {
 				compatible = "tegra234,ufs_variant";
 				reg = <0x02500000 0x4000>,
