@@ -106,7 +106,6 @@ struct tegra_hv_data {
  */
 static const struct tegra_hv_data *tegra_hv_data;
 
-#ifdef SUPPORTS_TRAP_MSI_NOTIFICATION
 struct ivc_notify_info {
 	// Trap based notification
 	uintptr_t trap_region_base_va;
@@ -121,7 +120,6 @@ struct ivc_notify_info {
 };
 
 static struct ivc_notify_info ivc_notify;
-#endif
 
 bool is_tegra_hypervisor_mode(void)
 {
@@ -137,13 +135,9 @@ EXPORT_SYMBOL(is_tegra_hypervisor_mode);
 static void ivc_raise_irq(struct tegra_ivc *ivc_channel, void *data)
 {
 	struct hv_ivc *ivc = container_of(ivc_channel, struct hv_ivc, ivc);
-#ifdef SUPPORTS_TRAP_MSI_NOTIFICATION
 	if (WARN_ON(!ivc->cookie.notify_va))
 		return;
 	*ivc->cookie.notify_va = ivc->qd->raise_irq;
-#else
-	hyp_raise_irq(ivc->qd->raise_irq, ivc->other_guestid);
-#endif
 }
 
 static const struct tegra_hv_data *get_hvd(void)
@@ -223,9 +217,7 @@ static int tegra_hv_add_ivc(struct tegra_hv_data *hvd,
 	uintptr_t rx_base, tx_base;
 	uint32_t i;
 	struct irq_data *d;
-#ifdef SUPPORTS_TRAP_MSI_NOTIFICATION
 	uint64_t va_offset;
-#endif
 
 	ivc = &hvd->ivc_devs[qd->id];
 	BUG_ON(ivc->valid);
@@ -295,7 +287,6 @@ static int tegra_hv_add_ivc(struct tegra_hv_data *hvd,
 		return -ENODEV;
 	}
 
-#ifdef SUPPORTS_TRAP_MSI_NOTIFICATION
 	if (qd->msi_ipa != 0U) {
 		if (WARN_ON(ivc_notify.msi_region_size == 0UL))
 			return -EINVAL;
@@ -322,7 +313,6 @@ static int tegra_hv_add_ivc(struct tegra_hv_data *hvd,
 		if (WARN_ON(ivc->cookie.notify_va == NULL))
 			return -EINVAL;
 	}
-#endif
 
 	INFO("adding ivc%u: rx_base=%lx tx_base = %lx size=%x irq = %d (%lu)\n",
 			qd->id, rx_base, tx_base, qd->size, ivc->irq, d->hwirq);
@@ -452,7 +442,6 @@ static int __init tegra_hv_setup(struct tegra_hv_data *hvd)
 		return -ENOMEM;
 	}
 
-#ifdef SUPPORTS_TRAP_MSI_NOTIFICATION
 	/*
 	 *  Map IVC Trap MMIO Notification region
 	 */
@@ -502,7 +491,6 @@ static int __init tegra_hv_setup(struct tegra_hv_data *hvd)
 			return -ENOMEM;
 		}
 	}
-#endif
 
 	hvd->guest_ivc_info = kzalloc(hvd->info->nr_areas *
 			sizeof(*hvd->guest_ivc_info), GFP_KERNEL);
@@ -679,13 +667,9 @@ void tegra_hv_ivc_notify(struct tegra_hv_ivc_cookie *ivck)
 		return;
 
 	ivc = cookie_to_ivc_dev(ivck);
-#ifdef SUPPORTS_TRAP_MSI_NOTIFICATION
 	if (WARN_ON(!ivc->cookie.notify_va))
 		return;
 	*ivc->cookie.notify_va = ivc->qd->raise_irq;
-#else
-	hyp_raise_irq(ivc->qd->raise_irq, ivc->other_guestid);
-#endif
 }
 EXPORT_SYMBOL(tegra_hv_ivc_notify);
 
