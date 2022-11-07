@@ -44,8 +44,9 @@ dtbo-oot-y :=
 DTB_LIST := $(dtb-oot-y)
 DTBO_LIST := $(dtbo-oot-y)
 dtb-oot-y :=
+kdts := $(shell find $(tegra-dtstree)/platform/t23x -name kernel-dts)
 dts_makefile=$(foreach d,$(wildcard $1*), $(call dts_makefile,$(d)/,$(2)) $(if $(findstring Makefile,$(d)),$(d)))
-dts_mfiles = $(call dts_makefile, $(tegra-dtstree)/platform/t23x, Makefile)
+dts_mfiles = $(call dts_makefile, $(kdts), Makefile)
 
 ifneq ($(dts_mfiles),)
 dts-include :=
