@@ -20,4 +20,5 @@ obj-m += hwpm/
 obj-m += mce/
 obj-m += uncore_pmu/
 obj-m += mc-hwpm.o
+obj-m += mc-utils.o
 obj-m += dce/
