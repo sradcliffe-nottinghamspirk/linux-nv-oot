@@ -796,6 +796,15 @@
 		 __overlay__ {
 			aliases {
 				serial1 = "/bus@0/serial@3110000";
+				i2c0 = "/bus@0/i2c@3160000";
+				i2c1 = "/bus@0/i2c@c240000";
+				i2c2 = "/bus@0/i2c@3180000";
+				i2c3 = "/bus@0/i2c@3190000";
+				i2c4 = "/bpmp/i2c";
+				i2c5 = "/bus@0/i2c@31b0000";
+				i2c6 = "/bus@0/i2c@31c0000";
+				i2c7 = "/bus@0/i2c@c250000";
+				i2c8 = "/bus@0/i2c@31e0000";
 			};
 		};
 	};
