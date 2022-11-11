@@ -15,13 +15,20 @@ DTC_CPP_FLAGS += $(EXTRA_CPP_FLAGS)
 
 DTC_CPP_FLAGS += -DLINUX_VERSION=515 -DTEGRA_HOST1X_DT_VERSION=1
 
-tegra-dtstree := $(TOP)/hardware/nvidia
+ifneq ($(TEGRA_TOP),)
+SOURCE_TOP := $(TEGRA_TOP)
+else ifneq ($(TOP),)
+SOURCE_TOP := $(TOP)
+else
+$(error TEGRA_TOP or TOP is not defined)
+endif
 
+tegra-dtstree := $(SOURCE_TOP)/hardware/nvidia
 # Get relative path for tegra-dtstree from this makefile
 null :=
 space :=$(null) $(null)
 obj-path := $(obj)
-obj-path-from-top := $(subst $(TOP),,$(obj-path))
+obj-path-from-top := $(subst $(SOURCE_TOP),,$(obj-path))
 rel-top-path := $(subst /, $(space)/,$(obj-path-from-top))
 rel-top-path := $(patsubst /%,../,$(rel-top-path))
 rel-top-path := $(subst $(space),,$(rel-top-path))
