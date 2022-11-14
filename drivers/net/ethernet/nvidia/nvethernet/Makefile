@@ -7,11 +7,10 @@ OSI_DMA := nvethernetrm/osi/dma
 
 obj-m += nvethernet.o
 
-ccflags-y += -DLINUX_IVC -DUPDATED_PAD_CAL -mno-outline-atomics \
+# These CFLAGS must not be shared/used in OSI. These are local to Linux
+ccflags-y += -DLINUX_OS -DNET30 -DNVPKCS_MACSEC -DLINUX_IVC -DUPDATED_PAD_CAL -mno-outline-atomics \
 	     -I$(srctree.nvidia-oot)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/include \
 	     -I$(srctree.nvidia-oot)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/osi/common/include
-
-ccflags-y += -DMACSEC_SUPPORT -DNET30 -DDEBUG_MACSEC -DOSI_DEBUG $(if $(CONFIG_TEGRA_EPL),-DHSI_SUPPORT,) -DLINUX_OS -DNVPKCS_MACSEC
 
 nvethernet-objs:= ether_linux.o \
 		  osd.o \
@@ -45,3 +44,8 @@ nvethernet-objs:= ether_linux.o \
 		  $(OSI_CORE)/frp.o \
 		  $(OSI_CORE)/vlan_filter.o \
 		  $(OSI_CORE)/debug.o
+
+include $(srctree.nvidia-oot)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/include/config.tmk
+
+# Undefine HSI_SUPPORT if CONFIG_TEGRA_EPL is not defined.
+ccflags-y += $(if $(CONFIG_TEGRA_EPL),,-UHSI_SUPPORT)
