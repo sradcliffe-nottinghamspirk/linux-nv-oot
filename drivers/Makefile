@@ -7,6 +7,7 @@ obj-m += block/tegra_virt_storage/
 obj-m += c2c/
 obj-m += clink/
 obj-m += crypto/
+obj-m += debug/
 obj-m += devfreq/
 obj-m += firmware/tegra/
 obj-m += gpu/
