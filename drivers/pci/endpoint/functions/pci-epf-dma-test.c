@@ -21,10 +21,6 @@
 
 static struct pcie_epf_dma *gepfnv;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
-#define PCI_EPF_CORE_DEINIT
-#endif
-
 struct pcie_epf_dma {
 	struct pci_epf_header header;
 	struct device *fdev;
@@ -1538,54 +1534,21 @@ static void pcie_dma_epf_msi_deinit(struct pci_epf *epf)
 	platform_msi_domain_free_irqs(cdev);
 }
 
-static int pcie_dma_epf_notifier(struct notifier_block *nb,
-				 unsigned long val, void *data)
+static int pcie_dma_epf_core_deinit(struct pci_epf *epf)
 {
-	struct pci_epf *epf = container_of(nb, struct pci_epf, nb);
-	int ret;
-
-	switch (val) {
-	case CORE_INIT:
-		ret = pcie_dma_epf_core_init(epf);
-		if (ret < 0)
-			return NOTIFY_BAD;
-		break;
-
-	case LINK_UP:
-		break;
-
-	default:
-		dev_err(&epf->dev, "Invalid notifier event\n");
-		return NOTIFY_BAD;
-	}
-
-	return NOTIFY_OK;
-}
-
-#ifdef PCI_EPF_CORE_DEINIT
-static int pcie_dma_epf_block_notifier(struct notifier_block *nb,
-				       unsigned long val, void *data)
-{
-	struct pci_epf *epf = container_of(nb, struct pci_epf, block_nb);
 	struct pcie_epf_dma *epfnv = epf_get_drvdata(epf);
 	void *cookie = epfnv->edma.cookie;
 	struct pcie_epf_bar0 *epf_bar0 = (struct pcie_epf_bar0 *) epfnv->bar0_virt;
+	struct pci_epc *epc = epf->epc;
+	struct pci_epf_bar *epf_bar = &epf->bar[BAR_0];
 
-	switch (val) {
-	case CORE_DEINIT:
-		epfnv->edma.cookie = NULL;
-		epf_bar0->rp_phy_addr = 0;
-		tegra_pcie_edma_deinit(cookie);
-		break;
+	epfnv->edma.cookie = NULL;
+	epf_bar0->rp_phy_addr = 0;
+	tegra_pcie_edma_deinit(cookie);
+	lpci_epc_clear_bar(epc, epf->func_no, epf_bar);
 
-	default:
-		dev_err(&epf->dev, "Invalid blocking notifier event\n");
-		return NOTIFY_BAD;
-	}
-
-	return NOTIFY_OK;
+	return 0;
 }
-#endif
 
 static void pcie_dma_epf_unbind(struct pci_epf *epf)
 {
@@ -1595,13 +1558,14 @@ static void pcie_dma_epf_unbind(struct pci_epf *epf)
 	void *cookie = epfnv->edma.cookie;
 	struct pcie_epf_bar0 *epf_bar0 = (struct pcie_epf_bar0 *) epfnv->bar0_virt;
 
+	debugfs_remove_recursive(epfnv->debugfs);
+
 	epfnv->edma.cookie = NULL;
 	epf_bar0->rp_phy_addr = 0;
 	tegra_pcie_edma_deinit(cookie);
 
 	pcie_dma_epf_msi_deinit(epf);
 	pci_epc_stop(epc);
-	lpci_epc_clear_bar(epc, epf->func_no, epf_bar);
 	lpci_epf_free_space(epf, epfnv->bar0_virt, BAR_0);
 }
 
@@ -1635,14 +1599,6 @@ static int pcie_dma_epf_bind(struct pci_epf *epf)
 	/* Set BAR0 mem type as 64-bit */
 	epf_bar->flags |= PCI_BASE_ADDRESS_MEM_TYPE_64 |
 			PCI_BASE_ADDRESS_MEM_PREFETCH;
-
-	epf->nb.notifier_call = pcie_dma_epf_notifier;
-	pci_epc_register_notifier(epc, &epf->nb);
-
-#ifdef PCI_EPF_CORE_DEINIT
-	epf->block_nb.notifier_call = pcie_dma_epf_block_notifier;
-	pci_epc_register_block_notifier(epc, &epf->block_nb);
-#endif
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "atu_dma");
 	if (!res) {
@@ -1715,6 +1671,11 @@ static const struct pci_epf_device_id pcie_dma_epf_ids[] = {
 	{},
 };
 
+static const struct pci_epc_event_ops pci_epf_dma_test_event_ops = {
+	.core_init = pcie_dma_epf_core_init,
+	.core_deinit = pcie_dma_epf_core_deinit,
+};
+
 static int pcie_dma_epf_probe(struct pci_epf *epf)
 {
 	struct device *dev = &epf->dev;
@@ -1731,6 +1692,8 @@ static int pcie_dma_epf_probe(struct pci_epf *epf)
 
 	gepfnv = epfnv;
 	epf_set_drvdata(epf, epfnv);
+
+	epf->event_ops = &pci_epf_dma_test_event_ops;
 
 	epfnv->header.vendorid = PCI_VENDOR_ID_NVIDIA;
 	epfnv->header.deviceid = 0x1AD6;
