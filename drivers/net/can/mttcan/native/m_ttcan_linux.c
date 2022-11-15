@@ -616,7 +616,7 @@ static void mttcan_tx_complete(struct net_device *dev)
 
 	while (completed_tx) {
 		msg_no = ffs(completed_tx) - 1;
-		can_get_echo_skb(dev, msg_no, NULL);
+		can_get_echo_skb(dev, msg_no, 0);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 		can_led_event(dev, CAN_LED_EVENT_TX);
 #endif
@@ -653,7 +653,7 @@ static void mttcan_tx_cancelled(struct net_device *dev)
 		msg_no = ffs(cancelled_msg) - 1;
 		buff_bit = 1U << msg_no;
 		if (ttcan->tx_object & buff_bit) {
-			can_free_echo_skb(dev, msg_no, NULL);
+			can_free_echo_skb(dev, msg_no, 0);
 			clear_bit(msg_no, &ttcan->tx_object);
 			cancelled_msg &= ~(buff_bit);
 			stats->tx_aborted_errors++;
@@ -1371,7 +1371,7 @@ static netdev_tx_t mttcan_start_xmit(struct sk_buff *skb,
 		spin_unlock_bh(&priv->tx_lock);
 		return NETDEV_TX_BUSY;
 	}
-	can_put_echo_skb(skb, dev, msg_no, NULL);
+	can_put_echo_skb(skb, dev, msg_no, 0);
 
 	/* Set go bit for non-TTCAN messages */
 	if (!priv->tt_param[0])
