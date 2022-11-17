@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
+ * Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  *
  */
 
@@ -10,7 +10,7 @@
 #include <asm-generic/ioctl.h>
 
 #define TEGRA_NVVSE_IOC_MAGIC				0x98
-#define MAX_NUMBER_MISC_DEVICES				40U
+#define MAX_NUMBER_MISC_DEVICES				46U
 
 /* Command ID for various IO Control */
 #define TEGRA_NVVSE_CMDID_AES_SET_KEY			1
@@ -24,6 +24,8 @@
 #define TEGRA_NVVSE_CMDID_AES_GMAC_SIGN_VERIFY		10
 #define TEGRA_NVVSE_CMDID_AES_CMAC_SIGN_VERIFY		11
 #define TEGRA_NVVSE_CMDID_GET_IVC_DB			12
+#define TEGRA_NVVSE_CMDID_TSEC_SIGN_VERIFY		13
+#define TEGRA_NVVSE_CMDID_TSEC_GET_KEYLOAD_STATUS	14
 
 /** Defines the length of the AES-CBC Initial Vector */
 #define TEGRA_NVVSE_AES_IV_LEN				16U
@@ -157,6 +159,11 @@ struct  tegra_nvvse_aes_enc_dec_ctl {
 	uint8_t		skip_key;
 	/** [in] Holds an AES Mode */
 	enum		tegra_nvvse_aes_mode aes_mode;
+	/** [in] Holds a Boolean that specifies nonce is passed by user or not.
+	 * value '0' indicates nonce is not passed by user and
+	 * non zero value indicates nonce is passed by user
+	 */
+	uint8_t		user_nonce;
 	/** [inout] Initial Vector (IV) used for AES Encryption and Decryption.
 	  * During Encryption, the nvvse generates IV and populates in oIV in the
 	  * first NvVseAESEncryptDecrypt() call.
@@ -353,6 +360,20 @@ struct tegra_nvvse_aes_cmac_sign_verify_ctl {
 #define NVVSE_IOCTL_CMDID_AES_CMAC_SIGN_VERIFY _IOWR(TEGRA_NVVSE_IOC_MAGIC, \
 						TEGRA_NVVSE_CMDID_AES_CMAC_SIGN_VERIFY, \
 						struct  tegra_nvvse_aes_cmac_sign_verify_ctl)
+#define NVVSE_IOCTL_CMDID_TSEC_SIGN_VERIFY _IOWR(TEGRA_NVVSE_IOC_MAGIC, \
+						TEGRA_NVVSE_CMDID_TSEC_SIGN_VERIFY, \
+						struct  tegra_nvvse_aes_cmac_sign_verify_ctl)
+
+/**
+ * brief Holds Error code corresponding to TSEC keyload status
+ */
+struct tegra_nvvse_tsec_get_keyload_status {
+	/* NVVSE Error code  */
+	uint32_t err_code;
+};
+#define NVVSE_IOCTL_CMDID_TSEC_GET_KEYLOAD_STATUS _IOW(TEGRA_NVVSE_IOC_MAGIC, \
+						TEGRA_NVVSE_CMDID_TSEC_GET_KEYLOAD_STATUS, \
+						struct tegra_nvvse_tsec_get_keyload_status)
 
 /**
  * brief Holds IVC databse
@@ -364,6 +385,16 @@ struct tegra_nvvse_get_ivc_db {
 	uint32_t se_engine[MAX_NUMBER_MISC_DEVICES];
 	/** Holds Crypto Dev Node Id */
 	uint32_t node_id[MAX_NUMBER_MISC_DEVICES];
+	/** Holds Priority */
+	uint32_t priority[MAX_NUMBER_MISC_DEVICES];
+	/** Holds Max Buffer Size */
+	uint32_t max_buffer_size[MAX_NUMBER_MISC_DEVICES];
+	/** Holds Channel Group Id */
+	uint32_t channel_grp_id[MAX_NUMBER_MISC_DEVICES];
+	/** Holds GCM dec Support flag */
+	uint32_t gcm_dec_supported[MAX_NUMBER_MISC_DEVICES];
+	/** Holds GCM dec buffer */
+	uint32_t gcm_dec_buffer_size[MAX_NUMBER_MISC_DEVICES];
 };
 #define NVVSE_IOCTL_CMDID_GET_IVC_DB _IOW(TEGRA_NVVSE_IOC_MAGIC, TEGRA_NVVSE_CMDID_GET_IVC_DB, \
 						struct tegra_nvvse_get_ivc_db)

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef __TEGRA_HV_VSE_H
@@ -22,8 +22,10 @@ struct crypto_dev_to_ivc_map {
 	uint32_t se_engine;
 	uint32_t node_id;
 	uint32_t priority;
+	uint32_t max_buffer_size;
 	uint32_t channel_grp_id;
 	enum tegra_gcm_dec_supported gcm_dec_supported;
+	uint32_t gcm_dec_buffer_size;
 	struct tegra_hv_ivc_cookie *ivck;
 	struct completion tegra_vse_complete;
 	struct task_struct *tegra_vse_task;
@@ -75,9 +77,11 @@ struct tegra_virtual_se_aes_context {
 	u32 authsize;
 	/*Crypto dev instance*/
 	uint32_t node_id;
+	/* Flag to indicate user nonce*/
+	uint8_t user_nonce;
 };
 
-/* Security Engine AES CMAC context */
+/* Security Engine/TSEC AES CMAC context */
 struct tegra_virtual_se_aes_cmac_context {
 	unsigned int digest_size;
 	u8 *hash_result;		/* Intermediate hash result */
@@ -141,5 +145,8 @@ struct tegra_virtual_se_req_context {
 
 /* API to get ivc db from hv_vse driver */
 struct crypto_dev_to_ivc_map *tegra_hv_vse_get_db(void);
+
+/* API to get tsec keyload status from vse driver */
+int tegra_hv_vse_safety_tsec_get_keyload_status(uint32_t node_id, uint32_t *err_code);
 
 #endif /*__TEGRA_HV_VSE_H*/
