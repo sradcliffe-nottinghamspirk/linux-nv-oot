@@ -616,13 +616,12 @@ static void mttcan_tx_complete(struct net_device *dev)
 
 	while (completed_tx) {
 		msg_no = ffs(completed_tx) - 1;
-		can_get_echo_skb(dev, msg_no, 0);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 		can_led_event(dev, CAN_LED_EVENT_TX);
 #endif
 		clear_bit(msg_no, &ttcan->tx_object);
 		stats->tx_packets++;
-		stats->tx_bytes += ttcan->tx_buf_dlc[msg_no];
+		stats->tx_bytes += can_get_echo_skb(dev, msg_no, 0);
 		completed_tx &= ~(1U << msg_no);
 	}
 
