@@ -2,3 +2,4 @@
 # Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 obj-m += cdi/
+obj-m += isc/
