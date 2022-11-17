@@ -10,4 +10,5 @@ obj-m		+= tegra_hv_pm_ctl.o
 obj-m		+= hvc_sysfs.o
 obj-m		+= ivc-cdev.o
 obj-m		+= userspace_ivc_mempool.o
+obj-m		+= tegra_hv_vcpu_yield.o
 
