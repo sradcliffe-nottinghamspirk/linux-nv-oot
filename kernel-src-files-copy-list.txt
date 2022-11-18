@@ -62,3 +62,6 @@ nvidia/include/uapi/misc/mods.h include/uapi/misc/mods.h
 nvidia/drivers/platform/tegra/dce drivers/platform/tegra
 nvidia/include/linux/platform/tegra/dce/dce-client-ipc.h include/linux/platform/tegra/dce/dce-client-ipc.h
 nvidia/include/trace/events/dce_events.h include/trace/events/dce_events.h
+
+# Files/directory for Maxim DP->GMSL serializer
+nvidia/drivers/video/tegra/dc/bridge/maxim_gmsl_dp_serializer.c drivers/video/tegra/dc/bridge
