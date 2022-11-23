@@ -21,7 +21,7 @@ ifeq ($(GCC_VER_49),1)
 EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
 endif
 
-SOURCETREE = $(srctree.nvidia)/drivers/net/wireless/realtek/rtl8822ce
+SOURCETREE = $(srctree.nvidia-oot)/drivers/net/wireless/realtek/rtl8822ce
 EXTRA_CFLAGS += -I$(SOURCETREE)/include
 
 EXTRA_LDFLAGS += --strip-debug
@@ -2388,7 +2388,7 @@ ifeq ($(CONFIG_RTL8723B), y)
 $(MODULE_NAME)-$(CONFIG_MP_INCLUDED)+= core/rtw_bt_mp.o
 endif
 
-obj-$(CONFIG_RTL8822CE) := $(MODULE_NAME).o
+obj-m := $(MODULE_NAME).o
 
 else
 

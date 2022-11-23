@@ -1,7 +1,4 @@
 # SPDX-License-Identifier: GPL-2.0
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 
-obj-m += ethernet/
-obj-m += tegra_hv_net.o
-obj-m += can/
-obj-m += wireless/
+obj-m += realtek/
