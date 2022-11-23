@@ -342,8 +342,10 @@ void rtl8822c_set_usb_suspend_mode(PADAPTER padapter)
 	struct pwrctrl_priv *ppwrpriv = adapter_to_pwrctl(padapter);
 	u8 param[H2C_BT_UNKNOWN_DEVICE_WA_LEN] = {0};
 
+	RTW_INFO(" ====> %s\n", __func__);
 	SET_H2CCMD_BT_UNKNOWN_DEVICE_WA_PARM(param, 1);
 	rtl8822c_fillh2ccmd(padapter, H2C_BT_UNKNOWN_DEVICE_WA, H2C_BT_UNKNOWN_DEVICE_WA_LEN, param);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 #ifdef CONFIG_BT_COEXIST

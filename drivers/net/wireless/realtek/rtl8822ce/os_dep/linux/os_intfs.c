@@ -1925,12 +1925,6 @@ void rtw_os_ndev_free(_adapter *adapter)
 	rtw_cfg80211_ndev_res_free(adapter);
 #endif
 
-	/* free the old_pnetdev */
-	if (adapter->rereg_nd_name_priv.old_pnetdev) {
-		rtw_free_netdev(adapter->rereg_nd_name_priv.old_pnetdev);
-		adapter->rereg_nd_name_priv.old_pnetdev = NULL;
-	}
-
 	if (adapter->pnetdev) {
 		rtw_free_netdev(adapter->pnetdev);
 		adapter->pnetdev = NULL;
@@ -3534,6 +3528,7 @@ int rtw_os_ndevs_init(struct dvobj_priv *dvobj)
 {
 	int ret = _FAIL;
 
+	RTW_INFO(" ====> %s\n", __func__);
 	if (rtw_os_ndevs_alloc(dvobj) != _SUCCESS)
 		goto exit;
 
@@ -3546,6 +3541,7 @@ os_ndevs_free:
 	if (ret != _SUCCESS)
 		rtw_os_ndevs_free(dvobj);
 exit:
+	RTW_INFO(" %s <====\n", __func__);
 	return ret;
 }
 

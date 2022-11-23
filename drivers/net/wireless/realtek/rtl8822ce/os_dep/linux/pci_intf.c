@@ -374,10 +374,12 @@ void rtw_pci_dump_aspm_info(_adapter *padapter)
 
 void rtw_pci_aspm_config(_adapter *padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	rtw_pci_aspm_config_clkreql0sl1(padapter);
 	rtw_pci_aspm_config_l1off(padapter);
 	rtw_pci_dynamic_aspm_set_mode(padapter, ASPM_MODE_PERF);
 	rtw_pci_dump_aspm_info(padapter);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 static u8 rtw_pci_get_amd_l1_patch(struct dvobj_priv *pdvobjpriv, struct pci_dev *pdev)
@@ -629,6 +631,7 @@ int pci_alloc_irq(struct dvobj_priv *dvobj)
 	struct pci_dev *pdev = dvobj->ppcidev;
 	int ret;
 
+	RTW_INFO(" ====> %s\n", __func__);
 #ifndef CONFIG_RTW_PCI_MSI_DISABLE
 	ret = pci_enable_msi(pdev);
 
@@ -648,6 +651,7 @@ int pci_alloc_irq(struct dvobj_priv *dvobj)
 		RTW_INFO("Request_irq OK, IRQ %d\n", pdev->irq);
 	}
 
+	RTW_INFO(" %s <====\n", __func__);
 	return err ? _FAIL : _SUCCESS;
 }
 
@@ -748,6 +752,7 @@ static struct dvobj_priv	*pci_dvobj_init(struct pci_dev *pdev, const struct pci_
 	unsigned long pmem_start, pmem_len, pmem_flags;
 	int	i;
 
+	RTW_INFO(" ====> %s\n", __func__);
 
 	dvobj = devobj_init();
 	if (dvobj == NULL)
@@ -914,6 +919,7 @@ free_dvobj:
 		dvobj = NULL;
 	}
 exit:
+	RTW_INFO("%s <=====\n", __func__);
 	return dvobj;
 }
 
@@ -956,6 +962,7 @@ static void pci_dvobj_deinit(struct pci_dev *pdev)
 
 u8 rtw_set_hal_ops(_adapter *padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	/* alloc memory for HAL DATA */
 	if (rtw_hal_data_init(padapter) == _FAIL)
 		return _FAIL;
@@ -1019,6 +1026,7 @@ u8 rtw_set_hal_ops(_adapter *padapter)
 	if (hal_spec_init(padapter) == _FAIL)
 		return _FAIL;
 
+	RTW_INFO(" %s <====\n", __func__);
 	return _SUCCESS;
 }
 
@@ -1271,6 +1279,8 @@ _adapter *rtw_pci_primary_adapter_init(struct dvobj_priv *dvobj, struct pci_dev 
 	_adapter *padapter = NULL;
 	int status = _FAIL;
 
+	RTW_INFO(" ====> %s\n", __func__);
+
 	padapter = (_adapter *)rtw_zvmalloc(sizeof(*padapter));
 	if (padapter == NULL)
 		goto exit;
@@ -1361,6 +1371,7 @@ free_adapter:
 		padapter = NULL;
 	}
 exit:
+	RTW_INFO(" %s <====\n", __func__);
 	return padapter;
 }
 
@@ -1422,7 +1433,7 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	_adapter *padapter = NULL;
 	struct dvobj_priv *dvobj;
 
-	/* RTW_INFO("+rtw_drv_init\n"); */
+	RTW_INFO("+rtw_drv_init\n");
 
 	/* step 0. */
 	disable_ht_for_spec_devid(pdid);
@@ -1479,7 +1490,7 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	if (pci_alloc_irq(dvobj) != _SUCCESS)
 		goto os_ndevs_deinit;
 
-	/* RTW_INFO("-871x_drv - drv_init, success!\n"); */
+	RTW_INFO("-871x_drv - drv_init, success!\n");
 
 	status = _SUCCESS;
 

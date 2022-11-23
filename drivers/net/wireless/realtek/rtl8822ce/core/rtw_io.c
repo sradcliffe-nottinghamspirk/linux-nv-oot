@@ -443,6 +443,7 @@ int rtw_init_io_priv(_adapter *padapter, void (*set_intf_ops)(_adapter *padapter
 	struct io_priv	*piopriv = &padapter->iopriv;
 	struct intf_hdl *pintf = &piopriv->intf;
 
+	RTW_INFO(" ====> %s\n", __func__);
 	if (set_intf_ops == NULL)
 		return _FAIL;
 
@@ -452,6 +453,7 @@ int rtw_init_io_priv(_adapter *padapter, void (*set_intf_ops)(_adapter *padapter
 
 	set_intf_ops(padapter, &pintf->io_ops);
 
+	RTW_INFO(" %s <====\n", __func__);
 	return _SUCCESS;
 }
 

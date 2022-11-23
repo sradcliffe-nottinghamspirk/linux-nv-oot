@@ -150,6 +150,8 @@ u8 rtl8822c_hal_init(PADAPTER adapter)
 	hal->bFWReady = _FALSE;
 	hal->fw_ractrl = _FALSE;
 
+	RTW_INFO(" ====> %s\n", __func__);
+
 #ifdef CONFIG_NO_FW
 	err = rtw_halmac_init_hal(d);
 	if(!err) {
@@ -193,6 +195,7 @@ u8 rtl8822c_hal_init(PADAPTER adapter)
 	hal->bFWReady = _TRUE;
 	hal->fw_ractrl = _TRUE;
 
+	RTW_INFO(" %s <====\n", __func__);
 	return _TRUE;
 }
 
@@ -220,6 +223,7 @@ void rtl8822c_init_misc(PADAPTER adapter)
 	u8 v8 = 0;
 	u32 v32 = 0;
 
+	RTW_INFO(" ====> %s\n", __func__);
 
 	hal = GET_HAL_DATA(adapter);
 
@@ -245,6 +249,7 @@ void rtl8822c_init_misc(PADAPTER adapter)
 #ifdef CONFIG_TCP_CSUM_OFFLOAD_RX
 	rtw_hal_rcr_add(adapter, BIT_TCPOFLD_EN_8822C);
 #endif /* CONFIG_TCP_CSUM_OFFLOAD_RX*/
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 u32 rtl8822c_init(PADAPTER adapter)

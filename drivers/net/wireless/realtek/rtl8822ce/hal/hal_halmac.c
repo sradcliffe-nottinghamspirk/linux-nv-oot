@@ -1,7 +1,6 @@
 /******************************************************************************
  *
  * Copyright(c) 2015 - 2019 Realtek Corporation.
- * Copyright(c) 2022, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -3673,7 +3672,9 @@ int rtw_halmac_init_hal(struct dvobj_priv *d)
  */
 int rtw_halmac_init_hal_fw(struct dvobj_priv *d, u8 *fw, u32 fwsize)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	return _halmac_init_hal(d, fw, fwsize);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 /*

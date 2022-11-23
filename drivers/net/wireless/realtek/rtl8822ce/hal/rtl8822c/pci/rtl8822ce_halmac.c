@@ -335,6 +335,7 @@ int rtl8822ce_halmac_init_adapter(PADAPTER padapter)
 	struct halmac_platform_api *api;
 	int err;
 
+	RTW_INFO(" ====> %s\n", __func__);
 	d = adapter_to_dvobj(padapter);
 	api = &rtw_halmac_platform_api;
 	api->SEND_RSVD_PAGE = pci_write_data_rsvd_page;
@@ -342,5 +343,6 @@ int rtl8822ce_halmac_init_adapter(PADAPTER padapter)
 
 	err = rtw_halmac_init_adapter(d, api);
 
+	RTW_INFO(" %s <====\n", __func__);
 	return err;
 }

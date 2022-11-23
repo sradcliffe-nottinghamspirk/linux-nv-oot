@@ -3599,8 +3599,8 @@ _iqk_rx_iqk_gain_search_fail_8822c(
 
 		if (iqk->isbnd)
 			fail = false;
-		if (idx < 5)
-		iqk->tmp1bcc = IQMUX[idx];
+		if(idx < 5)
+			iqk->tmp1bcc = IQMUX[idx];
 
 		if (fail == false){
 			tmp = (iqk->tmp1bcc << 8) |  bb_idx ;

@@ -513,7 +513,9 @@ void rtl8822c_phy_deinit_dm_priv(PADAPTER adapter)
 
 void rtl8822c_phy_init_haldm(PADAPTER adapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	rtw_phydm_init(adapter);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 static void check_rxfifo_full(PADAPTER adapter)
@@ -2089,6 +2091,7 @@ void rtl8822c_phy_bf_init(PADAPTER adapter)
 	u8 v8;
 	u32 v32;
 
+	RTW_INFO(" ====> %s\n", __func__);
 	v32 = rtw_read32(adapter, REG_MU_TX_CTL_8822C);
 	/* Enable P1 aggr new packet according to P0 transfer time */
 	v32 |= BIT_R_MU_P1_WAIT_STATE_EN_8822C;
@@ -2120,6 +2123,7 @@ void rtl8822c_phy_bf_init(PADAPTER adapter)
 	v8 = rtw_read8(adapter, 0x6DF);
 	v8 = (v8 & 0xC0) | 0x4;
 	rtw_write8(adapter, 0x6DF, v8);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 void rtl8822c_phy_bf_enter(PADAPTER adapter, struct sta_info *sta)

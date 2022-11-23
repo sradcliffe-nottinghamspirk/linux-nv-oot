@@ -4010,6 +4010,7 @@ void rtl8822c_set_hal_ops(PADAPTER adapter)
 	struct hal_com_data *hal;
 	struct hal_ops *ops;
 
+	RTW_INFO(" ====> %s\n", __func__);
 
 	hal = GET_HAL_DATA(adapter);
 	ops = &adapter->hal_func;
@@ -4167,5 +4168,7 @@ void rtl8822c_set_hal_ops(PADAPTER adapter)
 #ifdef CONFIG_SUPPORT_DYNAMIC_TXPWR
 	ops->dtp_macid_set = rtl8822c_dtp_macid_set;
 #endif
+
+	RTW_INFO(" %s <====\n", __func__);
 }
 

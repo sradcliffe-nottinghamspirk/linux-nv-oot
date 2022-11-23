@@ -472,35 +472,52 @@ init_trx_cfg_8822c(struct halmac_adapter *adapter, enum halmac_trx_mode mode)
 
 	PLTFM_MSG_TRACE("[TRACE]%s ===>\n", __func__);
 
+	printk("%s: 1\n", __func__);
+
 	status = txdma_queue_mapping_8822c(adapter, mode);
 	if (status != HALMAC_RET_SUCCESS) {
 		PLTFM_MSG_ERR("[ERR]queue mapping\n");
 		return status;
 	}
 
+	printk("%s: 2\n", __func__);
 	en_fwff = HALMAC_REG_R8(REG_WMAC_FWPKT_CR) & BIT_FWEN;
 	if (en_fwff) {
 		HALMAC_REG_W8_CLR(REG_WMAC_FWPKT_CR, BIT_FWEN);
 		if (fwff_is_empty_88xx(adapter) != HALMAC_RET_SUCCESS)
 			PLTFM_MSG_ERR("[ERR]fwff is not empty\n");
 	}
+
+	printk("%s: 3\n", __func__);
+#if 1
+	value16 = HALMAC_REG_R16(REG_CR);
+	printk("value16=0x%x\n", value16);
+	HALMAC_REG_W16(REG_CR, value16&0xFF00);
+#else
 	value8 = 0;
 	HALMAC_REG_W8(REG_CR, value8);
+#endif
+	printk("%s: 4\n", __func__);
+
 	value16 = HALMAC_REG_R16(REG_FWFF_PKT_INFO);
 	HALMAC_REG_W16(REG_FWFF_CTRL, value16);
+	printk("%s: 5\n", __func__);
 
 	value8 = MAC_TRX_ENABLE;
 	HALMAC_REG_W8(REG_CR, value8);
+	printk("%s: 6\n", __func__);
 	if (en_fwff)
 		HALMAC_REG_W8_SET(REG_WMAC_FWPKT_CR, BIT_FWEN);
 	HALMAC_REG_W32(REG_H2CQ_CSR, BIT(31));
 
+	printk("%s: 7\n", __func__);
 	status = priority_queue_cfg_8822c(adapter, mode);
 	if (status != HALMAC_RET_SUCCESS) {
 		PLTFM_MSG_ERR("[ERR]priority queue cfg\n");
 		return status;
 	}
 
+	printk("%s: 8\n", __func__);
 	status = init_h2c_8822c(adapter);
 	if (status != HALMAC_RET_SUCCESS) {
 		PLTFM_MSG_ERR("[ERR]init h2cq!\n");

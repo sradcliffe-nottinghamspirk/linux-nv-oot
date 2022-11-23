@@ -1773,6 +1773,7 @@ err_chk:
 
 	_rtw_memcpy(out, mac, ETH_ALEN);
 	RTW_INFO("%s mac addr:"MAC_FMT"\n", __func__, MAC_ARG(out));
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 #ifdef CONFIG_80211N_HT

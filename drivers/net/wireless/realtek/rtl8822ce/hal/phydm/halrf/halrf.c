@@ -1501,7 +1501,7 @@ void halrf_bbreset(void *dm_void)
 void halrf_rf_k_connect_trigger(void *dm_void, boolean is_recovery,
 				enum halrf_k_segment_time seg_time)
 {
-	struct dm_struct *dm = (struct dm_struct *)dm_void;	
+	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	struct dm_dpk_info *dpk_info = &dm->dpk_info;
 	struct _hal_rf_ *rf = &dm->rf_table;
 

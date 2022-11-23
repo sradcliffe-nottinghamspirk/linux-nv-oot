@@ -1,7 +1,6 @@
 /******************************************************************************
  *
  * Copyright(c) 2015 - 2017 Realtek Corporation.
- * Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -58,6 +57,8 @@ void rtl8822ce_reset_bd(_adapter *padapter)
 	u8 *tx_bd, *rx_bd;
 	int i, rx_queue_idx;
 
+	RTW_INFO(" ====> %s\n", __func__);
+
 	InitMAC_TRXBD_8822CE(padapter);
 
 	for (rx_queue_idx = 0; rx_queue_idx < 1; rx_queue_idx++) {
@@ -101,6 +102,7 @@ void rtl8822ce_reset_bd(_adapter *padapter)
 		}
 	}
 	_exit_critical(&pdvobjpriv->irq_th_lock, &irqL);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 static void intf_chip_configure(PADAPTER padapter)
@@ -835,6 +837,8 @@ void rtl8822ce_set_hal_ops(PADAPTER padapter)
 	struct hal_ops *ops;
 	int err;
 
+	RTW_INFO(" ====> %s\n", __func__);
+
 	err = rtl8822ce_halmac_init_adapter(padapter);
 	if (err) {
 		RTW_INFO("%s: [ERROR]HALMAC initialize FAIL!\n", __func__);
@@ -902,4 +906,6 @@ void rtl8822ce_set_hal_ops(PADAPTER padapter)
 	ops->tx_poll_handler = rtl8822ce_tx_poll_handler;
 #endif
 	ops->unmap_beacon_icf = rtl8822ce_unmap_beacon_icf;
+
+	RTW_INFO(" %s <====\n", __func__);
 }

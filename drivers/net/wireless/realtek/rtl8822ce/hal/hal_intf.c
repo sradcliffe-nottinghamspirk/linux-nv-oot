@@ -41,7 +41,9 @@ const u32 _chip_type_to_odm_ic_type[] = {
 
 void rtw_hal_chip_configure(_adapter *padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	padapter->hal_func.intf_chip_configure(padapter);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 /*
@@ -58,6 +60,7 @@ u8 rtw_hal_read_chip_info(_adapter *padapter)
 	u8 hci_type = rtw_get_intf_type(padapter);
 	systime start = rtw_get_current_time();
 
+	RTW_INFO(" ====> %s\n", __func__);
 	/*  before access eFuse, make sure card enable has been called */
 	if ((hci_type == RTW_SDIO || hci_type == RTW_GSPI)
 	    && !rtw_is_hw_init_completed(padapter))
@@ -71,13 +74,16 @@ u8 rtw_hal_read_chip_info(_adapter *padapter)
 
 	RTW_INFO("%s in %d ms\n", __func__, rtw_get_passing_time_ms(start));
 
+	RTW_INFO(" %s <====\n", __func__);
 	return rtn;
 }
 
 void rtw_hal_read_chip_version(_adapter *padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	padapter->hal_func.read_chip_version(padapter);
 	rtw_odm_init_ic_type(padapter);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 static void rtw_init_wireless_mode(_adapter *padapter)
@@ -137,6 +143,7 @@ void rtw_hal_def_value_init(_adapter *padapter)
 
 u8 rtw_hal_data_init(_adapter *padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	if (is_primary_adapter(padapter)) {
 		padapter->hal_data_sz = sizeof(HAL_DATA_TYPE);
 		padapter->HalData = rtw_zvmalloc(padapter->hal_data_sz);
@@ -146,6 +153,7 @@ u8 rtw_hal_data_init(_adapter *padapter)
 		}
 		rtw_phydm_priv_init(padapter);
 	}
+	RTW_INFO(" %s <====\n", __func__);
 	return _SUCCESS;
 }
 
@@ -689,9 +697,11 @@ void rtw_hal_enable_interrupt(_adapter *padapter)
 /* FOR SDIO & PCIE */
 void rtw_hal_disable_interrupt(_adapter *padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 #if defined(CONFIG_PCI_HCI) || defined(CONFIG_SDIO_HCI) || defined (CONFIG_GSPI_HCI)
 	padapter->hal_func.disable_interrupt(padapter);
 #endif /* #if defined(CONFIG_PCI_HCI) || defined (CONFIG_SDIO_HCI) || defined (CONFIG_GSPI_HCI) */
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 
@@ -750,8 +760,10 @@ void rtw_hal_clear_interrupt(_adapter *padapter)
 #if defined(CONFIG_USB_HCI) || defined(CONFIG_PCI_HCI)
 u32	rtw_hal_inirp_init(_adapter *padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	if (is_primary_adapter(padapter))
 		return padapter->hal_func.inirp_init(padapter);
+	RTW_INFO(" %s <====\n", __func__);
 	return _SUCCESS;
 }
 u32	rtw_hal_inirp_deinit(_adapter *padapter)

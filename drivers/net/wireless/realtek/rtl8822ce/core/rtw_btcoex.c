@@ -19,7 +19,9 @@
 
 void rtw_btcoex_Initialize(PADAPTER padapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 	hal_btcoex_Initialize(padapter);
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 void rtw_btcoex_PowerOnSetting(PADAPTER padapter)

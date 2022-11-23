@@ -927,6 +927,7 @@ u32	rtw_build_vht_cap_ie(_adapter *padapter, u8 *pbuf)
 
 	pbuf = rtw_set_ie(pbuf, EID_VHTCapability, 12, pcap, &len);
 
+
 	return len;
 }
 

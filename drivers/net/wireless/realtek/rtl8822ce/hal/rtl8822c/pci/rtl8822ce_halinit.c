@@ -409,6 +409,7 @@ static void init_hwled(PADAPTER adapter, u8 enable)
 
 static void hal_init_misc(PADAPTER adapter)
 {
+	RTW_INFO(" ====> %s\n", __func__);
 #ifdef CONFIG_RTW_LED
 	struct led_priv *ledpriv = adapter_to_led(adapter);
 #ifdef CONFIG_SW_LED
@@ -419,6 +420,7 @@ static void hal_init_misc(PADAPTER adapter)
 #endif /* CONFIG_SW_LED */
 	init_hwled(adapter, 1);
 #endif
+	RTW_INFO(" %s <====\n", __func__);
 }
 
 u32 rtl8822ce_init(PADAPTER padapter)
@@ -428,6 +430,7 @@ u32 rtl8822ce_init(PADAPTER padapter)
 	PHAL_DATA_TYPE hal;
 	struct registry_priv  *registry_par = &padapter->registrypriv;
 
+	RTW_INFO(" ====> %s\n", __func__);
 	hal = GET_HAL_DATA(padapter);
 
 #if 0
@@ -502,6 +505,7 @@ u32 rtl8822ce_init(PADAPTER padapter)
 	/* TX interrupt migration - 3pkts or 7*64=448us */
 	rtw_write32(padapter, REG_INT_MIG_8822C, 0x03070000);
 #endif
+	RTW_INFO(" %s <====\n", __func__);
 	return _SUCCESS;
 }
 
