@@ -1,5 +1,4 @@
 #files/directory for the nvsciipc module
-nvidia/drivers/misc/nvsciipc drivers/misc
 nvidia/include/linux/nvscierror.h include/linux/nvscierror.h
 nvidia/include/linux/nvsciipc_interface.h include/linux/nvsciipc_interface.h
 nvidia/include/uapi/linux/nvsciipc_ioctl.h include/uapi/linux/nvsciipc_ioctl.h
