@@ -4,6 +4,10 @@
 #include "ether_linux.h"
 #include "macsec.h"
 
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+#include <linux/tegra-hsierrrptinj.h>
+#endif
+
 #ifdef CONFIG_DEBUG_FS
 /* As per IAS Docs */
 #define EOQS_MAX_REGISTER_ADDRESS 0x12FC
@@ -448,6 +452,26 @@ static DEVICE_ATTR(macsec_loopback, (S_IRUGO | S_IWUSR),
 #endif /* DEBUG_MACSEC */
 
 #ifdef HSI_SUPPORT
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+static int hsi_inject_err_fsi(unsigned int inst_id,
+			      struct epl_error_report_frame error_report,
+			      void *data)
+{
+	struct ether_priv_data *pdata = (struct ether_priv_data *)data;
+	struct osi_core_priv_data *osi_core = pdata->osi_core;
+	struct osi_ioctl ioctl_data = {};
+	int ret;
+
+	ioctl_data.cmd = OSI_CMD_HSI_INJECT_ERR;
+	ioctl_data.arg1_u32 = error_report.error_code;
+	ret = osi_handle_ioctl(osi_core, &ioctl_data);
+	if (ret < 0)
+		dev_err(pdata->dev, "Fail to inject error\n");
+
+	return ret;
+}
+#endif
+
 /**
  * @brief Shows HSI feature enabled status
  *
@@ -490,7 +514,10 @@ static ssize_t hsi_enable_store(struct device *dev,
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 	struct osi_ioctl ioctl_data = {};
 	int ret = 0;
-
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+	u32 inst_id = osi_core->instance_id;
+	u32 ip_type[2] = {IP_EQOS, IP_MGBE};
+#endif
 	if (!netif_running(ndev)) {
 		dev_err(pdata->dev, "Not Allowed. Ether interface is not up\n");
 		return size;
@@ -3278,10 +3305,14 @@ static void ether_remove_debugfs(struct ether_priv_data *pdata)
 int ether_sysfs_register(struct ether_priv_data *pdata)
 {
 	struct device *dev = pdata->dev;
+	int ret = 0;
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ)) && defined(HSI_SUPPORT)
+	struct osi_core_priv_data *osi_core = pdata->osi_core;
+	u32 inst_id = osi_core->instance_id;
+	u32 ip_type[2] = {IP_EQOS, IP_MGBE};
+#endif
 
 #ifdef CONFIG_DEBUG_FS
-	int ret = 0;
-
 	ret = ether_create_debugfs(pdata);
 	if (ret < 0)
 		return ret;
@@ -3307,7 +3338,12 @@ int ether_sysfs_register(struct ether_priv_data *pdata)
 void ether_sysfs_unregister(struct ether_priv_data *pdata)
 {
 	struct device *dev = pdata->dev;
-
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ)) && defined(HSI_SUPPORT)
+	struct osi_core_priv_data *osi_core = pdata->osi_core;
+	u32 inst_id = osi_core->instance_id;
+	u32 ip_type[2] = {IP_EQOS, IP_MGBE};
+	int ret;
+#endif
 #ifdef CONFIG_DEBUG_FS
 	ether_remove_debugfs(pdata);
 #endif
