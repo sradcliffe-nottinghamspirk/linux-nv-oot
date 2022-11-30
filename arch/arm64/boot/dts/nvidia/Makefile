@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 # Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
+DTC_FLAGS += -@
+
 # DT overlays
 dtbo-y += tegra-optee.dtbo
 dtbo-y += tegra194-carveouts.dtbo
