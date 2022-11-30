@@ -97,35 +97,7 @@ static int get_num_dai_links(struct platform_device *pdev,
 			     unsigned int *num_links)
 {
 	struct device_node *top = pdev->dev.of_node;
-	struct device_node *link_node;
-	unsigned int link_count = 0;
-
-	link_node = of_get_child_by_name(top, PREFIX "dai-link");
-	if (!link_node) {
-		dev_err(&pdev->dev, "no dai links found\n");
-		return -ENOENT;
-	}
-
-	do {
-		if (!of_dai_link_is_available(link_node)) {
-			link_node = of_get_next_child(top, link_node);
-			continue;
-		}
-
-		link_count++;
-		link_node = of_get_next_child(top, link_node);
-	} while (link_node);
-
-	*num_links = link_count;
-
-	return 0;
-}
-
-static int allocate_link_dais(struct platform_device *pdev,
-			struct snd_soc_dai_link *dai_links)
-{
-	struct device_node *top = pdev->dev.of_node;
-	struct device_node *link_node;
+	struct device_node *link_node, *codec;
 	unsigned int link_count = 0, num_codecs;
 
 	link_node = of_get_child_by_name(top, PREFIX "dai-link");
@@ -140,14 +112,14 @@ static int allocate_link_dais(struct platform_device *pdev,
 			continue;
 		}
 
-		dai_links[link_count].cpus = devm_kzalloc(&pdev->dev,
-						 sizeof(*dai_links[link_count].cpus),
-						 GFP_KERNEL);
-		if (!dai_links[link_count].cpus)
-			return -ENOMEM;
-
+		/*
+		 * depending on the number of codec subnodes, DAI link
+		 * count is incremented. DT can have one DAI link entry
+		 * with multiple codec nodes(for ex: DSPK), driver can
+		 * create multiple links out of it.
+		 */
 		num_codecs = of_get_child_count_with_name(link_node,
-							 "codec");
+							  "codec");
 		if (!num_codecs) {
 			of_node_put(link_node);
 			dev_err(&pdev->dev,
@@ -155,27 +127,18 @@ static int allocate_link_dais(struct platform_device *pdev,
 			return -EINVAL;
 		}
 
-		dai_links[link_count].codecs =
-			devm_kzalloc(&pdev->dev,
-			sizeof(*dai_links[link_count].codecs) * num_codecs,
-			GFP_KERNEL);
-		if (!dai_links[link_count].codecs)
-			return -ENOMEM;
+		for_each_child_of_node(link_node, codec) {
+			if (of_node_cmp(codec->name, "codec"))
+				continue;
 
-		dai_links[link_count].platforms = devm_kzalloc(&pdev->dev,
-						   sizeof(*dai_links[link_count].platforms),
-						   GFP_KERNEL);
-		if (!dai_links[link_count].platforms)
-			return -ENOMEM;
-
-		dai_links[link_count].num_cpus = 1;
-		dai_links[link_count].num_codecs = num_codecs;
-		dai_links[link_count].num_platforms = 1;
-
-		link_count++;
+			if (of_property_read_bool(codec, DAI))
+				link_count++;
+		}
 
 		link_node = of_get_next_child(top, link_node);
 	} while (link_node);
+
+	*num_links = link_count;
 
 	return 0;
 }
@@ -409,7 +372,7 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 	struct device_node *top = pdev->dev.of_node;
 	struct device_node *link_node;
 	struct snd_soc_dai_link *dai_links;
-	unsigned int num_links, link_count = 0;
+	unsigned int num_links, link_count = 0, i;
 	int ret;
 
 	ret = get_num_dai_links(pdev, &machine->asoc->num_links);
@@ -425,9 +388,29 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 	if (!dai_links)
 		return -ENOMEM;
 
-	ret = allocate_link_dais(pdev, dai_links);
-	if (ret < 0)
-		return ret;
+	for (i = 0; i < num_links; i++) {
+		dai_links[i].cpus = devm_kzalloc(&pdev->dev,
+						 sizeof(*dai_links[i].cpus),
+						 GFP_KERNEL);
+		if (!dai_links[i].cpus)
+			return -ENOMEM;
+
+		dai_links[i].codecs = devm_kzalloc(&pdev->dev,
+						   sizeof(*dai_links[i].codecs),
+						   GFP_KERNEL);
+		if (!dai_links[i].codecs)
+			return -ENOMEM;
+
+		dai_links[i].platforms = devm_kzalloc(&pdev->dev,
+						   sizeof(*dai_links[i].platforms),
+						   GFP_KERNEL);
+		if (!dai_links[i].platforms)
+			return -ENOMEM;
+
+		dai_links[i].num_cpus = 1;
+		dai_links[i].num_codecs = 1;
+		dai_links[i].num_platforms = 1;
+	}
 
 	machine->asoc->dai_links = dai_links;
 
@@ -450,18 +433,12 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 
 		dev_dbg(&pdev->dev, "parsing (%pOF)\n", link_node);
 
-		dai_link = &dai_links[link_count];
 		cpu = of_get_child_by_name(link_node, "cpu");
 		if (!cpu) {
 			dev_err(&pdev->dev, "cpu subnode is missing");
 			ret = -ENOENT;
 			goto cleanup;
 		}
-
-		/* parse CPU DAI */
-		ret = parse_dai(cpu, dai_link->cpus);
-		if (ret < 0)
-			goto cleanup;
 
 		for_each_child_of_node(link_node, codec) {
 			/* loop over codecs only */
@@ -476,43 +453,48 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 				continue;
 			}
 
+			dai_link = &dai_links[link_count];
+
+			/* parse CPU DAI */
+			ret = parse_dai(cpu, dai_link->cpus);
+			if (ret < 0)
+				goto cleanup;
+
 			/* parse CODEC DAI */
-			ret = parse_dai(codec, &dai_link->codecs[codec_count]);
+			ret = parse_dai(codec, dai_link->codecs);
 			if (ret < 0)
 				goto cleanup;
 
-			codec_count++;
-		}
+			/* set DAI link name */
+			if (of_property_read_string_index(link_node,
+							  "link-name",
+							  codec_count,
+							  &dai_link->name)) {
+				ret = asoc_simple_set_dailink_name(
+					&pdev->dev, dai_link, "%s-%d",
+					"tegra-dlink", link_count);
+				if (ret < 0)
+					goto cleanup;
+			}
 
-		/* set DAI link name */
-		if (of_property_read_string(link_node,
-					    "link-name",
-					    &dai_link->name)) {
-			ret = asoc_simple_set_dailink_name(
-				&pdev->dev, dai_link, "%s-%d",
-				"tegra-dlink", link_count);
-			if (ret < 0)
-				goto cleanup;
-		}
+			asoc_simple_parse_daifmt(&pdev->dev, link_node, codec,
+						 NULL, &dai_link->dai_fmt);
 
-		asoc_simple_parse_daifmt(&pdev->dev, link_node, codec,
-					 NULL, &dai_link->dai_fmt);
+			asoc_simple_canonicalize_platform(dai_link->platforms,
+							  dai_link->cpus);
 
-		asoc_simple_canonicalize_platform(dai_link->platforms,
-						  dai_link->cpus);
-
-		of_property_read_u32(link_node, "link-type",
-				     &link_type);
-		switch (link_type) {
-		case PCM_LINK:
-			dai_link->ops = pcm_ops;
-			break;
-		case COMPR_LINK:
-			dai_link->compr_ops = compr_ops;
-			break;
-		case C2C_LINK:
-			/* Parse DT provided link params */
-			ret = parse_dai_link_params(pdev, link_node,
+			of_property_read_u32(link_node, "link-type",
+					     &link_type);
+			switch (link_type) {
+			case PCM_LINK:
+				dai_link->ops = pcm_ops;
+				break;
+			case COMPR_LINK:
+				dai_link->compr_ops = compr_ops;
+				break;
+			case C2C_LINK:
+				/* Parse DT provided link params */
+				ret = parse_dai_link_params(pdev, link_node,
 							    dai_link);
 				if (ret < 0)
 					goto cleanup;
@@ -522,32 +504,33 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 				dev_err(&pdev->dev, "DAI link type invalid\n");
 				ret = -EINVAL;
 				goto cleanup;
+			}
+
+			/*
+			 * Assign DAI link ID based on DT link address.
+			 * This is done to use consistent PCM/Compress device
+			 * IDs irrespective of parsing order of DT DAI links.
+			 */
+			link_addr = strrchr(link_node->full_name, '@');
+			if (!link_addr) {
+				dev_err(&pdev->dev,
+					"Invalid link node (%pOF)\n",
+					link_node);
+				ret = -EINVAL;
+				goto cleanup;
+			}
+
+			ret = kstrtos32(++link_addr, 10, &dai_link->id);
+			if (ret < 0) {
+				dev_err(&pdev->dev,
+					"Failed to get link node (%pOF) ID\n",
+					link_node);
+				goto cleanup;
+			}
+
+			link_count++;
+			codec_count++;
 		}
-
-		/*
-		 * Assign DAI link ID based on DT link address.
-		 * This is done to use consistent PCM/Compress device
-		 * IDs irrespective of parsing order of DT DAI links.
-		 */
-		link_addr = strrchr(link_node->full_name, '@');
-		if (!link_addr) {
-			dev_err(&pdev->dev,
-				"Invalid link node (%pOF)\n",
-				link_node);
-			ret = -EINVAL;
-			goto cleanup;
-		}
-
-		ret = kstrtos32(++link_addr, 10, &dai_link->id);
-		if (ret < 0) {
-			dev_err(&pdev->dev,
-				"Failed to get link node (%pOF) ID\n",
-				link_node);
-			goto cleanup;
-		}
-
-		link_count++;
-
 cleanup:
 		of_node_put(cpu);
 		if (ret < 0) {
