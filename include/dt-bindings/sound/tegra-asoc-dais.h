@@ -185,7 +185,7 @@
 /* DSPK */
 #define DSPK_CIF	0
 #define DSPK_DAP	1
-#define DSPK_DUMMY	4
+#define DSPK_DUMMY	2
 
 /* SFC */
 #define SFC_IN		0
