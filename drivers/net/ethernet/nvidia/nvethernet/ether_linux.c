@@ -4256,8 +4256,13 @@ static int ether_alloc_napi(struct ether_priv_data *pdata)
 
 		pdata->tx_napi[chan]->pdata = pdata;
 		pdata->tx_napi[chan]->chan = chan;
+#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
+		netif_napi_add_weight(ndev, &pdata->tx_napi[chan]->napi,
+			       ether_napi_poll_tx, 64);
+#else
 		netif_napi_add(ndev, &pdata->tx_napi[chan]->napi,
 			       ether_napi_poll_tx, 64);
+#endif
 
 		pdata->rx_napi[chan] = devm_kzalloc(dev,
 						sizeof(struct ether_rx_napi),
@@ -4269,8 +4274,13 @@ static int ether_alloc_napi(struct ether_priv_data *pdata)
 
 		pdata->rx_napi[chan]->pdata = pdata;
 		pdata->rx_napi[chan]->chan = chan;
+#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
+		netif_napi_add_weight(ndev, &pdata->rx_napi[chan]->napi,
+			       ether_napi_poll_rx, 64);
+#else
 		netif_napi_add(ndev, &pdata->rx_napi[chan]->napi,
 			       ether_napi_poll_rx, 64);
+#endif
 	}
 
 	return 0;

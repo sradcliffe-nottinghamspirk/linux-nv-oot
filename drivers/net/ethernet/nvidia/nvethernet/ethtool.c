@@ -894,10 +894,15 @@ static int ether_get_ts_info(struct net_device *ndev,
  * @retval 0 on Sucess
  * @retval "negative value" on failure.
  */
+#if (KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE)
 static int ether_set_coalesce(struct net_device *dev,
 			      struct ethtool_coalesce *ec,
 			      struct kernel_ethtool_coalesce *kernel_coal,
 			      struct netlink_ext_ack *extack)
+#else
+static int ether_set_coalesce(struct net_device *dev,
+			      struct ethtool_coalesce *ec)
+#endif
 {
 	struct ether_priv_data *pdata = netdev_priv(dev);
 	struct osi_dma_priv_data *osi_dma = pdata->osi_dma;
@@ -1030,10 +1035,15 @@ static int ether_set_coalesce(struct net_device *dev,
  *
  * @retval 0 on Success.
  */
+#if (KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE)
 static int ether_get_coalesce(struct net_device *dev,
 			      struct ethtool_coalesce *ec,
 			      struct kernel_ethtool_coalesce *kernel_coal,
 			      struct netlink_ext_ack *extack)
+#else
+static int ether_get_coalesce(struct net_device *dev,
+			      struct ethtool_coalesce *ec)
+#endif
 {
 	struct ether_priv_data *pdata = netdev_priv(dev);
 	struct osi_dma_priv_data *osi_dma = pdata->osi_dma;
@@ -1485,7 +1495,7 @@ static int ether_set_rxfh(struct net_device *ndev, const u32 *indir,
 
 }
 
-#if (KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(5, 17, 0) <= LINUX_VERSION_CODE)
 static void ether_get_ringparam(struct net_device *ndev,
 				struct ethtool_ringparam *ring,
 				struct kernel_ethtool_ringparam *kernel_ring,
@@ -1505,7 +1515,7 @@ static void ether_get_ringparam(struct net_device *ndev,
 	ring->tx_pending = osi_dma->tx_ring_sz;
 }
 
-#if (KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(5, 17, 0) <= LINUX_VERSION_CODE)
 static int ether_set_ringparam(struct net_device *ndev,
 			       struct ethtool_ringparam *ring,
 			       struct kernel_ethtool_ringparam *kernel_ring,
