@@ -514,9 +514,8 @@ static int isc_mgr_misc_ctrl(struct isc_mgr_priv *isc_mgr, bool misc_on)
 
 	for (i = 0; i < pd->num_misc_gpios; i++) {
 		if (misc_on) {
-			if (devm_gpio_request(isc_mgr->pdev,
-					      pd->misc_gpios[i],
-					      "misc-gpio")) {
+			if (gpio_request(pd->misc_gpios[i],
+							"misc-gpio")) {
 				dev_err(isc_mgr->pdev, "failed req GPIO: %d\n",
 					pd->misc_gpios[i]);
 				goto misc_ctrl_err;
@@ -527,14 +526,14 @@ static int isc_mgr_misc_ctrl(struct isc_mgr_priv *isc_mgr, bool misc_on)
 		} else {
 			err = gpio_direction_output(
 				pd->misc_gpios[i], PW_OFF(pd->misc_flags[i]));
-			devm_gpio_free(isc_mgr->pdev, pd->misc_gpios[i]);
+			gpio_free(pd->misc_gpios[i]);
 		}
 	}
 	return 0;
 
 misc_ctrl_err:
 	for (; i >= 0; i--)
-		devm_gpio_free(isc_mgr->pdev, pd->misc_gpios[i]);
+		gpio_free(pd->misc_gpios[i]);
 	return -EBUSY;
 }
 
@@ -1057,8 +1056,7 @@ static int isc_mgr_probe(struct platform_device *pdev)
 			if (!gpio_is_valid(pd->pwr_gpios[i]))
 				goto err_probe;
 
-			if (devm_gpio_request(
-				&pdev->dev, pd->pwr_gpios[i], "pwdn-gpios")) {
+			if (gpio_request(pd->pwr_gpios[i], "pwdn-gpios")) {
 				dev_err(&pdev->dev, "failed to req GPIO: %d\n",
 					pd->pwr_gpios[i]);
 				goto err_probe;

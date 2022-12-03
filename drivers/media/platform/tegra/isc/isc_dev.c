@@ -340,37 +340,21 @@ static int isc_dev_raw_rw(struct isc_dev_info *info)
 }
 
 static int isc_dev_get_package(
-	struct isc_dev_info *info, unsigned long arg, bool is_compat)
+	struct isc_dev_info *info, unsigned long arg)
 {
-	if (is_compat) {
-		struct isc_dev_package32 pkg32;
+	struct isc_dev_package pkg;
 
-		if (copy_from_user(&pkg32,
-			(const void __user *)arg, sizeof(pkg32))) {
-			dev_err(info->dev, "%s copy_from_user err line %d\n",
-				__func__, __LINE__);
-			return -EFAULT;
-		}
-		info->rw_pkg.offset = pkg32.offset;
-		info->rw_pkg.offset_len = pkg32.offset_len;
-		info->rw_pkg.size = pkg32.size;
-		info->rw_pkg.flags = pkg32.flags;
-		info->rw_pkg.buffer = (unsigned long)pkg32.buffer;
-	} else {
-		struct isc_dev_package pkg;
-
-		if (copy_from_user(&pkg,
-			(const void __user *)arg, sizeof(pkg))) {
-			dev_err(info->dev, "%s copy_from_user err line %d\n",
-				__func__, __LINE__);
-			return -EFAULT;
-		}
-		info->rw_pkg.offset = pkg.offset;
-		info->rw_pkg.offset_len = pkg.offset_len;
-		info->rw_pkg.size = pkg.size;
-		info->rw_pkg.flags = pkg.flags;
-		info->rw_pkg.buffer = pkg.buffer;
+	if (copy_from_user(&pkg,
+		(const void __user *)arg, sizeof(pkg))) {
+		dev_err(info->dev, "%s copy_from_user err line %d\n",
+			__func__, __LINE__);
+		return -EFAULT;
 	}
+	info->rw_pkg.offset = pkg.offset;
+	info->rw_pkg.offset_len = pkg.offset_len;
+	info->rw_pkg.size = pkg.size;
+	info->rw_pkg.flags = pkg.flags;
+	info->rw_pkg.buffer = pkg.buffer;
 
 	if ((void __user *)info->rw_pkg.buffer == NULL) {
 		dev_err(info->dev, "%s package buffer NULL\n", __func__);
@@ -394,7 +378,7 @@ static long isc_dev_ioctl(struct file *file,
 
 	switch (cmd) {
 	case ISC_DEV_IOCTL_RW:
-		err = isc_dev_get_package(info, arg, false);
+		err = isc_dev_get_package(info, arg);
 		if (err)
 			break;
 
@@ -407,29 +391,6 @@ static long isc_dev_ioctl(struct file *file,
 
 	return err;
 }
-
-#ifdef CONFIG_COMPAT
-static long isc_dev_ioctl32(struct file *file,
-			unsigned int cmd, unsigned long arg)
-{
-	struct isc_dev_info *info = file->private_data;
-	int err = 0;
-
-	switch (cmd) {
-	case ISC_DEV_IOCTL_RW32:
-		err = isc_dev_get_package(info, arg, true);
-		if (err)
-			break;
-
-		err = isc_dev_raw_rw(info);
-		break;
-	default:
-		return isc_dev_ioctl(file, cmd, arg);
-	}
-
-	return err;
-}
-#endif
 
 static int isc_dev_open(struct inode *inode, struct file *file)
 {
@@ -462,9 +423,6 @@ static const struct file_operations isc_dev_fileops = {
 	.owner = THIS_MODULE,
 	.open = isc_dev_open,
 	.unlocked_ioctl = isc_dev_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = isc_dev_ioctl32,
-#endif
 	.release = isc_dev_release,
 };
 

@@ -31,7 +31,5 @@ obj-m += thermal/
 obj-m += watchdog/
 obj-m += video/tegra/
 obj-m += virt/tegra/
-ifeq ($(shell test $$VERSION -lt 6; echo $$?),0)
 obj-m += media/
-endif
 
