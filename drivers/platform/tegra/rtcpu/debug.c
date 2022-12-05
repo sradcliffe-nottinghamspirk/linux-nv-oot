@@ -27,9 +27,6 @@
 #include <soc/tegra/ivc_ext.h>
 #include <linux/tegra-ivc-bus.h>
 #include <linux/platform/tegra/common.h>
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-#include <linux/platform/tegra/emc_bwmgr.h>
-#endif
 #include <soc/tegra/fuse.h>
 
 #define CAMRTC_TEST_CAM_DEVICES 4
@@ -906,9 +903,6 @@ struct camrtc_run_membw {
 #if IS_ENABLED(CONFIG_INTERCONNECT)
 	struct icc_path *icc_path;
 #endif
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-	struct tegra_bwmgr_client *bwmgr;
-#endif
 };
 
 static void camrtc_membw_set(struct camrtc_run_membw *membw, u32 bw)
@@ -943,11 +937,6 @@ static void camrtc_membw_reset(struct camrtc_run_membw *membw)
 #if IS_ENABLED(CONFIG_INTERCONNECT)
 	if (membw->icc_path)
 		icc_put(membw->icc_path);
-#endif
-
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-	if (membw->bwmgr)
-		tegra_bwmgr_unregister(membw->bwmgr);
 #endif
 }
 

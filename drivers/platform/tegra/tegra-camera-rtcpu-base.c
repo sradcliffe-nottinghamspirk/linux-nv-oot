@@ -20,9 +20,6 @@
 #include <linux/of_address.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-#include <linux/platform/tegra/emc_bwmgr.h>
-#endif
 #include <linux/pm_runtime.h>
 #include <linux/sched.h>
 #include <linux/seq_buf.h>
@@ -70,10 +67,6 @@ struct tegra_cam_rtcpu_pdata {
 #define AMISC_ADSP_L2_IDLE			BIT(31)
 #define AMISC_ADSP_L2_CLKSTOPPED		BIT(30)
 
-static int tegra_sce_cam_wait_for_idle(struct device *dev);
-static void tegra_sce_cam_assert_resets(struct device *dev);
-static int tegra_sce_cam_deassert_resets(struct device *dev);
-
 static int tegra_rce_cam_wait_for_idle(struct device *dev);
 static void tegra_rce_cam_assert_resets(struct device *dev);
 static int tegra_rce_cam_deassert_resets(struct device *dev);
@@ -88,15 +81,6 @@ static const char * const sce_reg_names[] = {
 	"sce-pm",
 	"sce-cfg",
 	NULL
-};
-
-static const struct tegra_cam_rtcpu_pdata sce_pdata = {
-	.name = "sce",
-	.wait_for_idle = tegra_sce_cam_wait_for_idle,
-	.assert_resets = tegra_sce_cam_assert_resets,
-	.deassert_resets = tegra_sce_cam_deassert_resets,
-	.reset_names = sce_reset_names,
-	.reg_names = sce_reg_names,
 };
 
 static const char * const rce_reset_names[] = {
@@ -148,10 +132,6 @@ struct tegra_cam_rtcpu {
 #if IS_ENABLED(CONFIG_INTERCONNECT)
 	struct icc_path *icc_path;
 	u32 mem_bw;
-#endif
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-	struct tegra_bwmgr_client *bwmgr;
-	unsigned long full_bw;
 #endif
 	struct tegra_camrtc_mon *monitor;
 	u32 max_reboot_retry;
@@ -318,28 +298,6 @@ static void tegra_camrtc_init_icc(struct device *dev, u32 bw)
 }
 #endif
 
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-static void tegra_camrtc_init_bwmgr(struct device *dev, u32 bw)
-{
-	struct tegra_cam_rtcpu *rtcpu = dev_get_drvdata(dev);
-
-	if (bw == CAMRTC_MAX_BW)
-		rtcpu->full_bw = tegra_bwmgr_get_max_emc_rate();
-	else
-		rtcpu->full_bw = tegra_bwmgr_round_rate(bw);
-
-	rtcpu->bwmgr = tegra_bwmgr_register(TEGRA_BWMGR_CLIENT_CAMRTC);
-
-	if (IS_ERR_OR_NULL(rtcpu->bwmgr)) {
-		dev_warn(dev, "no memory bw manager\n");
-		rtcpu->bwmgr = NULL;
-		return;
-	}
-
-	dev_dbg(dev, "using emc rate %lu for power-on\n", rtcpu->full_bw);
-}
-#endif
-
 static void tegra_camrtc_init_membw(struct device *dev)
 {
 	u32 bw = CAMRTC_MAX_BW;
@@ -355,9 +313,9 @@ static void tegra_camrtc_init_membw(struct device *dev)
 
 static void tegra_camrtc_full_mem_bw(struct device *dev)
 {
+#if IS_ENABLED(CONFIG_INTERCONNECT)
 	struct tegra_cam_rtcpu *rtcpu = dev_get_drvdata(dev);
 
-#if IS_ENABLED(CONFIG_INTERCONNECT)
 	if (rtcpu->icc_path != NULL) {
 		int ret = icc_set_bw(rtcpu->icc_path, 0, rtcpu->mem_bw);
 
@@ -367,34 +325,15 @@ static void tegra_camrtc_full_mem_bw(struct device *dev)
 			dev_dbg(dev, "requested icc bw %u\n", rtcpu->mem_bw);
 	}
 #endif
-
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-	if (rtcpu->bwmgr != NULL) {
-		int ret = tegra_bwmgr_set_emc(rtcpu->bwmgr, rtcpu->full_bw,
-				TEGRA_BWMGR_SET_EMC_FLOOR);
-		if (ret < 0)
-			dev_info(dev, "emc request rate %lu failed, %d\n",
-				rtcpu->full_bw, ret);
-		else
-			dev_dbg(dev, "requested emc rate %lu\n",
-				rtcpu->full_bw);
-	}
-#endif
 }
 
 static void tegra_camrtc_slow_mem_bw(struct device *dev)
 {
+#if IS_ENABLED(CONFIG_INTERCONNECT)
 	struct tegra_cam_rtcpu *rtcpu = dev_get_drvdata(dev);
 
-#if IS_ENABLED(CONFIG_INTERCONNECT)
 	if (rtcpu->icc_path != NULL)
 		(void)icc_set_bw(rtcpu->icc_path, 0, 0);
-#endif
-
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-	if (rtcpu->bwmgr != NULL)
-		(void)tegra_bwmgr_set_emc(rtcpu->bwmgr, 0,
-				TEGRA_BWMGR_SET_EMC_FLOOR);
 #endif
 }
 
@@ -865,11 +804,6 @@ static int tegra_cam_rtcpu_remove(struct platform_device *pdev)
 	rtcpu->tracer = NULL;
 
 	tegra_camrtc_poweroff(&pdev->dev);
-#if IS_ENABLED(CONFIG_TEGRA_BWMGR)
-	if (rtcpu->bwmgr != NULL)
-		tegra_bwmgr_unregister(rtcpu->bwmgr);
-	rtcpu->bwmgr = NULL;
-#endif
 #if IS_ENABLED(CONFIG_INTERCONNECT)
 	icc_put(rtcpu->icc_path);
 	rtcpu->icc_path = NULL;
@@ -1129,9 +1063,6 @@ static void tegra_cam_rtcpu_shutdown(struct platform_device *pdev)
 }
 
 static const struct of_device_id tegra_cam_rtcpu_of_match[] = {
-	{
-		.compatible = NV(tegra186-sce-ivc), .data = &sce_pdata
-	},
 	{
 		.compatible = NV(tegra194-rce), .data = &rce_pdata
 	},
