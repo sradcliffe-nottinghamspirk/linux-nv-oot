@@ -35,6 +35,7 @@ static int dev_file_open(struct inode *inode, struct file *file)
 	static const struct of_device_id host1x_match[] = {
 		{ .compatible = "nvidia,tegra186-host1x", },
 		{ .compatible = "nvidia,tegra194-host1x", },
+		{ .compatible = "nvidia,tegra234-host1x", },
 		{},
 	};
 
