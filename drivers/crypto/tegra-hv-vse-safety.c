@@ -415,8 +415,8 @@ struct tegra_virtual_se_aes_req_context {
 enum se_engine_id {
 	VIRTUAL_SE_AES0,
 	VIRTUAL_SE_AES1,
-	VIRTUAL_SE_SHA = 3,
-	VIRTUAL_MAX_SE_ENGINE_NUM = 5
+	VIRTUAL_SE_SHA = 2,
+	VIRTUAL_MAX_SE_ENGINE_NUM = 7
 };
 
 enum tegra_virtual_se_aes_iv_type {
@@ -426,6 +426,12 @@ enum tegra_virtual_se_aes_iv_type {
 };
 
 static struct tegra_virtual_se_dev *g_virtual_se_dev[VIRTUAL_MAX_SE_ENGINE_NUM];
+
+struct crypto_dev_to_ivc_map *tegra_hv_vse_get_db(void)
+{
+	return &g_crypto_to_ivc_map[0];
+}
+EXPORT_SYMBOL(tegra_hv_vse_get_db);
 
 static int tegra_hv_vse_safety_send_ivc(
 	struct tegra_virtual_se_dev *se_dev,
