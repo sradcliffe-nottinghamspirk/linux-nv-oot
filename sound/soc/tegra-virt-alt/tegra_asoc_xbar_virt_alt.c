@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -1069,12 +1069,14 @@ int tegra_virt_put_route(struct snd_kcontrol *kcontrol,
 
 	msg.params.xbar_info.tx_idx =
 		ucontrol->value.integer.value[0] - 1;
+	msg.ack_required = true;
 
-	err = nvaudio_ivc_send_retry(hivc_client,
+	err = nvaudio_ivc_send_receive(hivc_client,
 			&msg,
 			sizeof(struct nvaudio_ivc_msg));
 	if (err < 0) {
-		pr_err("%s: Timedout on ivc_send_retry\n", __func__);
+		pr_err("%s: error on ivc_send_receive\n", __func__);
+
 		return err;
 	}
 
