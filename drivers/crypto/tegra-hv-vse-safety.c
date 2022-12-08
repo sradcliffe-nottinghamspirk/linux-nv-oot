@@ -4196,8 +4196,7 @@ static void tegra_hv_vse_safety_unregister_hwrng(struct tegra_virtual_se_dev *se
 }
 
 static const struct of_device_id host1x_match[] = {
-	{ .compatible = "nvidia,tegra194-host1x-hv", },
-	{ .compatible = "nvidia,tegra234-host1x-hv", },
+	{ .compatible = "nvidia,tegra234-host1x", },
 	{},
 };
 
