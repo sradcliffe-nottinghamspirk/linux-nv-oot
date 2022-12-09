@@ -12,6 +12,7 @@
 #include <linux/regmap.h>
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
+#include <linux/version.h>
 #include <media/cdi-dev.h>
 #include <uapi/media/cdi-mgr.h>
 
@@ -797,7 +798,11 @@ static int cdi_dev_probe(struct i2c_client *client,
 	return 0;
 }
 
+#if KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE
 static int cdi_dev_remove(struct i2c_client *client)
+#else
+static void cdi_dev_remove(struct i2c_client *client)
+#endif
 {
 	struct cdi_dev_info *info = i2c_get_clientdata(client);
 	struct device *pdev;
@@ -814,7 +819,9 @@ static int cdi_dev_remove(struct i2c_client *client)
 	if (info->cdev.dev)
 		cdev_del(&info->cdev);
 
+#if KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE
 	return 0;
+#endif
 }
 
 #ifdef CONFIG_PM
