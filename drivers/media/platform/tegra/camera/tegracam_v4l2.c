@@ -218,7 +218,7 @@ int tegracam_v4l2subdev_register(struct tegracam_device *tc_dev,
 	/* Set owner to NULL so we can unload the driver module */
 	sd->owner = NULL;
 
-#if defined(CONFIG_MEDIA_CONTROLLER)
+#if IS_ENABLED(CONFIG_MEDIA_CONTROLLER)
 	tc_dev->pad.flags = MEDIA_PAD_FL_SOURCE;
 	sd->entity.ops = &media_ops;
 	err = tegra_media_entity_init(&sd->entity,
@@ -245,7 +245,7 @@ void tegracam_v4l2subdev_unregister(struct tegracam_device *tc_dev)
 
 	v4l2_ctrl_handler_free(s_data->ctrl_handler);
 	v4l2_async_unregister_subdev(sd);
-#if defined(CONFIG_MEDIA_CONTROLLER)
+#if IS_ENABLED(CONFIG_MEDIA_CONTROLLER)
 	media_entity_cleanup(&sd->entity);
 #endif
 }
