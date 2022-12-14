@@ -3741,13 +3741,15 @@ static int ether_handle_priv_wmdio_ioctl(struct ether_priv_data *pdata,
 static int ether_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 {
 	int ret = -EOPNOTSUPP;
-	struct ether_priv_data *pdata = netdev_priv(dev);
-	struct mii_ioctl_data *mii_data = if_mii(rq);
+	struct ether_priv_data *pdata;
+	struct mii_ioctl_data *mii_data;
 
 	if (!dev || !rq) {
 		dev_err(pdata->dev, "%s: Invalid arg\n", __func__);
 		return -EINVAL;
 	}
+	pdata = netdev_priv(dev);
+	mii_data = if_mii(rq);
 
 	if (!netif_running(dev)) {
 		dev_err(pdata->dev, "%s: Interface not up\n", __func__);
@@ -3789,6 +3791,39 @@ static int ether_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 		}
 		break;
 
+	case SIOCSHWTSTAMP:
+		ret = ether_handle_hwtstamp_ioctl(pdata, rq);
+		break;
+
+	default:
+		netdev_err(dev, "%s: Unsupported ioctl %d\n",
+			   __func__, cmd);
+		break;
+	}
+
+	return ret;
+}
+
+static int ether_siocdevprivate(struct net_device *dev, struct ifreq *rq,
+				void __user *data, int cmd)
+{
+	int ret = -EOPNOTSUPP;
+	struct ether_priv_data *pdata;
+	struct mii_ioctl_data *mii_data;
+
+	if (!dev || !rq) {
+		dev_err(pdata->dev, "%s: Invalid arg\n", __func__);
+		return -EINVAL;
+	}
+	pdata = netdev_priv(dev);
+	mii_data = if_mii(rq);
+
+	if (!netif_running(dev)) {
+		dev_err(pdata->dev, "%s: Interface not up\n", __func__);
+		return -EINVAL;
+	}
+
+	switch (cmd) {
 	case SIOCDEVPRIVATE:
 		ret = ether_handle_priv_ioctl(dev, rq);
 		break;
@@ -3805,12 +3840,8 @@ static int ether_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 		ret = ether_handle_priv_ts_ioctl(pdata, rq);
 		break;
 
-	case SIOCSHWTSTAMP:
-		ret = ether_handle_hwtstamp_ioctl(pdata, rq);
-		break;
-
 	default:
-		netdev_dbg(dev, "%s: Unsupported ioctl %d\n",
+		netdev_err(dev, "%s: Unsupported ioctl %d\n",
 			   __func__, cmd);
 		break;
 	}
@@ -4098,7 +4129,8 @@ static const struct net_device_ops ether_netdev_ops = {
 	.ndo_open = ether_open,
 	.ndo_stop = ether_close,
 	.ndo_start_xmit = ether_start_xmit,
-	.ndo_do_ioctl = ether_ioctl,
+	.ndo_eth_ioctl = ether_ioctl,
+	.ndo_siocdevprivate = ether_siocdevprivate,
 	.ndo_set_mac_address = ether_set_mac_addr,
 	.ndo_change_mtu = ether_change_mtu,
 	.ndo_select_queue = ether_select_queue,
