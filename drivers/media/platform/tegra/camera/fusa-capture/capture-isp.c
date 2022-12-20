@@ -341,7 +341,7 @@ static int isp_capture_setup_inputfences(
 	void *reloc_page_addr  = NULL;
 	struct isp_capture *capture = chan->capture_data;
 	void *vmap_base = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	struct dma_buf_map map;
 #else
 	struct iosys_map map;
@@ -427,7 +427,7 @@ static int isp_capture_setup_prefences(
 	void *reloc_page_addr = NULL;
 	struct isp_capture *capture = chan->capture_data;
 	void *vmap_base = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	struct dma_buf_map map;
 #else
 	struct iosys_map map;

@@ -382,7 +382,7 @@ void tegra_vi_graph_cleanup(struct tegra_mc_vi *vi)
 	struct tegra_channel *chan;
 
 	list_for_each_entry(chan, &vi->vi_chans, list) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 		v4l2_async_notifier_unregister(&chan->notifier);
 #else
 		v4l2_async_nf_unregister(&chan->notifier);
@@ -613,7 +613,7 @@ int tegra_vi_graph_init(struct tegra_mc_vi *vi)
 		num_subdevs = chan->num_subdevs;
 
 		i = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 		v4l2_async_notifier_init(&chan->notifier);
 		list_for_each_entry(entity, &chan->entities, list)
 			__v4l2_async_notifier_add_subdev(&chan->notifier, &entity->asd);
@@ -627,7 +627,7 @@ int tegra_vi_graph_init(struct tegra_mc_vi *vi)
 		chan->subdevs_bound = 0;
 
 		/* Register the async notifier for this channel */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 		ret = v4l2_async_notifier_register(&vi->v4l2_dev,
 					&chan->notifier);
 #else
