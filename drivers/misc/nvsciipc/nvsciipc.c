@@ -31,9 +31,13 @@
 #include <linux/of.h>
 #include <linux/fs.h>
 
+#ifdef CONFIG_TEGRA_VIRTUALIZATION
 #include <soc/tegra/virt/syscalls.h>
+#ifdef CONFIG_TEGRA_OOT_MODULE
 #include <soc/tegra/virt/hv-ivc.h>
+#endif /* CONFIG_TEGRA_OOT_MODULE */
 #include <uapi/linux/tegra-ivc-dev.h>
+#endif /* CONFIG_TEGRA_VIRTUALIZATION */
 
 #include "nvsciipc.h"
 
@@ -46,7 +50,9 @@ DEFINE_MUTEX(nvsciipc_mutex);
 
 static struct platform_device *nvsciipc_pdev;
 static struct nvsciipc *ctx;
+#ifdef CONFIG_TEGRA_VIRTUALIZATION
 static int32_t s_guestid = -1;
+#endif /* CONFIG_TEGRA_VIRTUALIZATION */
 
 NvSciError NvSciIpcEndpointGetAuthToken(NvSciIpcEndpoint handle,
 		NvSciIpcEndpointAuthToken *authToken)
@@ -471,6 +477,7 @@ static int nvsciipc_ioctl_set_db(struct nvsciipc *ctx, unsigned int cmd,
 		}
 	}
 
+#ifdef CONFIG_TEGRA_VIRTUALIZATION
 	if (s_guestid != -1) {
 		struct nvsciipc_config_entry *entry;
 		union nvsciipc_vuid_64 vuid64;
@@ -491,6 +498,7 @@ static int nvsciipc_ioctl_set_db(struct nvsciipc *ctx, unsigned int cmd,
 				(void)ivc_cdev_get_peer_vmid(entry->id, &entry->peer_vmid);
 		}
 	}
+#endif /* CONFIG_TEGRA_VIRTUALIZATION */
 
 	kfree(entry_ptr);
 
@@ -588,10 +596,14 @@ static long nvsciipc_dev_ioctl(struct file *filp, unsigned int cmd,
 		break;
 #endif /* DEBUG_AUTH_API */
 	case NVSCIIPC_IOCTL_GET_VMID:
+#ifdef CONFIG_TEGRA_VIRTUALIZATION
 		if (copy_to_user((void __user *) arg, &s_guestid,
 			sizeof(s_guestid))) {
 			ret = -EFAULT;
 		}
+#else
+		ret = -EFAULT;
+#endif /* CONFIG_TEGRA_VIRTUALIZATION */
 		break;
 	default:
 		ERR("unrecognised ioctl cmd: 0x%x\n", cmd);
@@ -704,6 +716,7 @@ static int nvsciipc_probe(struct platform_device *pdev)
 	}
 	dev_set_drvdata(ctx->device, ctx);
 
+#ifdef CONFIG_TEGRA_VIRTUALIZATION
 	if (is_tegra_hypervisor_mode()) {
 		ret = hyp_read_gid(&s_guestid);
 		if (ret != 0) {
@@ -712,6 +725,7 @@ static int nvsciipc_probe(struct platform_device *pdev)
 		}
 		INFO("guestid: %d\n", s_guestid);
 	}
+#endif /* CONFIG_TEGRA_VIRTUALIZATION */
 
 	INFO("loaded module\n");
 
