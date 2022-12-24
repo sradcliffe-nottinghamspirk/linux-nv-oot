@@ -1529,7 +1529,7 @@ static const struct net_device_ops mttcan_netdev_ops = {
 	.ndo_stop = mttcan_close,
 	.ndo_start_xmit = mttcan_start_xmit,
 	.ndo_change_mtu = mttcan_change_mtu,
-	.ndo_do_ioctl = mttcan_ioctl,
+	.ndo_eth_ioctl = mttcan_ioctl,
 };
 
 static int register_mttcan_dev(struct net_device *dev)
