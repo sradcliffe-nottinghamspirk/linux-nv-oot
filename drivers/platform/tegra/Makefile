@@ -3,8 +3,6 @@
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)
 
-obj-m += bad.o
-
 obj-m += firmwares-class.o
 obj-m += firmwares-inventory.o
 
