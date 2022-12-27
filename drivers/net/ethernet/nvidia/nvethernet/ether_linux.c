@@ -3790,7 +3790,23 @@ static int ether_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 			ret = phy_mii_ioctl(dev->phydev, rq, cmd);
 		}
 		break;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+	case SIOCDEVPRIVATE:
+		ret = ether_handle_priv_ioctl(dev, rq);
+		break;
 
+	case ETHER_PRV_RMDIO_IOCTL:
+		ret = ether_handle_priv_rmdio_ioctl(pdata, rq);
+		break;
+
+	case ETHER_PRV_WMDIO_IOCTL:
+		ret = ether_handle_priv_wmdio_ioctl(pdata, rq);
+		break;
+
+	case ETHER_PRV_TS_IOCTL:
+		ret = ether_handle_priv_ts_ioctl(pdata, rq);
+		break;
+#endif
 	case SIOCSHWTSTAMP:
 		ret = ether_handle_hwtstamp_ioctl(pdata, rq);
 		break;
@@ -3804,6 +3820,7 @@ static int ether_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 	return ret;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 static int ether_siocdevprivate(struct net_device *dev, struct ifreq *rq,
 				void __user *data, int cmd)
 {
@@ -3848,6 +3865,7 @@ static int ether_siocdevprivate(struct net_device *dev, struct ifreq *rq,
 
 	return ret;
 }
+#endif
 
 /**
  * @brief Set MAC address
@@ -4129,8 +4147,11 @@ static const struct net_device_ops ether_netdev_ops = {
 	.ndo_open = ether_open,
 	.ndo_stop = ether_close,
 	.ndo_start_xmit = ether_start_xmit,
+	.ndo_do_ioctl = ether_ioctl,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	.ndo_eth_ioctl = ether_ioctl,
 	.ndo_siocdevprivate = ether_siocdevprivate,
+#endif
 	.ndo_set_mac_address = ether_set_mac_addr,
 	.ndo_change_mtu = ether_change_mtu,
 	.ndo_select_queue = ether_select_queue,
