@@ -79,7 +79,7 @@ void dce_admin_ipc_handle_signal(struct tegra_dce *d, u32 ch_type)
 	wakeup_needed = dce_ipc_is_data_available(d, ch_type);
 
 	if (!wakeup_needed) {
-		dce_info(d, "Spurious signal on channel: [%d]. Ignored...",
+		dce_debug(d, "Spurious signal on channel: [%d]. Ignored...",
 			 ch_type);
 		return;
 	}
