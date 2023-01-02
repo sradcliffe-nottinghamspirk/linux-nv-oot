@@ -12,6 +12,7 @@
 #include <linux/platform/tegra/bwmgr_mc.h>
 #include <linux/platform/tegra/latency_allowance.h>
 #include <linux/platform/tegra/isomgr.h>
+#include <linux/platform/tegra/mc_utils.h>
 #include <linux/list.h>
 #include <linux/nvhost.h>
 
@@ -483,7 +484,7 @@ int tegra_camera_update_isobw(void)
 #endif
 
 	/* Use Khz to prevent overflow */
-	total_khz = 0U;
+	total_khz = emc_bw_to_freq(bw);
 	total_khz = min(ULONG_MAX / 1000, total_khz);
 
 	dev_dbg(info->dev, "%s:Set iso bw %lu kbyteps at %lu KHz\n",
@@ -544,7 +545,7 @@ static long tegra_camera_ioctl(struct file *file,
 		}
 
 		/* Use Khz to prevent overflow */
-		mc_khz = 0;
+		mc_khz = emc_bw_to_freq(kcopy.bw);
 		mc_khz = min(ULONG_MAX / 1000, mc_khz);
 
 		if (kcopy.is_iso) {
@@ -714,20 +715,6 @@ static int tegra_camera_probe(struct platform_device *pdev)
 	strcpy(info->devname, tegra_camera_misc.name);
 	info->dev = tegra_camera_misc.this_device;
 
-#if !defined(CONFIG_TEGRA_BWMGR)
-	info->emc = devm_clk_get(info->dev, "emc");
-	if (IS_ERR(info->emc)) {
-		dev_err(info->dev, "Failed to get camera.emc\n");
-		return -EINVAL;
-	}
-	clk_set_rate(info->emc, 0);
-	info->iso_emc = devm_clk_get(info->dev, "iso.emc");
-	if (IS_ERR(info->iso_emc)) {
-		dev_err(info->dev, "Failed to get camera_iso.emc\n");
-		return -EINVAL;
-	}
-	clk_set_rate(info->iso_emc, 0);
-#endif
 	mutex_init(&info->update_bw_lock);
 #if IS_ENABLED(CONFIG_INTERCONNECT) && IS_ENABLED(CONFIG_TEGRA_T23X_GRHOST)
 	info->icc_iso_id = TEGRA_ICC_VI;
