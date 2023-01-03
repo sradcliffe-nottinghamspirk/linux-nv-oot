@@ -1532,7 +1532,11 @@ static const struct net_device_ops mttcan_netdev_ops = {
 	.ndo_stop = mttcan_close,
 	.ndo_start_xmit = mttcan_start_xmit,
 	.ndo_change_mtu = mttcan_change_mtu,
+#if KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE
 	.ndo_eth_ioctl = mttcan_ioctl,
+#else
+	.ndo_do_ioctl = mttcan_ioctl,
+#endif
 };
 
 static int register_mttcan_dev(struct net_device *dev)
