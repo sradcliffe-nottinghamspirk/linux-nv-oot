@@ -8,8 +8,7 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 {
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 	unsigned int fpe_required = OSI_DISABLE;
-	struct osi_ioctl fpe_ioctl_data = {};
-	struct osi_ioctl est_ioctl_data = {};
+	struct osi_ioctl tc_ioctl_data = {};
 	unsigned long cycle_time = 0x0U;
 	/* Hardcode width base on current HW config, input parameter validation
 	 * will be done by OSI code any way
@@ -53,8 +52,8 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 		goto done;
 	}
 
-	memset(&est_ioctl_data.est, 0x0, sizeof(struct osi_est_config));
-	memset(&est_ioctl_data.fpe, 0x0, sizeof(struct osi_fpe_config));
+	memset(&tc_ioctl_data.est, 0x0, sizeof(struct osi_est_config));
+	memset(&tc_ioctl_data.fpe, 0x0, sizeof(struct osi_fpe_config));
 
 	/* This code is to disable TSN, User space is asking to disable
 	 */
@@ -62,10 +61,10 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 		goto disable;
 	}
 
-	est_ioctl_data.est.llr = qopt->num_entries;
-	est_ioctl_data.est.en_dis = qopt->enable;
+	tc_ioctl_data.est.llr = qopt->num_entries;
+	tc_ioctl_data.est.en_dis = qopt->enable;
 
-	for (i = 0U; i < est_ioctl_data.est.llr; i++) {
+	for (i = 0U; i < tc_ioctl_data.est.llr; i++) {
 		cycle_time = qopt->entries[i].interval;
 		gates = qopt->entries[i].gate_mask;
 
@@ -92,8 +91,8 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 			goto done;
 		}
 
-		est_ioctl_data.est.gcl[i] = cycle_time | (gates << wid);
-		if (est_ioctl_data.est.gcl[i] > wid_val) {
+		tc_ioctl_data.est.gcl[i] = cycle_time | (gates << wid);
+		if (tc_ioctl_data.est.gcl[i] > wid_val) {
 			netdev_err(pdata->ndev, "invalid GCL creation\n");
 			ret = -EINVAL;
 			goto done;
@@ -104,14 +103,14 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 	 * some offset to avoid BTRE
 	 */
 	time = ktime_to_timespec64(qopt->base_time);
-	est_ioctl_data.est.btr[0] = (unsigned int)time.tv_nsec;
-	est_ioctl_data.est.btr[1] = (unsigned int)time.tv_sec;
-	est_ioctl_data.est.btr_offset[0] = 0;
-	est_ioctl_data.est.btr_offset[1] = 0;
+	tc_ioctl_data.est.btr[0] = (unsigned int)time.tv_nsec;
+	tc_ioctl_data.est.btr[1] = (unsigned int)time.tv_sec;
+	tc_ioctl_data.est.btr_offset[0] = 0;
+	tc_ioctl_data.est.btr_offset[1] = 0;
 
 	ctr = qopt->cycle_time;
-	est_ioctl_data.est.ctr[0] = do_div(ctr, NSEC_PER_SEC);
-	est_ioctl_data.est.ctr[1] = (unsigned int)ctr;
+	tc_ioctl_data.est.ctr[0] = do_div(ctr, NSEC_PER_SEC);
+	tc_ioctl_data.est.ctr[1] = (unsigned int)ctr;
 
 	if ((!pdata->hw_feat.fpe_sel) && (fpe_required == OSI_ENABLE)) {
 		netdev_err(pdata->ndev, "FPE not supported in HW\n");
@@ -120,10 +119,10 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 	}
 
 	if (fpe_required == OSI_ENABLE) {
-		fpe_ioctl_data.fpe.rq = osi_core->residual_queue;
-		fpe_ioctl_data.fpe.tx_queue_preemption_enable = 0x1;
-		fpe_ioctl_data.cmd = OSI_CMD_CONFIG_FPE;
-		ret = osi_handle_ioctl(osi_core, &fpe_ioctl_data);
+		tc_ioctl_data.fpe.rq = osi_core->residual_queue;
+		tc_ioctl_data.fpe.tx_queue_preemption_enable = 0x1;
+		tc_ioctl_data.cmd = OSI_CMD_CONFIG_FPE;
+		ret = osi_handle_ioctl(osi_core, &tc_ioctl_data);
 		if (ret < 0) {
 			netdev_err(pdata->ndev,
 				   "failed to enable Frame Preemption\n");
@@ -133,8 +132,8 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 		}
 	}
 
-	est_ioctl_data.cmd = OSI_CMD_CONFIG_EST;
-	ret = osi_handle_ioctl(osi_core, &est_ioctl_data);
+	tc_ioctl_data.cmd = OSI_CMD_CONFIG_EST;
+	ret = osi_handle_ioctl(osi_core, &tc_ioctl_data);
 	if (ret < 0) {
 		netdev_err(pdata->ndev, "failed to configure EST\n");
 		goto disable;
@@ -144,13 +143,13 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 	return 0;
 
 disable:
-	est_ioctl_data.est.en_dis = false;
-	est_ioctl_data.cmd = OSI_CMD_CONFIG_EST;
-	ret = osi_handle_ioctl(osi_core, &est_ioctl_data);
+	tc_ioctl_data.est.en_dis = false;
+	tc_ioctl_data.cmd = OSI_CMD_CONFIG_EST;
+	ret = osi_handle_ioctl(osi_core, &tc_ioctl_data);
 	if ((ret >= 0) && (fpe_required == OSI_ENABLE)) {
-		fpe_ioctl_data.fpe.tx_queue_preemption_enable = 0x0;
-		fpe_ioctl_data.cmd = OSI_CMD_CONFIG_FPE;
-		ret = osi_handle_ioctl(osi_core, &fpe_ioctl_data);
+		tc_ioctl_data.fpe.tx_queue_preemption_enable = 0x0;
+		tc_ioctl_data.cmd = OSI_CMD_CONFIG_FPE;
+		ret = osi_handle_ioctl(osi_core, &tc_ioctl_data);
 	}
 
 done:
