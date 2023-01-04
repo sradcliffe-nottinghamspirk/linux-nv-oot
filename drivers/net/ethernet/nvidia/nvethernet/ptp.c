@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/* Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #include <linux/version.h>
 #include "ether_linux.h"
@@ -10,7 +10,6 @@
  */
 static DEFINE_RAW_SPINLOCK(ether_ts_lock);
 
-#ifdef CONFIG_TEGRA_PTP_NOTIFIER
 /**
  * @brief Function used to get PTP time
  * @param[in] data: OSI core private data structure
@@ -79,8 +78,6 @@ static inline int ether_get_hw_time(struct net_device *dev,
 	}
 	return 0;
 }
-
-#endif
 
 /**
  * @brief Adjust MAC hardware time
@@ -563,10 +560,8 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 			dev_err(pdata->dev, "Failure to enable CONFIG_PTP\n");
 			return -EFAULT;
 		}
-#ifdef CONFIG_TEGRA_PTP_NOTIFIER
 		/* Register broadcasting MAC timestamp to clients */
 		tegra_register_hwtime_source(ether_get_hw_time, ndev);
-#endif
 		ether_config_slot_function(pdata, OSI_ENABLE);
 	}
 
