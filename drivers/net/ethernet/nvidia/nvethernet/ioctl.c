@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/* Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #include "ether_linux.h"
 
@@ -976,7 +976,8 @@ static int ether_config_fpe(struct net_device *dev,
 	}
 
 	if (copy_from_user(&ioctl_data.fpe, (void __user *)u_fpe_cfg,
-			   sizeof(struct osi_fpe_config) != 0U)) {
+			   sizeof(struct osi_fpe_config)) != 0U) {
+		dev_err(pdata->dev, "%s: copy_from_user error\n", __func__);
 		return -EFAULT;
 	}
 
