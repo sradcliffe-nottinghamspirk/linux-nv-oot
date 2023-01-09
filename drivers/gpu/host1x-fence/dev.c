@@ -16,6 +16,7 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/sync_file.h>
+#include <linux/version.h>
 
 #include "include/uapi/linux/host1x-fence.h"
 
@@ -407,7 +408,11 @@ static const struct file_operations dev_file_fops = {
 	.compat_ioctl = dev_file_ioctl,
 };
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
 static char *host1x_fence_devnode(struct device *dev, umode_t *mode)
+#else
+static char *host1x_fence_devnode(const struct device *dev, umode_t *mode)
+#endif
 {
 	*mode = 0666;
 	return NULL;
