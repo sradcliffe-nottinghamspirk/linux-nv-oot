@@ -18,6 +18,7 @@
 #include <linux/of_platform.h>
 #include <linux/of_gpio.h>
 #include <linux/iommu.h>
+#include <linux/pinctrl/consumer.h>
 
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
