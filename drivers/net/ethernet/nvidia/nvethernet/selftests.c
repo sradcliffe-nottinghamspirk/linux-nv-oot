@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
+#ifndef OSI_STRIPPED_LIB
 #include "ether_linux.h"
 #include <net/udp.h>
 
@@ -481,3 +482,4 @@ int ether_selftest_get_count(struct ether_priv_data *pdata)
 {
 	return ARRAY_SIZE(ether_selftests);
 }
+#endif /* OSI_STRIPPED_LIB */

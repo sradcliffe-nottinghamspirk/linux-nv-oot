@@ -336,6 +336,7 @@ void ether_ptp_remove(struct ether_priv_data *pdata)
 	}
 }
 
+#ifndef OSI_STRIPPED_LIB
 /**
  * @brief Configure Slot function
  *
@@ -387,6 +388,7 @@ static void ether_config_slot_function(struct ether_priv_data *pdata, u32 set)
 	/* Call OSI slot function to configure */
 	osi_config_slot_function(osi_dma, set);
 }
+#endif /* !OSI_STRIPPED_LIB */
 
 int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 		struct ifreq *ifr)
@@ -451,15 +453,21 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 
 		/* PTP v1, UDP, Sync packet */
 	case HWTSTAMP_FILTER_PTP_V1_L4_SYNC:
-		osi_core->ptp_config.ptp_filter = OSI_MAC_TCR_TSEVENTENA |
+		osi_core->ptp_config.ptp_filter =
+#ifndef OSI_STRIPPED_LIB
+						  OSI_MAC_TCR_TSEVENTENA |
+#endif /* !OSI_STRIPPED_LIB */
 						  OSI_MAC_TCR_TSIPV4ENA	 |
 						  OSI_MAC_TCR_TSIPV6ENA;
 		break;
 
 		/* PTP v1, UDP, Delay_req packet */
 	case HWTSTAMP_FILTER_PTP_V1_L4_DELAY_REQ:
-		osi_core->ptp_config.ptp_filter = OSI_MAC_TCR_TSMASTERENA |
+		osi_core->ptp_config.ptp_filter =
+#ifndef OSI_STRIPPED_LIB
+						  OSI_MAC_TCR_TSMASTERENA |
 						  OSI_MAC_TCR_TSEVENTENA  |
+#endif /* !OSI_STRIPPED_LIB */
 						  OSI_MAC_TCR_TSIPV4ENA   |
 						  OSI_MAC_TCR_TSIPV6ENA;
 		break;
@@ -474,7 +482,10 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 
 		/* PTP v2, UDP, Sync packet */
 	case HWTSTAMP_FILTER_PTP_V2_L4_SYNC:
-		osi_core->ptp_config.ptp_filter = OSI_MAC_TCR_TSEVENTENA   |
+		osi_core->ptp_config.ptp_filter =
+#ifndef OSI_STRIPPED_LIB
+						  OSI_MAC_TCR_TSEVENTENA   |
+#endif /* !OSI_STRIPPED_LIB */
 						  OSI_MAC_TCR_TSIPV4ENA    |
 						  OSI_MAC_TCR_TSIPV6ENA    |
 						  OSI_MAC_TCR_TSVER2ENA;
@@ -482,8 +493,11 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 
 		/* PTP v2, UDP, Delay_req packet */
 	case HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ:
-		osi_core->ptp_config.ptp_filter = OSI_MAC_TCR_TSEVENTENA   |
+		osi_core->ptp_config.ptp_filter =
+#ifndef OSI_STRIPPED_LIB
+						  OSI_MAC_TCR_TSEVENTENA   |
 						  OSI_MAC_TCR_TSMASTERENA  |
+#endif /* !OSI_STRIPPED_LIB */
 						  OSI_MAC_TCR_TSIPV4ENA    |
 						  OSI_MAC_TCR_TSIPV6ENA    |
 						  OSI_MAC_TCR_TSVER2ENA;
@@ -498,6 +512,7 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 
 		if ((osi_dma->ptp_flag & OSI_PTP_SYNC_ONESTEP) ==
 		    OSI_PTP_SYNC_ONESTEP) {
+#ifndef OSI_STRIPPED_LIB
 			osi_core->ptp_config.ptp_filter |=
 						  (OSI_MAC_TCR_TSEVENTENA |
 						   OSI_MAC_TCR_CSC);
@@ -506,6 +521,7 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 				osi_core->ptp_config.ptp_filter |=
 						  OSI_MAC_TCR_TSMASTERENA;
 			}
+#endif /* !OSI_STRIPPED_LIB */
 		} else {
 			osi_core->ptp_config.ptp_filter |=
 						  OSI_MAC_TCR_SNAPTYPSEL_1;
@@ -517,9 +533,11 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 		osi_core->ptp_config.ptp_filter = OSI_MAC_TCR_TSIPV4ENA    |
 						  OSI_MAC_TCR_TSIPV6ENA    |
 						  OSI_MAC_TCR_TSVER2ENA    |
+#ifndef OSI_STRIPPED_LIB
 						  OSI_MAC_TCR_TSEVENTENA   |
-						  OSI_MAC_TCR_TSIPENA      |
-						  OSI_MAC_TCR_AV8021ASMEN;
+						  OSI_MAC_TCR_AV8021ASMEN  |
+#endif /* !OSI_STRIPPED_LIB */
+						  OSI_MAC_TCR_TSIPENA;
 		break;
 
 		/* PTP v2/802.AS1, any layer, Delay_req packet */
@@ -527,16 +545,20 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 		osi_core->ptp_config.ptp_filter = OSI_MAC_TCR_TSIPV4ENA    |
 						  OSI_MAC_TCR_TSIPV6ENA    |
 						  OSI_MAC_TCR_TSVER2ENA    |
+#ifndef OSI_STRIPPED_LIB
 						  OSI_MAC_TCR_TSEVENTENA   |
 						  OSI_MAC_TCR_AV8021ASMEN  |
 						  OSI_MAC_TCR_TSMASTERENA  |
+#endif /* !OSI_STRIPPED_LIB */
 						  OSI_MAC_TCR_TSIPENA;
 		break;
 
+#ifndef OSI_STRIPPED_LIB
 		/* time stamp any incoming packet */
 	case HWTSTAMP_FILTER_ALL:
 		osi_core->ptp_config.ptp_filter = OSI_MAC_TCR_TSENALL;
 		break;
+#endif /* !OSI_STRIPPED_LIB */
 
 	default:
 		dev_err(pdata->dev, "rx_filter is out of range\n");
@@ -552,7 +574,9 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 			dev_err(pdata->dev, "Failure to disable CONFIG_PTP\n");
 			return -EFAULT;
 		}
+#ifndef OSI_STRIPPED_LIB
 		ether_config_slot_function(pdata, OSI_DISABLE);
+#endif /* !OSI_STRIPPED_LIB */
 	} else {
 		/* Store default PTP clock frequency, so that we
 		 * can make use of it for coarse correction */
@@ -574,7 +598,9 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 		}
 		/* Register broadcasting MAC timestamp to clients */
 		tegra_register_hwtime_source(ether_get_hw_time, ndev);
+#ifndef OSI_STRIPPED_LIB
 		ether_config_slot_function(pdata, OSI_ENABLE);
+#endif /* !OSI_STRIPPED_LIB */
 	}
 
 	return (copy_to_user(ifr->ifr_data, &config,

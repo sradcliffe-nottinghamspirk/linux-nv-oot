@@ -218,7 +218,26 @@
  */
 #define FIXED_PHY_INVALID_MDIO_ADDR	0xFFU
 
+#define ETHER_ADDRESS_32BIT		0
+#define ETHER_ADDRESS_40BIT		1
+#define ETHER_ADDRESS_48BIT		2
 
+/**
+ * @addtogroup coalesce defines
+ *
+ * @brief Used to configure coalesce.
+ * @{
+ */
+#define ETHER_MIN_TX_COALESCE_USEC	32U
+#define ETHER_MIN_TX_COALESCE_FRAMES	1U
+#define ETHER_MAX_TX_COALESCE_USEC	1020U
+#define ETHER_MIN_RX_COALESCE_FRAMES	1U
+#define ETHER_MAX_RX_COALESCE_USEC	1020U
+#define ETHER_EQOS_MIN_RX_COALESCE_USEC	5U
+#define ETHER_MGBE_MIN_RX_COALESCE_USEC	6U
+/** @} */
+
+#define ETHER_INVALID_CHAN_NUM		0xFFU
 /**
  * @brief Check if Tx data buffer length is within bounds.
  *
@@ -393,6 +412,10 @@ struct ether_priv_data {
 	struct osi_core_priv_data *osi_core;
 	/** OSI DMA private data */
 	struct osi_dma_priv_data *osi_dma;
+	/** Virtual address of reserved DMA buffer */
+	void *resv_buf_virt_addr;
+	/** Physical address of reserved DMA buffer */
+	nveu64_t resv_buf_phy_addr;
 	/** HW supported feature list */
 	struct osi_hw_features hw_feat;
 	/** Array of DMA Transmit channel NAPI */
@@ -695,7 +718,9 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 				struct ifreq *ifr);
 int ether_handle_priv_ts_ioctl(struct ether_priv_data *pdata,
 			       struct ifreq *ifr);
+#ifndef OSI_STRIPPED_LIB
 int ether_conf_eee(struct ether_priv_data *pdata, unsigned int tx_lpi_enable);
+#endif /* !OSI_STRIPPED_LIB */
 
 /**
  * @brief ether_padctrl_mii_rx_pins - Enable/Disable RGMII Rx pins.
@@ -708,10 +733,25 @@ int ether_conf_eee(struct ether_priv_data *pdata, unsigned int tx_lpi_enable);
  */
 int ether_padctrl_mii_rx_pins(void *priv, unsigned int enable);
 
+#ifndef OSI_STRIPPED_LIB
 void ether_selftest_run(struct net_device *dev,
 			struct ethtool_test *etest, u64 *buf);
 void ether_selftest_get_strings(struct ether_priv_data *pdata, u8 *data);
 int ether_selftest_get_count(struct ether_priv_data *pdata);
+#else
+static inline void ether_selftest_run(struct net_device *dev,
+				      struct ethtool_test *etest, u64 *buf)
+{
+}
+static inline void ether_selftest_get_strings(struct ether_priv_data *pdata,
+					      u8 *data)
+{
+}
+static inline int ether_selftest_get_count(struct ether_priv_data *pdata)
+{
+	return -EOPNOTSUPP;
+}
+#endif /* CONFIG_NVETHERNET_SELFTESTS */
 
 /**
  * @brief ether_assign_osd_ops - Assigns OSD ops for OSI
