@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2015-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <linux/delay.h>
 #include <linux/fs.h>
@@ -28,6 +28,7 @@
 #include <media/cdi-mgr.h>
 #include <linux/gpio/consumer.h>
 #include <linux/semaphore.h>
+#include <linux/version.h>
 
 #include <asm/barrier.h>
 
@@ -1143,7 +1144,11 @@ static struct cdi_mgr_platform_data *of_cdi_mgr_pdata(struct platform_device
 	return pd;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 static char *cdi_mgr_devnode(struct device *dev, umode_t *mode)
+#else
+static char *cdi_mgr_devnode(const struct device *dev, umode_t *mode)
+#endif
 {
 	if (!mode)
 		return NULL;
@@ -1303,8 +1308,13 @@ static int cdi_mgr_configure_gpios(struct device *dev, struct cdi_mgr_priv *cdi_
 					}
 				}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 				cdi_mgr->gpio_arr[i].desc = devm_fwnode_get_gpiod_from_child(dev,
 					"devblk", &child->fwnode, GPIOD_ASIS, NULL);
+#else
+				cdi_mgr->gpio_arr[i].desc = devm_fwnode_gpiod_get_index(dev,
+					&child->fwnode, "devblk", 0, GPIOD_ASIS, NULL);
+#endif
 				if (IS_ERR(cdi_mgr->gpio_arr[i].desc)) {
 					ret = PTR_ERR(cdi_mgr->gpio_arr[i].desc);
 					if (ret < 0)
