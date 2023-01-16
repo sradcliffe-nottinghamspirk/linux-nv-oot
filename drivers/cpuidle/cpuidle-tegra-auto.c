@@ -20,18 +20,31 @@
 #include <linux/wait.h>
 #include <soc/tegra/virt/syscalls.h>
 #include <soc/tegra/virt/tegra_hv_sysmgr.h>
-#include "../../kernel/irq/internals.h"
+
+enum {
+	CPUIDLE_TEGRA_AUTO_SC7_NONE,
+	CPUIDLE_TEGRA_AUTO_SC7_SUSPEND_START,
+	CPUIDLE_TEGRA_AUTO_SC7_RESUME_START,
+};
 
 static struct cpumask cpumask;
+static bool s2idle_sc7_state;
+static DEFINE_PER_CPU(struct cpuidle_driver *, tegra_auto_cpuidle_drivers);
+
+bool tegra_auto_cpuidle_s2idle_exit(int cpu_number)
+{
+	return (!cpumask_test_cpu(cpu_number, (const struct cpumask *)&cpumask));
+}
 
 static int tegra_auto_suspend_notify_callback(struct notifier_block *nb,
 					      unsigned long action, void *pcpu)
 {
 	switch (action) {
 	case PM_SUSPEND_PREPARE:
-		cpumask_clear(&cpumask);
+		s2idle_sc7_state = CPUIDLE_TEGRA_AUTO_SC7_SUSPEND_START;
 		break;
 	case PM_POST_SUSPEND:
+		s2idle_sc7_state = CPUIDLE_TEGRA_AUTO_SC7_NONE;
 		break;
 	}
 	return NOTIFY_OK;
@@ -63,7 +76,12 @@ static int tegra_auto_enter_s2idle_state(struct cpuidle_device *dev,
 					 struct cpuidle_driver *drv, int idx)
 {
 	int cpu_id = smp_processor_id();
-	int boot_cpu_id = get_boot_cpu_id();
+	int boot_cpu_id = 0;
+
+	if (s2idle_sc7_state != CPUIDLE_TEGRA_AUTO_SC7_SUSPEND_START) {
+		asm volatile("wfi\n");
+		return 0;
+	}
 
 	if (cpu_id == boot_cpu_id) {
 		int error = 0;
@@ -85,12 +103,14 @@ static int tegra_auto_enter_s2idle_state(struct cpuidle_device *dev,
 		if (error < 0)
 			pr_err("%s: Failed to trigger suspend, %d\n", __func__, error);
 		pr_debug("%s: after HVC: GUEST_PAUSE_CMD, %d\n", __func__, boot_cpu_id);
+		s2idle_sc7_state = CPUIDLE_TEGRA_AUTO_SC7_RESUME_START;
+		cpumask_clear(&cpumask);
 	} else {
 		cpumask_test_and_set_cpu(cpu_id, &cpumask);
 
 		do {
 			asm volatile("wfi\n");
-		} while (idle_should_enter_s2idle() == true);
+		} while (tegra_auto_cpuidle_s2idle_exit(cpu_id) != true);
 	}
 
 	pr_debug("%s: exiting s2idle, %d, %d\n", __func__, cpu_id, boot_cpu_id);
@@ -145,6 +165,7 @@ static int __init tegra_auto_idle_init_cpu(int cpu)
 		pr_err("cpu register failed\n");
 		goto out_kfree_drv;
 	}
+	per_cpu(tegra_auto_cpuidle_drivers, cpu) = drv;
 
 	return 0;
 
@@ -164,7 +185,6 @@ static int __init tegra_auto_cpuidle_probe(struct platform_device *pdev)
 {
 	int cpu, ret;
 	struct cpuidle_driver *drv;
-	struct cpuidle_device *dev;
 
 	for_each_possible_cpu(cpu) {
 		ret = tegra_auto_idle_init_cpu(cpu);
@@ -177,9 +197,9 @@ static int __init tegra_auto_cpuidle_probe(struct platform_device *pdev)
 
 out_fail:
 	while (--cpu >= 0) {
-		dev = per_cpu(cpuidle_devices, cpu);
-		drv = cpuidle_get_cpu_driver(dev);
+		drv = per_cpu(tegra_auto_cpuidle_drivers, cpu);
 		cpuidle_unregister(drv);
+		per_cpu(tegra_auto_cpuidle_drivers, cpu) = NULL;
 		kfree(drv);
 	}
 
@@ -190,12 +210,11 @@ static int tegra_auto_cpuidle_remove(struct platform_device *pdev)
 {
 	int cpu;
 	struct cpuidle_driver *drv;
-	struct cpuidle_device *dev;
 
 	for_each_possible_cpu(cpu) {
-		dev = per_cpu(cpuidle_devices, cpu);
-		drv = cpuidle_get_cpu_driver(dev);
+		drv = per_cpu(tegra_auto_cpuidle_drivers, cpu);
 		cpuidle_unregister(drv);
+		per_cpu(tegra_auto_cpuidle_drivers, cpu) = NULL;
 		kfree(drv);
 	}
 
