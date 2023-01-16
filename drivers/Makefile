@@ -24,6 +24,7 @@ obj-m += platform/tegra/
 obj-m += pwm/
 obj-m += ras/
 obj-m += rtc/
+obj-m += cpuidle/
 obj-m += scsi/ufs/
 obj-m += soc/tegra/
 obj-m += spi/
