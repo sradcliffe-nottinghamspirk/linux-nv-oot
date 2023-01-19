@@ -30,24 +30,22 @@
 /* #define HCI_VERSION_CODE KERNEL_VERSION(3, 14, 41) */
 #define HCI_VERSION_CODE LINUX_VERSION_CODE
 
+#ifdef CONFIG_BTCOEX
 #define BTCOEX
+#endif
 
 /***********************************
 ** Realtek - For rtk_btusb driver **
 ***********************************/
-#define BTUSB_WAKEUP_HOST		0	/* 1  enable; 0  disable */
+#ifdef CONFIG_BTUSB_WAKEUP_HOST
+#define BTUSB_WAKEUP_HOST
+#endif
 
 #define URB_CANCELING_DELAY_MS	10	// Added by Realtek
 #if HCI_VERSION_CODE > KERNEL_VERSION(2, 6, 33)
 #define HDEV_BUS		hdev->bus
 #else
 #define HDEV_BUS		hdev->type
-#endif
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 33)
-#define USB_RPM			1
-#else
-#define USB_RPM			0
 #endif
 
 #if HCI_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
@@ -135,6 +133,7 @@ struct btusb_data {
 	int (*recv_bulk) (struct btusb_data * data, void *buffer, int count);
 #endif
 	struct notifier_block pm_notifier;
+	struct notifier_block shutdown_notifier;
 	void *context;
 };
 

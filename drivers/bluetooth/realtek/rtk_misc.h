@@ -20,6 +20,12 @@
  * Download normal patch when host resume or power on */
 /* #define RTKBT_SWITCH_PATCH */
 
+/* RTKBT Power-on for sideband wake-up by LE Advertising from Remote. */
+/* Note that it's necessary to apply TV FW Patch. */
+/* #define RTKBT_SUSPEND_WAKEUP */
+/* #define RTKBT_SHUTDOWN_WAKEUP */
+#define RTKBT_POWERKEY_WAKEUP
+
 /* RTKBT Power-on Whitelist for sideband wake-up by LE Advertising from Remote.
  * Note that it's necessary to apply TV FW Patch. */
 /* #define RTKBT_TV_POWERON_WHITELIST */
@@ -39,9 +45,7 @@
 #endif
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 33)
-#define USB_RPM			1
-#else
-#define USB_RPM			0
+#define USB_RPM
 #endif
 
 #define CONFIG_NEEDS_BINDING
@@ -51,9 +55,10 @@
 #undef CONFIG_NEEDS_BINDING
 #endif
 
-
-/* 1 SS enable; 0 SS disable */
-#define BTUSB_RPM		(0*USB_RPM)
+/* USB SS */
+#if (defined CONFIG_BTUSB_AUTOSUSPEND) && (defined USB_RPM)
+#define BTUSB_RPM
+#endif
 
 #define PRINT_CMD_EVENT			0
 #define PRINT_ACL_DATA			0
@@ -67,7 +72,6 @@ extern void print_acl(struct sk_buff *skb, int dataOut);
 
 #if defined RTKBT_SWITCH_PATCH || defined RTKBT_TV_POWERON_WHITELIST
 int __rtk_send_hci_cmd(struct usb_device *udev, u8 *buf, u16 size);
-int __rtk_recv_hci_evt(struct usb_device *udev, u8 *buf, u8 len, u16 opcode);
 #endif
 
 #ifdef RTKBT_SWITCH_PATCH
@@ -79,8 +83,10 @@ struct api_context {
 };
 
 int download_lps_patch(struct usb_interface *intf);
-int set_scan(struct usb_interface *intf);
+#endif
 
+#if defined RTKBT_SUSPEND_WAKEUP || defined RTKBT_SHUTDOWN_WAKEUP || defined RTKBT_SWITCH_PATCH
+int set_scan(struct usb_interface *intf);
 #endif
 
 
