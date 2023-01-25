@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -21,6 +21,9 @@
 #include <linux/version.h>
 #include <soc/tegra/fuse.h>
 #include <linux/io.h>
+#include <linux/of.h>
+
+#include <soc/tegra/virt/hv-ivc.h>
 
 #define BYTES_PER_CLK_PER_CH	4
 #define CH_16			16
@@ -80,7 +83,6 @@
 struct emc_params {
 	u32 rank;
 	u32 ecc;
-	u32 ch;
 	u32 dram;
 };
 
@@ -292,40 +294,63 @@ static void tegra_mc_utils_debugfs_init(void)
 }
 #endif
 
+static u32 get_dram_dt_prop(struct device_node *np, const char *prop)
+{
+	u32 val;
+	int ret;
+
+	ret = of_property_read_u32(np, prop, &val);
+	if (ret) {
+		pr_err("failed to read %s\n", prop);
+		return ~0U;
+	}
+
+	return val;
+}
+
 static int __init tegra_mc_utils_init(void)
 {
 	u32 dram, ch, ecc, rank;
 	void __iomem *emc_base;
 	void __iomem *mcb_base;
 
-	emc_base = ioremap(EMC_BASE, 0x00010000);
-	dram = readl(emc_base + EMC_FBIO_CFG5_0) & DRAM_MASK;
-	mcb_base = ioremap(MCB_BASE, MCB_SIZE);
-	if (!mcb_base) {
-		pr_err("Failed to ioremap\n");
-		return -ENOMEM;
+	if (!is_tegra_hypervisor_mode()) {
+		emc_base = ioremap(EMC_BASE, 0x00010000);
+		dram = readl(emc_base + EMC_FBIO_CFG5_0) & DRAM_MASK;
+		mcb_base = ioremap(MCB_BASE, MCB_SIZE);
+		if (!mcb_base) {
+			pr_err("Failed to ioremap\n");
+			return -ENOMEM;
+		}
+
+		ch = readl(mcb_base + MC_EMEM_ADR_CFG_CHANNEL_ENABLE_0);
+		ch &= CH_MASK;
+		ecc = readl(mcb_base + MC_ECC_CONTROL_0) & ECC_MASK;
+
+		rank = readl(mcb_base + MC_EMEM_ADR_CFG_0) & RANK_MASK;
+
+		iounmap(emc_base);
+		iounmap(mcb_base);
+
+		while (ch) {
+			if (ch & 1)
+				ch_num++;
+			ch >>= 1;
+		}
+	} else {
+		struct device_node *np = of_find_compatible_node(NULL, NULL, "nvidia,tegra234-mc");
+
+		if (!np) {
+			pr_err("mc-utils: Not able to find MC DT node\n");
+			return -ENODEV;
+		}
+
+		ecc = get_dram_dt_prop(np, "dram_ecc");
+		rank = get_dram_dt_prop(np, "dram_rank");
+		dram = get_dram_dt_prop(np, "dram_lpddr");
+		ch_num = get_dram_dt_prop(np, "dram_channels");
 	}
 
-	ch = readl(mcb_base + MC_EMEM_ADR_CFG_CHANNEL_ENABLE_0);
-	ch &= CH_MASK;
-	/*
-	 * TODO: For non orin chips MC_ECC_CONTROL_0 is not present, hence set
-	 * ecc to 0 and cleanup this once we have chip specific mc_utils driver.
-	 */
-	ecc = readl(mcb_base + MC_ECC_CONTROL_0) & ECC_MASK;
-
-	rank = readl(mcb_base + MC_EMEM_ADR_CFG_0) & RANK_MASK;
-
-	iounmap(emc_base);
-	iounmap(mcb_base);
-
-	while (ch) {
-		if (ch & 1)
-			ch_num++;
-		ch >>= 1;
-	}
-
-	emc_param.ch = ch;
 	emc_param.ecc = ecc;
 	emc_param.rank = rank;
 	emc_param.dram = dram;
