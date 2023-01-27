@@ -33,9 +33,18 @@
 #include <linux/dma-mapping.h>
 #include <asm/cacheflush.h>
 #include <linux/version.h>
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+#include <linux/tegra-hsierrrptinj.h>
+#endif
 #include "tegra_vblk.h"
 
 #define UFS_IOCTL_MAX_SIZE_SUPPORTED	0x80000
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+#define HSI_SDMMC4_REPORT_ID		0x805EU
+#define HSI_ERROR_MAGIC			0xDEADDEAD
+
+static uint32_t total_instance_id;
+#endif
 
 static int vblk_major;
 
@@ -328,12 +337,22 @@ static bool complete_bio_req(struct vblk_dev *vblkdev)
 				status);
 	}
 
-	vsc_req = vblk_get_req_by_sr_num(vblkdev, req_resp.req_id);
-	if (vsc_req == NULL) {
-		dev_err(vblkdev->device, "serial_number mismatch num %d!\n",
-				req_resp.req_id);
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+	if (req_resp.req_id != HSI_ERROR_MAGIC) {
+#endif
+		vsc_req = vblk_get_req_by_sr_num(vblkdev, req_resp.req_id);
+		if (vsc_req == NULL) {
+			dev_err(vblkdev->device, "serial_number mismatch num %d!\n",
+					req_resp.req_id);
+			goto complete_bio_exit;
+		}
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+	} else {
+		vblkdev->hsierror_status = req_resp.error_inject_resp.status;
+		complete(&vblkdev->hsierror_handle);
 		goto complete_bio_exit;
 	}
+#endif
 
 	bio_req = vsc_req->req;
 	vs_req = &vsc_req->vs_req;
@@ -344,12 +363,12 @@ static bool complete_bio_req(struct vblk_dev *vblkdev)
 			vblk_complete_ioctl_req(vblkdev, vsc_req,
 					req_resp.blkdev_resp.
 					ioctl_resp.status);
-				vblkdev->inflight_ioctl_reqs--;
-				blk_mq_end_request(bio_req, BLK_STS_OK);
+			vblkdev->inflight_ioctl_reqs--;
+			blk_mq_end_request(bio_req, BLK_STS_OK);
 		}  else if (req_op(bio_req) != REQ_OP_DRV_IN) {
 			handle_non_ioctl_resp(vblkdev, vsc_req,
 				&(req_resp.blkdev_resp.blk_resp));
-		}  else {
+		} else {
 			dev_info(vblkdev->device, "ioctl(pass through) command not supported\n");
 		}
 
@@ -803,6 +822,77 @@ static const struct blk_mq_ops vblk_mq_ops = {
 	.queue_rq	= vblk_request,
 };
 
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+
+/* Error report injection test support is included */
+static int vblk_inject_err_fsi(unsigned int inst_id, struct epl_error_report_frame err_rpt_frame,
+				void *data)
+{
+	struct vblk_dev *vblkdev = (struct vblk_dev *)data;
+	struct vs_request *vs_req;
+	int err = -EFAULT;
+	int i = 0;
+
+	/* Sanity check inst_id */
+	if (inst_id != vblkdev->instance_id) {
+		dev_err(vblkdev->device, "Invalid Input -> Instance ID = 0x%04x\n", inst_id);
+		return -EINVAL;
+	}
+
+	/* Sanity check reporter_id */
+	if (err_rpt_frame.reporter_id != vblkdev->epl_reporter_id) {
+		dev_err(vblkdev->device, "Invalid Input -> Reporter ID = 0x%04x\n",
+						err_rpt_frame.reporter_id);
+		return -EINVAL;
+	}
+
+	mutex_lock(&vblkdev->ivc_lock);
+	vblkdev->hsierror_status = 0;
+
+	/* This while loop exits as long as the remote endpoint cooperates. */
+	if (tegra_hv_ivc_channel_notified(vblkdev->ivck) != 0) {
+		pr_notice("vblk: send_config wait for ivc channel reset\n");
+		while (tegra_hv_ivc_channel_notified(vblkdev->ivck) != 0) {
+			if (i++ > IVC_RESET_RETRIES) {
+				dev_err(vblkdev->device, "ivc reset timeout\n");
+				mutex_unlock(&vblkdev->ivc_lock);
+				return -EIO;
+			}
+			set_current_state(TASK_INTERRUPTIBLE);
+			schedule_timeout(usecs_to_jiffies(1));
+		}
+	}
+
+	while (true) {
+		vs_req = (struct vs_request *)
+			tegra_hv_ivc_write_get_next_frame(vblkdev->ivck);
+		if (vs_req != NULL)
+			break;
+	}
+
+	vs_req->req_id = HSI_ERROR_MAGIC;
+	vs_req->type = VS_ERR_INJECT;
+	vs_req->error_inject_req.error_id = err_rpt_frame.error_code;
+
+	if (tegra_hv_ivc_write_advance(vblkdev->ivck)) {
+		dev_err(vblkdev->device, "ivc write failed\n");
+		mutex_unlock(&vblkdev->ivc_lock);
+		return -EIO;
+	}
+
+	mutex_unlock(&vblkdev->ivc_lock);
+
+	if (wait_for_completion_timeout(&vblkdev->hsierror_handle, msecs_to_jiffies(1000)) == 0) {
+		dev_err(vblkdev->device, "hsi response timeout\n");
+		err = -EAGAIN;
+		return err;
+	}
+
+	err = vblkdev->hsierror_status;
+	return err;
+}
+#endif
+
 /* Set up virtual device. */
 static void setup_device(struct vblk_dev *vblkdev)
 {
@@ -813,6 +903,9 @@ static void setup_device(struct vblk_dev *vblkdev)
 	struct vsc_request *req;
 	int ret;
 	struct tegra_hv_ivm_cookie *ivmk;
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+	int err;
+#endif
 
 	vblkdev->size =
 		vblkdev->config.blk_config.num_blks *
@@ -885,8 +978,8 @@ static void setup_device(struct vblk_dev *vblkdev)
 		if (IS_ERR_OR_NULL(ivmk)) {
 			dev_err(vblkdev->device, "Failed to reserve IVM channel %d\n",
 				vblkdev->ivm_id);
-				ivmk = NULL;
-				return;
+			ivmk = NULL;
+			return;
 		}
 		vblkdev->ivmk = ivmk;
 
@@ -1098,6 +1191,23 @@ static void setup_device(struct vblk_dev *vblkdev)
 		dev_warn(vblkdev->device, "Error adding speed_mode file!\n");
 		return;
 	}
+
+
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+	if (vblkdev->config.phys_dev == VSC_DEV_EMMC) {
+		vblkdev->epl_id = IP_SDMMC;
+		vblkdev->epl_reporter_id = HSI_SDMMC4_REPORT_ID;
+		vblkdev->instance_id = total_instance_id++;
+	}
+
+	if (vblkdev->epl_id == IP_SDMMC) {
+		/* Register error reporting callback */
+		err = hsierrrpt_reg_cb(vblkdev->epl_id, vblkdev->instance_id,
+							vblk_inject_err_fsi, vblkdev);
+		if (err != 0)
+			dev_info(vblkdev->device, "Err inj callback registration failed: %d", err);
+	}
+#endif
 }
 
 static void vblk_init_device(struct work_struct *ws)
@@ -1195,6 +1305,9 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 	}
 
 	init_completion(&vblkdev->req_queue_empty);
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+	init_completion(&vblkdev->hsierror_handle);
+#endif
 	vblkdev->queue_state = VBLK_QUEUE_ACTIVE;
 
 	INIT_WORK(&vblkdev->init, vblk_init_device);
@@ -1245,6 +1358,11 @@ static int tegra_hv_vblk_remove(struct platform_device *pdev)
 	destroy_workqueue(vblkdev->wq);
 	tegra_hv_ivc_unreserve(vblkdev->ivck);
 	tegra_hv_mempool_unreserve(vblkdev->ivmk);
+
+#if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
+	if (vblkdev->epl_id == IP_SDMMC)
+		hsierrrpt_dereg_cb(vblkdev->epl_id, vblkdev->instance_id);
+#endif
 
 	return 0;
 }
