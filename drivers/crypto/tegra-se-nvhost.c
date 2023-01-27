@@ -4,7 +4,7 @@
  *
  * Support for Tegra Security Engine hardware crypto algorithms.
  *
- * Copyright (c) 2015-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2015-2023, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -1457,10 +1457,8 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 			job->syncpt, job->syncpt_end,
 			(u32)MAX_SCHEDULE_TIMEOUT, NULL);
 
-		if (se_dev->cmdbuf_addr_list) {
-			atomic_set(&se_dev->cmdbuf_addr_list[
-				   se_dev->cmdbuf_list_entry].free, 1);
-		}
+		atomic_set(&se_dev->cmdbuf_addr_list[
+			   se_dev->cmdbuf_list_entry].free, 1);
 	}
 
 	se_dev->req_cnt = 0;
@@ -4406,6 +4404,7 @@ static int tegra_se_send_rsa_data(struct tegra_se_dev *se_dev,
 
 	dma_free_attrs(se_dev->dev->parent, SZ_4K, cmdbuf->gather->cmdbuf_addr,
 		       cmdbuf->gather->iova, 0);
+	kfree(cmdbuf);
 
 	return err;
 }
@@ -4537,8 +4536,10 @@ static int tegra_se_rsa_setkey(struct crypto_akcipher *tfm, const void *key,
 	mutex_unlock(&se_dev->mtx);
 	if (err)
 		tegra_se_rsa_free_key_slot(ctx->slot);
+
 	dma_free_attrs(se_dev->dev->parent, SZ_64K, cmdbuf->gather->cmdbuf_addr,
 		       cmdbuf->gather->iova, 0);
+	kfree(cmdbuf);
 
 	return err;
 }
@@ -4812,6 +4813,7 @@ static int tegra_se_dh_setkey(struct crypto_kpp *tfm)
 	}
 	dma_free_attrs(se_dev->dev->parent, SZ_64K, cmdbuf->gather->cmdbuf_addr,
 		       cmdbuf->gather->iova, 0);
+	kfree(cmdbuf);
 
 	return err;
 }
@@ -7050,19 +7052,8 @@ static struct akcipher_alg rsa_alg = {
 
 static int tegra_se_nvhost_prepare_poweroff(struct platform_device *pdev)
 {
-	struct nvhost_device_data *pdata = platform_get_drvdata(pdev);
-	struct tegra_se_dev *se_dev = pdata->private_data;
 
-	return 0;
-	if (se_dev->channel) {
-//		host1x_syncpt_put(se_dev->syncpt);
-		host1x_channel_put(se_dev->channel);
-		se_dev->channel = NULL;
-
-		/* syncpt will be released along with channel */
-		se_dev->syncpt_id = 0;
-	}
-
+	/* Runtime PM not supported by Host1x */
 	return 0;
 }
 
@@ -7404,10 +7395,7 @@ static int tegra_se_clk_init(struct platform_device *pdev)
 
 static int tegra_se_client_init(struct host1x_client *client)
 {
-	struct tegra_se_dev *se_dev = container_of(client, struct tegra_se_dev, client);
-
 	return 0;
-	return tegra_se_crypto_register(se_dev);
 }
 
 static const struct host1x_client_ops tegra_se_client_ops = {
