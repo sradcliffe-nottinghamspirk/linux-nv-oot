@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2017-2022 NVIDIA Corporation.  All rights reserved.
+// Copyright (c) 2017-2023 NVIDIA Corporation.  All rights reserved.
 
 /**
  * @file drivers/media/platform/tegra/camera/fusa-capture/capture-isp-channel.c
@@ -445,11 +445,11 @@ static long isp_channel_ioctl(
 	}
 
 	case _IOC_NR(ISP_CAPTURE_STATUS): {
-		uint32_t status;
+		uint32_t timeout;
 
-		if (copy_from_user(&status, ptr, sizeof(status)))
+		if (copy_from_user(&timeout, ptr, sizeof(timeout)))
 			break;
-		err = isp_capture_status(chan, status);
+		err = isp_capture_status(chan, timeout);
 		if (err)
 			dev_err(chan->isp_dev,
 				"isp process get status failed\n");
