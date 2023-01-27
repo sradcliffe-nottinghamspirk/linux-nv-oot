@@ -15,6 +15,7 @@ obj-m += gpu/
 obj-m += hwmon/
 obj-m += i2c/busses/
 obj-m += mfd/
+obj-m += mtd/devices/
 obj-m += misc/
 obj-m += net/
 obj-m += nvpps/
