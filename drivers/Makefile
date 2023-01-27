@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
 obj-m += block/tegra_virt_storage/
+obj-m += block/tegra_oops_virt_storage/
 obj-m += c2c/
 obj-m += clink/
 obj-m += crypto/
