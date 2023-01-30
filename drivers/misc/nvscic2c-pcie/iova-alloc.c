@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: iova-alloc: " fmt
 #include <linux/iommu.h>
@@ -31,7 +31,7 @@ iovad_init(struct device *dev, struct iova_alloc_domain_t **ivd_h)
 	ivd_ctx->dev = dev;
 	ret = iova_cache_get();
 	if (ret < 0)
-		return ret;
+		goto free_ivd;
 
 	ivd_ctx->domain = iommu_get_domain_for_dev(dev);
 	if (!ivd_ctx->domain) {
@@ -51,6 +51,8 @@ iovad_init(struct device *dev, struct iova_alloc_domain_t **ivd_h)
 	return ret;
 put_cache:
 	iova_cache_put();
+free_ivd:
+	kfree(ivd_ctx);
 	return ret;
 }
 

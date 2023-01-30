@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
+/* Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
 
 #ifndef __COMMON_H__
 #define __COMMON_H__
@@ -200,6 +200,6 @@ enum peer_cpu_t {
 /* Returns aperture offset of syncpoint on SHIM_BASE. */
 static inline u64 get_syncpt_shim_offset(u32 id)
 {
-	return (SHIM_BASE + (id * SP_SIZE));
+	return (SHIM_BASE + ((u64)id * SP_SIZE));
 }
 #endif //__COMMON_H__
