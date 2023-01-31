@@ -5,6 +5,6 @@
 # NVPPS driver and PTP Framework.
 #
 
-obj-m += nvpps.o
-nvpps-y += ../platform/tegra/ptp-notifier.o
-nvpps-y += nvpps_main.o
+nvpps-y := nvpps_main.o ptp-notifier.o
+
+obj-m := nvpps.o
