@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -41,10 +41,15 @@
 
 #include "nvsciipc.h"
 
+#if defined(CONFIG_ANDROID)
+#define SYSTEM_GID 1000
+#endif /* CONFIG_ANDROID */
+
 /* enable it to debug auth API via ioctl.
  * enable LINUX_DEBUG_KMD_API in test_nvsciipc_nvmap tool either.
  */
-//#define DEBUG_AUTH_API
+#define DEBUG_AUTH_API 1
+#define DEBUG_VALIDATE_TOKEN 0
 
 DEFINE_MUTEX(nvsciipc_mutex);
 
@@ -78,7 +83,7 @@ NvSciError NvSciIpcEndpointValidateAuthTokenLinuxCurrent(
 {
 	struct fd f;
 	struct file *filp;
-	int i, ret;
+	int i, ret, devlen;
 	char node[NVSCIIPC_MAX_EP_NAME+16];
 
 	if ((ctx == NULL) || (ctx->set_db_f != true)) {
@@ -93,13 +98,22 @@ NvSciError NvSciIpcEndpointValidateAuthTokenLinuxCurrent(
 	}
 	filp = f.file;
 
+	devlen = strlen(filp->f_path.dentry->d_name.name);
+#if DEBUG_VALIDATE_TOKEN
+	INFO("token: %lld, dev name: %s, devlen: %d\n", authToken,
+		filp->f_path.dentry->d_name.name, devlen);
+#endif
+
 	for (i = 0; i < ctx->num_eps; i++) {
 		ret = snprintf(node, sizeof(node), "%s%d",
 			ctx->db[i]->dev_name, ctx->db[i]->id);
 
-		if ((ret < 0) || (ret >= sizeof(node)))
+		if ((ret < 0) || (ret != devlen))
 			continue;
 
+#if DEBUG_VALIDATE_TOKEN
+		INFO("node:%s, vuid:0x%llx\n", node, ctx->db[i]->vuid);
+#endif
 		/* compare node name itself only (w/o directory) */
 		if (!strncmp(filp->f_path.dentry->d_name.name, node, ret)) {
 			*localUserVuid = ctx->db[i]->vuid;
@@ -213,7 +227,7 @@ static int nvsciipc_dev_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-#if defined(DEBUG_AUTH_API)
+#if DEBUG_AUTH_API
 static int nvsciipc_ioctl_validate_auth_token(struct nvsciipc *ctx,
 	unsigned int cmd, unsigned long arg)
 {
@@ -406,16 +420,19 @@ static int nvsciipc_ioctl_set_db(struct nvsciipc *ctx, unsigned int cmd,
 	int ret = 0;
 	int i;
 
+#if defined(CONFIG_ANDROID)
+	if ((current_cred()->uid.val != SYSTEM_GID) &&
+	(current_cred()->uid.val != 0)) {
+		ERR("no permission to set db\n");
+		return -EPERM;
+	}
+#else
 	/* check root user */
 	if (current_cred()->uid.val != 0) {
 		ERR("no permission to set db\n");
 		return -EPERM;
 	}
-
-	if ((ctx->num_eps != 0) || (ctx->set_db_f == true)) {
-		ERR("nvsciipc db is set already\n");
-		return -EPERM;
-	}
+#endif /* CONFIG_ANDROID */
 
 	if (copy_from_user(&user_db, (void __user *)arg, _IOC_SIZE(cmd))) {
 		ERR("copying user db failed\n");
@@ -587,7 +604,7 @@ static long nvsciipc_dev_ioctl(struct file *filp, unsigned int cmd,
 	case NVSCIIPC_IOCTL_GET_DB_SIZE:
 		ret = nvsciipc_ioctl_get_dbsize(ctx, cmd, arg);
 		break;
-#if defined(DEBUG_AUTH_API)
+#if DEBUG_AUTH_API
 	case NVSCIIPC_IOCTL_VALIDATE_AUTH_TOKEN:
 		ret = nvsciipc_ioctl_validate_auth_token(ctx, cmd, arg);
 		break;
@@ -717,13 +734,15 @@ static int nvsciipc_probe(struct platform_device *pdev)
 	dev_set_drvdata(ctx->device, ctx);
 
 #ifdef CONFIG_TEGRA_VIRTUALIZATION
-	if (is_tegra_hypervisor_mode()) {
-		ret = hyp_read_gid(&s_guestid);
-		if (ret != 0) {
-			ERR("Failed to read guest id\n");
-			goto error;
+	{
+		if (is_tegra_hypervisor_mode()) {
+			ret = hyp_read_gid(&s_guestid);
+			if (ret != 0) {
+				ERR("Failed to read guest id\n");
+				goto error;
+			}
+			INFO("guestid: %d\n", s_guestid);
 		}
-		INFO("guestid: %d\n", s_guestid);
 	}
 #endif /* CONFIG_TEGRA_VIRTUALIZATION */
 
@@ -807,7 +826,6 @@ static int __init nvsciipc_module_init(void)
 		return ret;
 	}
 
-	INFO("platform_device_register_simple+++\n");
 	nvsciipc_pdev = platform_device_register_simple(MODULE_NAME, -1,
 							NULL, 0);
 	if (IS_ERR(nvsciipc_pdev)) {
