@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/* Copyright (c) 2019-2023, NVIDIA CORPORATION. All rights reserved */
 
 #include <linux/version.h>
 #include <linux/iommu.h>
@@ -126,7 +126,7 @@ static irqreturn_t ether_common_isr_thread(int irq, void *data)
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 	int ret = 0;
 	int i;
-	struct epl_error_report_frame error_report;
+	struct epl_error_report_frame error_report = {0};
 
 	error_report.reporter_id = osi_core->hsi.reporter_id;
 	error_report.timestamp = lower_32_bits(rdtsc());
@@ -3745,9 +3745,10 @@ static int ether_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 	struct mii_ioctl_data *mii_data;
 
 	if (!dev || !rq) {
-		dev_err(pdata->dev, "%s: Invalid arg\n", __func__);
+		pr_err("%s: Invalid arg\n", __func__);
 		return -EINVAL;
 	}
+
 	pdata = netdev_priv(dev);
 	mii_data = if_mii(rq);
 
@@ -3829,9 +3830,10 @@ static int ether_siocdevprivate(struct net_device *dev, struct ifreq *rq,
 	struct mii_ioctl_data *mii_data;
 
 	if (!dev || !rq) {
-		dev_err(pdata->dev, "%s: Invalid arg\n", __func__);
+		pr_err("%s: Invalid arg\n", __func__);
 		return -EINVAL;
 	}
+
 	pdata = netdev_priv(dev);
 	mii_data = if_mii(rq);
 

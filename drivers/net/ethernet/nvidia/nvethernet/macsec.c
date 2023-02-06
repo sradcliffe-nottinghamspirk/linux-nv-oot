@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/* Copyright (c) 2019-2023, NVIDIA CORPORATION. All rights reserved */
 
 #ifdef MACSEC_SUPPORT
 #include "ether_linux.h"
@@ -46,7 +46,7 @@ static irqreturn_t macsec_ns_isr_thread(int irq, void *data)
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 	int ret = 0;
 	int i = 0;
-	struct epl_error_report_frame error_report;
+	struct epl_error_report_frame error_report = {0};
 
 	mutex_lock(&pdata->hsi_lock);
 	if (osi_core->hsi.macsec_report_err) {
