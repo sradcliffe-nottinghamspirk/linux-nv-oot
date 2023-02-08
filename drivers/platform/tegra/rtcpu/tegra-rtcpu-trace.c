@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include "soc/tegra/camrtc-trace.h"
 
@@ -35,6 +35,12 @@
 #include <trace/events/tegra_rtcpu.h>
 #include <trace/events/tegra_capture.h>
 #include <trace/events/freertos.h>
+
+/* Tracepoints used by other modules  */
+EXPORT_TRACEPOINT_SYMBOL_GPL(capture_ivc_send);
+EXPORT_TRACEPOINT_SYMBOL_GPL(capture_ivc_send_error);
+EXPORT_TRACEPOINT_SYMBOL_GPL(capture_ivc_notify);
+EXPORT_TRACEPOINT_SYMBOL_GPL(capture_ivc_recv);
 
 #define NV(p) "nvidia," #p
 
