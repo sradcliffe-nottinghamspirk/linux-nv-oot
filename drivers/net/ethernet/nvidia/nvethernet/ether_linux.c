@@ -4374,7 +4374,7 @@ static int ether_get_vm_irq_data(struct platform_device *pdev,
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 	struct device_node *vm_node, *temp;
 	unsigned int i, j, node = 0;
-	int ret = 0;
+	int vm_irq_id, child_id, ret =0;
 
 	vm_node = of_parse_phandle(pdev->dev.of_node,
 				   "nvidia,vm-irq-config", 0);
@@ -4414,9 +4414,23 @@ static int ether_get_vm_irq_data(struct platform_device *pdev,
 		return -EINVAL;
 	}
 
+	child_id = 0;
 	for_each_child_of_node(vm_node, temp) {
-		if (node == osi_core->num_vm_irqs)
+		ret = of_property_read_u32(temp, "nvidia,vm-irq-id", &vm_irq_id);
+		if (ret != 0) {
+			vm_irq_id = child_id;
+		}
+
+		if (vm_irq_id >= osi_core->num_vm_irqs)
 			break;
+
+		node = vm_irq_id;
+
+		ret = of_property_read_u32(temp, "nvidia,vm-num", &osi_core->irq_data[node].vm_num);
+		if (ret != 0) {
+			dev_err(&pdev->dev, "failed to read VM Number\n");
+			return ret;
+		}
 
 		ret = of_property_read_u32(temp, "nvidia,num-vm-channels",
 					&osi_core->irq_data[node].num_vm_chans);
@@ -4433,21 +4447,15 @@ static int ether_get_vm_irq_data(struct platform_device *pdev,
 			dev_err(&pdev->dev, "failed to get VM channels\n");
 			return ret;
 		}
+		child_id++;
+	}
 
-		ret = of_property_read_u32(temp, "nvidia,vm-num",
-					   &osi_core->irq_data[node].vm_num);
-		if (ret != 0) {
-			dev_err(&pdev->dev, "failed to read VM Number\n");
-			return ret;
-		}
-
+	for (node = 0; node < osi_core->num_vm_irqs; node++) {
 		ether_set_vm_irq_chan_mask(&pdata->vm_irq_data[node],
 					   osi_core->irq_data[node].num_vm_chans,
 					   osi_core->irq_data[node].vm_chans);
 
 		pdata->vm_irq_data[node].pdata = pdata;
-
-		node++;
 	}
 
 	for (i = 0, j = 1; i < osi_core->num_vm_irqs; i++, j++) {
