@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/* Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #include "ether_linux.h"
 #include "macsec.h"
@@ -3313,9 +3313,11 @@ int ether_sysfs_register(struct ether_priv_data *pdata)
 #endif
 
 #ifdef CONFIG_DEBUG_FS
-	ret = ether_create_debugfs(pdata);
-	if (ret < 0)
-		return ret;
+	if (debugfs_initialized()) {
+		ret = ether_create_debugfs(pdata);
+		if (ret < 0)
+			return ret;
+	}
 #endif
 
 #if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ)) && defined(HSI_SUPPORT)

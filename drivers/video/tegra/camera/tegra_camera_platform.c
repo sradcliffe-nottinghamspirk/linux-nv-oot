@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2015-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <linux/fs.h>
 #include <linux/platform_device.h>
@@ -772,9 +772,11 @@ static int tegra_camera_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, info);
 #ifdef CONFIG_DEBUG_FS
-	ret = dbgfs_tegra_camera_init();
-	if (ret)
-		dev_err(info->dev, "Fail to create debugfs");
+	if (debugfs_initialized()) {
+		ret = dbgfs_tegra_camera_init();
+		if (ret)
+			dev_err(info->dev, "Fail to create debugfs");
+	}
 #endif
 	return 0;
 }

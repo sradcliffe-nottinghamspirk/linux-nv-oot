@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION, All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION, All rights reserved.
 
 #include <linux/module.h>
 #include <linux/of.h>
@@ -1073,7 +1073,8 @@ int tegra_actmon_register(struct actmon_drv_data *actmon_data)
 	}
 
 #ifdef CONFIG_DEBUG_FS
-	ret = actmon_debugfs_init();
+	if (debugfs_initialized())
+		ret = actmon_debugfs_init();
 #endif
 	if (ret == 0)
 		return 0;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <asm/types.h>
 #include <linux/bitfield.h>
@@ -456,9 +456,11 @@ static int cdi_tsc_probe(struct platform_device *pdev)
 		return err;
 
 #ifdef CONFIG_DEBUG_FS
-	err = cdi_tsc_debugfs_init(controller);
-	if (err != 0)
-		return err;
+	if (debugfs_initialized()) {
+		err = cdi_tsc_debugfs_init(controller);
+		if (err != 0)
+			return err;
+	}
 #endif
 
 	return cdi_tsc_start_generators(controller);
