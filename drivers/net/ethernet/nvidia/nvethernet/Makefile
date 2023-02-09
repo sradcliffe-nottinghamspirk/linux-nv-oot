@@ -1,5 +1,5 @@
 #SPDX-License-Identifier: GPL-2.0-only
-#Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 OSI_COMMON := nvethernetrm/osi/common
 OSI_CORE := nvethernetrm/osi/core
@@ -7,7 +7,7 @@ OSI_DMA := nvethernetrm/osi/dma
 
 obj-m += nvethernet.o
 
-ccflags-y += -DLINUX_IVC -DUPDATED_PAD_CAL \
+ccflags-y += -DLINUX_IVC -DUPDATED_PAD_CAL -mno-outline-atomics \
 	     -I$(srctree.nvidia)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/include \
 	     -I$(srctree.nvidia)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/osi/common/include
 
