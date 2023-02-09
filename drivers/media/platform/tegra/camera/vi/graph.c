@@ -2,7 +2,7 @@
 /*
  * NVIDIA Media controller graph management
  *
- * Copyright (c) 2015-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2015-2023, NVIDIA CORPORATION.  All rights reserved.
  */
 #include <linux/clk.h>
 #include <linux/list.h>
@@ -403,6 +403,7 @@ static int tegra_vi_graph_parse_one(struct tegra_channel *chan,
 	struct device_node *next;
 	struct device_node *remote = NULL;
 	struct tegra_vi_graph_entity *entity;
+	int value = 0;
 	int ret = 0;
 
 	dev_dbg(chan->vi->dev, "parsing node %s\n", node->full_name);
@@ -426,6 +427,10 @@ static int tegra_vi_graph_parse_one(struct tegra_channel *chan,
 		    tegra_vi_graph_find_entity(chan, remote) ||
 		    !of_device_is_available(remote))
 			continue;
+
+		ret = of_property_read_u32(ep, "port-index", &value);
+		if (!ret)
+			chan->port[0] = value;
 
 		entity = devm_kzalloc(chan->vi->dev, sizeof(*entity),
 				GFP_KERNEL);
