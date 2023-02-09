@@ -64,3 +64,4 @@ struct ufs_ioc_combo_query_req {
 };
 
 #endif /* UAPI_SCSI_UFS_UFS_IOCTL_H_ */
+
