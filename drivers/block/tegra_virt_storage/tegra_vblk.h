@@ -104,7 +104,6 @@ struct vblk_dev {
 	uint32_t hsierror_status;
 	struct completion hsierror_handle;
 #endif
-	struct mutex req_lock;
 	struct mutex ivc_lock;
 	enum vblk_queue_state queue_state;
 	struct completion req_queue_empty;

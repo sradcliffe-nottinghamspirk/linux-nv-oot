@@ -56,8 +56,6 @@ static struct vsc_request *vblk_get_req(struct vblk_dev *vblkdev)
 	struct vsc_request *req = NULL;
 	unsigned long bit;
 
-	mutex_lock(&vblkdev->req_lock);
-
 	if (vblkdev->queue_state != VBLK_QUEUE_ACTIVE)
 		goto exit;
 
@@ -70,7 +68,6 @@ static struct vsc_request *vblk_get_req(struct vblk_dev *vblkdev)
 	}
 
 exit:
-	mutex_unlock(&vblkdev->req_lock);
 	return req;
 }
 
@@ -82,7 +79,6 @@ static struct vsc_request *vblk_get_req_by_sr_num(struct vblk_dev *vblkdev,
 	if (num >= vblkdev->max_requests)
 		return NULL;
 
-	mutex_lock(&vblkdev->req_lock);
 	req = &vblkdev->reqs[num];
 	if (test_bit(req->id, vblkdev->pending_reqs) == 0) {
 		dev_err(vblkdev->device,
@@ -90,7 +86,6 @@ static struct vsc_request *vblk_get_req_by_sr_num(struct vblk_dev *vblkdev,
 			req->id);
 		req = NULL;
 	}
-	mutex_unlock(&vblkdev->req_lock);
 
 	/* Assuming serial number is same as index into request array */
 	return req;
@@ -116,12 +111,11 @@ static void vblk_put_req(struct vsc_request *req)
 		return;
 	}
 
-	mutex_lock(&vblkdev->req_lock);
 	if (req != &vblkdev->reqs[req->id]) {
 		dev_err(vblkdev->device,
 			"Request Index %d does not match with the request!\n",
 				req->id);
-		goto exit;
+		return;
 	}
 
 	if (test_bit(req->id, vblkdev->pending_reqs) == 0) {
@@ -140,8 +134,6 @@ static void vblk_put_req(struct vsc_request *req)
 			complete(&vblkdev->req_queue_empty);
 		}
 	}
-exit:
-	mutex_unlock(&vblkdev->req_lock);
 }
 
 static int vblk_send_config_cmd(struct vblk_dev *vblkdev)
@@ -911,11 +903,6 @@ static void setup_device(struct vblk_dev *vblkdev)
 		vblkdev->config.blk_config.num_blks *
 			vblkdev->config.blk_config.hardblk_size;
 
-	spin_lock_init(&vblkdev->lock);
-	spin_lock_init(&vblkdev->queue_lock);
-	mutex_init(&vblkdev->ioctl_lock);
-	mutex_init(&vblkdev->ivc_lock);
-
 	memset(&vblkdev->tag_set, 0, sizeof(vblkdev->tag_set));
 	vblkdev->tag_set.ops = &vblk_mq_ops;
 	vblkdev->tag_set.nr_hw_queues = 1;
@@ -1090,7 +1077,6 @@ static void setup_device(struct vblk_dev *vblkdev)
 			"maximum requests set to 0!\n");
 		return;
 	}
-	mutex_init(&vblkdev->req_lock);
 
 	vblkdev->max_requests = max_requests;
 	vblkdev->max_ioctl_requests = max_ioctl_requests;
@@ -1214,17 +1200,25 @@ static void vblk_init_device(struct work_struct *ws)
 {
 	struct vblk_dev *vblkdev = container_of(ws, struct vblk_dev, init);
 
+	mutex_lock(&vblkdev->ivc_lock);
 	/* wait for ivc channel reset to finish */
-	if (tegra_hv_ivc_channel_notified(vblkdev->ivck) != 0)
+	if (tegra_hv_ivc_channel_notified(vblkdev->ivck) != 0) {
+		mutex_unlock(&vblkdev->ivc_lock);
 		return;	/* this will be rescheduled by irq handler */
+	}
 
 	if (tegra_hv_ivc_can_read(vblkdev->ivck) && !vblkdev->initialized) {
-		if (vblk_get_configinfo(vblkdev))
+		if (vblk_get_configinfo(vblkdev)) {
+			mutex_unlock(&vblkdev->ivc_lock);
 			return;
+		}
 
+		mutex_unlock(&vblkdev->ivc_lock);
 		vblkdev->initialized = true;
 		setup_device(vblkdev);
+		return;
 	}
+	mutex_unlock(&vblkdev->ivc_lock);
 }
 
 static irqreturn_t ivc_irq_handler(int irq, void *data)
@@ -1310,6 +1304,11 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 #endif
 	vblkdev->queue_state = VBLK_QUEUE_ACTIVE;
 
+	spin_lock_init(&vblkdev->lock);
+	spin_lock_init(&vblkdev->queue_lock);
+	mutex_init(&vblkdev->ioctl_lock);
+	mutex_init(&vblkdev->ivc_lock);
+
 	INIT_WORK(&vblkdev->init, vblk_init_device);
 	INIT_WORK(&vblkdev->work, vblk_request_work);
 	/* creating and initializing the an internal request list */
@@ -1322,13 +1321,15 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 		goto free_wq;
 	}
 
+	mutex_lock(&vblkdev->ivc_lock);
 	tegra_hv_ivc_channel_reset(vblkdev->ivck);
 	if (vblk_send_config_cmd(vblkdev)) {
 		dev_err(dev, "Failed to send config cmd\n");
 		ret = -EACCES;
+		mutex_unlock(&vblkdev->ivc_lock);
 		goto free_wq;
 	}
-
+	mutex_unlock(&vblkdev->ivc_lock);
 	return 0;
 
 free_wq:
@@ -1378,13 +1379,13 @@ static int tegra_hv_vblk_suspend(struct device *dev)
 		blk_mq_stop_hw_queues(vblkdev->queue);
 		spin_unlock_irqrestore(&vblkdev->queue->queue_lock, flags);
 
-		mutex_lock(&vblkdev->req_lock);
+		spin_lock(&vblkdev->lock);
 		vblkdev->queue_state = VBLK_QUEUE_SUSPENDED;
 
 		/* Mark the queue as empty if inflight requests are 0 */
 		if (vblkdev->inflight_reqs == 0)
 			complete(&vblkdev->req_queue_empty);
-		mutex_unlock(&vblkdev->req_lock);
+		spin_unlock(&vblkdev->lock);
 
 		wait_for_completion(&vblkdev->req_queue_empty);
 		disable_irq(vblkdev->ivck->irq);
@@ -1406,10 +1407,10 @@ static int tegra_hv_vblk_resume(struct device *dev)
 	unsigned long flags;
 
 	if (vblkdev->queue) {
-		mutex_lock(&vblkdev->req_lock);
+		spin_lock(&vblkdev->lock);
 		vblkdev->queue_state = VBLK_QUEUE_ACTIVE;
 		reinit_completion(&vblkdev->req_queue_empty);
-		mutex_unlock(&vblkdev->req_lock);
+		spin_unlock(&vblkdev->lock);
 
 		enable_irq(vblkdev->ivck->irq);
 
