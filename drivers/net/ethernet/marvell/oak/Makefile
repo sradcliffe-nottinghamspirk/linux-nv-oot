@@ -23,10 +23,6 @@ EXTRA_CFLAGS += -DKERNEL -Werror
 
 oak_pci-objs := oak.o oak_net.o  oak_irq.o oak_ethtool.o oak_unimac.o oak_debug.o oak_chksum.o oak_dpm.o
 
-ifeq ($(CONFIG_OAK_DEBUG),y)
-EXTRA_CFLAGS += -DDEBUG -DSIMULATION -DUNIMAC_MQ_RR
-endif
-
 all:
 	make W=1 -C /lib/modules/`uname -r`/build M=`pwd` modules
 
