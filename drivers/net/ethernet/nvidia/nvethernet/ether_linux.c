@@ -4662,23 +4662,11 @@ static int ether_get_mac_address(struct ether_priv_data *pdata)
 		 * MAC address
 		 */
 		ret = of_get_mac_address(np, addr);
-		if (!ret)
+		if (ret < 0) {
+			dev_err(dev, "No Mac address local DT!\n");
 			return ret;
-		eth_mac_addr = addr;
-
-		if (IS_ERR_OR_NULL(eth_mac_addr)) {
-			dev_err(dev, "No MAC address in local DT!\n");
-			return -EINVAL;
 		}
-	}
-
-	/* If neither chosen node nor kernel supported dt strings are
-	 * present in platform device tree.
-	 */
-	if (!(is_valid_ether_addr(eth_mac_addr)) ||
-	    IS_ERR_OR_NULL(eth_mac_addr)) {
-		dev_err(dev, "Bad mac address exiting\n");
-		return -EINVAL;
+		eth_mac_addr = addr;
 	}
 
 	/* Found a valid mac address */
