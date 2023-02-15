@@ -159,9 +159,14 @@ static void camrtc_clk_group_error(
 	int error)
 {
 	const char *name = "unnamed";
+	int ret;
 
-	of_property_read_string_index(grp->device->of_node,
+	ret = of_property_read_string_index(grp->device->of_node,
 				"clock-names", index, &name);
+
+	if (ret < 0)
+		dev_warn(grp->device, "Cannot find clock in clock-names\n");
+
 	dev_warn(grp->device, "%s clk %s (at [%d]): failed (%d)\n",
 				op, name, index, error);
 }

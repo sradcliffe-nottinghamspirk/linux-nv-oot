@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include "reset-group.h"
 
@@ -96,9 +96,13 @@ static void camrtc_reset_group_error(
 	int error)
 {
 	const char *name = "unnamed";
+	int ret;
 
-	of_property_read_string_index(grp->device->of_node,
+	ret = of_property_read_string_index(grp->device->of_node,
 				grp->group_name, index, &name);
+	if (ret < 0)
+		dev_warn(grp->device, "Cannot find reset in %s\n", grp->group_name);
+
 	dev_warn(grp->device, "%s reset %s (at %s[%d]): %d\n",
 		op, name, grp->group_name, index, error);
 }
