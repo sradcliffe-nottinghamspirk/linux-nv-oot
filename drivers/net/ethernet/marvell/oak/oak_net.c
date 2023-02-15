@@ -574,7 +574,11 @@ void oak_net_add_napi(struct net_device *netdev)
 
 	while (num_ldg > 0) {
 		/* Initialize a napi context */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+		netif_napi_add_weight(netdev, &ldg->napi, oak_net_poll, napi_wt);
+#else
 		netif_napi_add(netdev, &ldg->napi, oak_net_poll, napi_wt);
+#endif
 		/* Enable NAPI scheduling */
 		napi_enable(&ldg->napi);
 		++ldg;
@@ -626,7 +630,8 @@ int oak_net_set_mac_addr(struct net_device *dev, void *p_addr)
 	if (rc == 0) {
 		rc = -EINVAL;
 	} else {
-		memcpy(dev->dev_addr, addr->sa_data, ETH_ALEN);
+		//memcpy(dev->dev_addr, addr->sa_data, ETH_ALEN);
+		dev_addr_mod(dev, 0, addr->sa_data, ETH_ALEN);
 
 		/* When an interface come up we need to remember the
 		 * MAC address of an interface. Because the same MAC

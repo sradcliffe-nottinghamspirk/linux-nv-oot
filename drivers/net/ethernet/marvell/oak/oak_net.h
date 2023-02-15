@@ -29,6 +29,8 @@
 /* Include for relation to classifier linux/if_vlan.h */
 #include "linux/if_vlan.h"
 
+#include <linux/version.h>
+
 #define OAK_ONEBYTE 1
 
 extern u32 rxs;

@@ -646,7 +646,7 @@ static void oak_read_set_mac_address(struct pci_dev *pdev)
 		if (rc != 0) {
 			pr_info("Device MAC address : %pM\n", device_mac);
 			ether_addr_copy(np->mac_address, nic_mac);
-			ether_addr_copy(netdev->dev_addr, nic_mac);
+			eth_hw_addr_set(netdev, nic_mac);
 			pr_info("MAC address of NIC : %pM\n", nic_mac);
 		}
 	}
