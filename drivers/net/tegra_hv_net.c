@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #undef DEBUG
@@ -114,7 +114,7 @@ struct tegra_hv_net {
 	struct platform_device *pdev;
 	struct net_device *ndev;
 	struct tegra_hv_ivc_cookie *ivck;
-	const void *mac_address;
+	int mac_address;
 	struct napi_struct napi;
 	struct tegra_hv_net_stats __percpu *stats;
 
@@ -702,7 +702,7 @@ static int tegra_hv_net_probe(struct platform_device *pdev)
 	/* get mac address from the DT */
 
 	hvn->mac_address = of_get_mac_address(dev->of_node, ndev->dev_addr);
-	if (IS_ERR_OR_NULL(hvn->mac_address)) {
+	if (IS_ERR(&hvn->mac_address)) {
 		if (of_property_read_bool(dev->of_node, "use-random-mac-addr"))
 			eth_hw_addr_random(ndev);
 		else {
@@ -729,7 +729,7 @@ static int tegra_hv_net_probe(struct platform_device *pdev)
 		}
 	} else {
 		/* Set the MAC address. */
-		ether_addr_copy(ndev->dev_addr, hvn->mac_address);
+		ether_addr_copy(ndev->dev_addr, (const u8 *)&hvn->mac_address);
 	}
 
 	hvn->xmit_wq = alloc_workqueue("tgvnet-wq-%d",
