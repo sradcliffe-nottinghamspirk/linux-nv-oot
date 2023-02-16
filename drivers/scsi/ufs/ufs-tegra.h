@@ -1,6 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2015-2022, NVIDIA CORPORATION.  All rights reserved.
+/* SPDX-License-Identifier: GPL-2.0-only
  */
+// Copyright (c) 2015-2023 NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 
 #ifndef _UFS_TEGRA_H
 #define _UFS_TEGRA_H
@@ -382,6 +382,7 @@ struct ufs_tegra_host {
 	long program_bootlun_en_id;
 	u32 boot_enable;
 	u32 descr_access_en;
+	u8 enable_shared_wb;
 	u8 *lun_desc_buf;
 	long program_lun;
 #endif

@@ -1,6 +1,5 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2015-2022, NVIDIA CORPORATION.  All rights reserved.
- */
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2015-2023 NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 
 #include <linux/time.h>
 #include <linux/of.h>
@@ -37,6 +36,20 @@
 #endif
 
 #include "ufs-tegra.h"
+#include "ufs-provision.h"
+
+static void ufs_tegra_init_debugfs(struct ufs_hba *hba)
+{
+	struct dentry *device_root;
+	struct ufs_tegra_host *ufs_tegra = hba->priv;
+
+	device_root = debugfs_create_dir(dev_name(hba->dev), NULL);
+
+#ifdef CONFIG_TEGRA_UFS_PROVISIONING
+	if (ufs_tegra->enable_ufs_provisioning)
+		debugfs_provision_init(hba, device_root);
+#endif
+}
 
 static void ufs_tegra_set_clk_div(struct ufs_hba *hba, u32 divider_val)
 {
@@ -1536,6 +1549,10 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	ufs_tegra_set_clk_div(hba, UFS_VNDR_HCLKDIV_1US_TICK);
 	ufs_tegra_eq_timeout(ufs_tegra);
 
+#ifdef CONFIG_DEBUG_FS
+	ufs_tegra_init_debugfs(hba);
+#endif
+
 	return err;
 
 out_disable_mphylane_clks:
@@ -1553,6 +1570,13 @@ static void ufs_tegra_exit(struct ufs_hba *hba)
 	struct ufs_tegra_host *ufs_tegra = hba->priv;
 
 	ufs_tegra_disable_mphylane_clks(ufs_tegra);
+
+#ifdef CONFIG_DEBUG_FS
+#ifdef CONFIG_TEGRA_UFS_PROVISIONING
+	if (ufs_tegra->enable_ufs_provisioning)
+		debugfs_provision_exit(hba);
+#endif
+#endif
 }
 
 /**
