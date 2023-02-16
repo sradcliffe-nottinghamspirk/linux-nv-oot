@@ -45,6 +45,9 @@ obj-m += nvpps/
 obj-m += nvpmodel/
 ifdef CONFIG_PCI
 obj-m += pci/
+ifdef CONFIG_TTY
+obj-m += tty/
+endif
 endif
 obj-m += pinctrl/
 obj-m += platform/tegra/
@@ -72,4 +75,3 @@ obj-m += media/
 endif
 obj-m += staging/platform/tegra/gte/
 obj-m += staging/platform/tegra/gte_test/
-
