@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: (GPL-2.0 WITH Linux-syscall-note)
  *
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef _UAPI_TEGRA_HV_VCPU_YIELD_IOCTL_H_
-#define _UAPI_TEGRA_EPL_H_
+#define _UAPI_TEGRA_HV_VCPU_YIELD_IOCTL_H_
 
 #include <linux/ioctl.h>
 
