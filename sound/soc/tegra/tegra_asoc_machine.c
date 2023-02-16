@@ -2,7 +2,7 @@
 /*
  * tegra_asoc_machine.c - Tegra DAI links parser
  *
- * Copyright (c) 2014-2023 NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2022 NVIDIA CORPORATION.  All rights reserved.
  *
  */
 
@@ -501,10 +501,8 @@ static int parse_dt_dai_links(struct snd_soc_card *card,
 		asoc_simple_canonicalize_platform(dai_link->platforms,
 						  dai_link->cpus);
 
-		if (of_property_read_u32(link_node, "link-type",
-				     &link_type) < 0)
-			goto cleanup;
-
+		of_property_read_u32(link_node, "link-type",
+				     &link_type);
 		switch (link_type) {
 		case PCM_LINK:
 			dai_link->ops = pcm_ops;
