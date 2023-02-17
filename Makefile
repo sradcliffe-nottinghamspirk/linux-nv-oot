@@ -6,6 +6,9 @@ ccflags-y += -DCONFIG_TEGRA_FUSE_UPSTREAM
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
 obj-m += drivers/
+
+ifdef CONFIG_SOUND
 obj-m += sound/soc/tegra/
 obj-m += sound/tegra-safety-audio/
 obj-m += sound/soc/tegra-virt-alt/
+endif
