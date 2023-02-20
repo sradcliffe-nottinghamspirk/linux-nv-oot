@@ -1755,7 +1755,6 @@ static void free_rx_dma_resources(struct osi_dma_priv_data *osi_dma,
 			}
 			kfree(rx_ring);
 			osi_dma->rx_ring[i] = NULL;
-			rx_ring = NULL;
 		}
 	}
 #ifdef ETHER_PAGE_POOL
@@ -2013,7 +2012,6 @@ static void free_tx_dma_resources(struct osi_dma_priv_data *osi_dma,
 			}
 
 			kfree(tx_ring);
-			tx_ring = NULL;
 			osi_dma->tx_ring[i] = NULL;
 		}
 	}
