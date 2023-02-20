@@ -151,7 +151,7 @@ struct nvpva_elf_context {
  * Get Symbol info given the symbol name from a vpu app
  *
  * @param d		Pointer to Elf Context
- * @param vpu_exe_id	ID of the VPU app
+ * @param exe_id	ID of the VPU app
  * @param *sym_name	String containing Name of the symbol
  * @param *symbol	symbol information
 
@@ -159,7 +159,7 @@ struct nvpva_elf_context {
  *			When -EINVAL is returned, ignore values in id and
  *			sym_size
  */
-int32_t pva_get_sym_info(struct nvpva_elf_context *d, uint16_t vpu_exe_id,
+int32_t pva_get_sym_info(struct nvpva_elf_context *d, uint16_t exe_id,
 		       const char *sym_name, struct pva_elf_symbol *symbol);
 
 /**

@@ -263,6 +263,19 @@ out:
 	return err;
 }
 
+static uint16_t
+get_sym_exe_id(struct pva_submit_task *task)
+{
+	u16 exe_id = NVPVA_NOOP_EXE_ID;
+
+	if (task->exe_id2 != NVPVA_NOOP_EXE_ID)
+		exe_id = task->exe_id2;
+	if (task->exe_id1 != NVPVA_NOOP_EXE_ID)
+		exe_id = task->exe_id1;
+
+	return exe_id;
+}
+
 static int32_t
 patch_dma_desc_address(struct pva_submit_task *task,
 		      struct nvpva_dma_descriptor *umd_dma_desc,
@@ -271,11 +284,13 @@ patch_dma_desc_address(struct pva_submit_task *task,
 {
 	int32_t err = 0;
 	uint64_t addr_base = 0;
+	uint16_t exe_id = 0;
 	struct pva_dma_task_buffer_info_s *buff_info = &task->task_buff_info[desc_id];
 	int hwgen = task->pva->version;
 
 	nvpva_dbg_fn(task->pva, "");
 
+	exe_id = get_sym_exe_id(task);
 	switch (umd_dma_desc->srcTransferMode) {
 	case DMA_DESC_SRC_XFER_L2RAM:
 		/*
@@ -329,7 +344,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 			goto out;
 		}
 
-		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id1,
+		err = pva_get_sym_offset(&task->client->elf_ctx, exe_id,
 					 umd_dma_desc->srcPtr, &addr, &size);
 		if (err) {
 			err = -EINVAL;
@@ -371,7 +386,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 
 		/* calculate symbol address */
 		/* TODO: check VPUC handling in ELF segment */
-		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id1,
+		err = pva_get_sym_offset(&task->client->elf_ctx, exe_id,
 					 umd_dma_desc->srcPtr, &addr, &size);
 		if (err) {
 			task_err(task, "ERROR: Invalid offset or address");
@@ -516,7 +531,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 			goto out;
 		}
 
-		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id1,
+		err = pva_get_sym_offset(&task->client->elf_ctx, exe_id,
 					 umd_dma_desc->dstPtr, &addr, &size);
 		if (err) {
 			err = -EINVAL;
@@ -528,7 +543,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 
 		if (umd_dma_desc->dst2Ptr != NVPVA_INVALID_SYMBOL_ID) {
 			err = pva_get_sym_offset(&task->client->elf_ctx,
-						 task->exe_id1,
+						 exe_id,
 						 umd_dma_desc->dst2Ptr,
 						 &addr2,
 						 &size2);
@@ -763,6 +778,8 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 	bool is_misr;
 	u8 num_dma_descriptors = task->num_dma_descriptors;
 	u8 *num_dma_desc_processed = &task->num_dma_desc_processed;
+	uint16_t exe_id = 0;
+
 	nvpva_dbg_fn(task->pva, "");
 
 	desc_num = *did;
@@ -885,9 +902,10 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 		/* DMA_DESC_PY */
 		dma_desc->py = (uint8_t)umd_dma_desc->py;
 		/* DMA_DESC_FRDA */
+		exe_id = get_sym_exe_id(task);
 		if (umd_dma_desc->dst2Ptr != NVPVA_INVALID_SYMBOL_ID) {
 			err = pva_get_sym_offset(&task->client->elf_ctx,
-						 task->exe_id1,
+						 exe_id,
 						 umd_dma_desc->dst2Ptr,
 						 &addr,
 						 &size);

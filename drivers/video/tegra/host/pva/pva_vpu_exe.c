@@ -909,7 +909,7 @@ pva_get_sym_tab(struct nvpva_elf_context *d,
 
 	return 0;
 }
-int32_t pva_get_sym_info(struct nvpva_elf_context *d, uint16_t vpu_exe_id,
+int32_t pva_get_sym_info(struct nvpva_elf_context *d, uint16_t exe_id,
 		       const char *sym_name, struct pva_elf_symbol *symbol)
 {
 	struct pva_elf_image *elf;
@@ -917,7 +917,7 @@ int32_t pva_get_sym_info(struct nvpva_elf_context *d, uint16_t vpu_exe_id,
 	int32_t err = 0;
 	size_t strSize = strnlen(sym_name, ELF_MAX_SYMBOL_LENGTH);
 
-	elf = get_elf_image(d, vpu_exe_id);
+	elf = get_elf_image(d, exe_id);
 	for (i = 0; i < elf->num_symbols; i++) {
 		if (strncmp(sym_name, elf->sym[i].symbol_name, strSize) == 0) {
 			symbol->symbolID = elf->sym[i].symbolID;

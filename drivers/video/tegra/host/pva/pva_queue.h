@@ -110,6 +110,7 @@ struct pva_submit_task {
 	u32 exe_id1;
 	u64 stream_id;
 	u64 prog_id;
+	u32 exe_id2;
 
 	u32 l2_alloc_size; /* Not applicable for Xavier */
 	struct pva_cb *stdout;

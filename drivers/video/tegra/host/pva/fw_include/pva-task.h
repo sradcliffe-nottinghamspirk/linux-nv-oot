@@ -211,7 +211,7 @@ struct PVA_PACKED pva_td_s {
 	/** @brief IOVA pointer to a pva_bin_info_t structure */
 	pva_iova			bin_info;
 	/** @brief IOVA pointer to a pva_bin_info_t structure */
-	pva_iova			ppe_bin_info;
+	pva_iova			bin_info2;
 	/** @brief IOVA pointer to a pva_dma_info_t structure */
 	pva_iova			dma_info;
 	/** IOVA pointer to a pva_circular_info_t structure */

@@ -475,6 +475,7 @@ struct nvpva_ioctl_task {
 	uint64_t prog_id;
 	uint64_t stream_id;
 	uint16_t exe_id1;
+	uint16_t exe_id2;
 	uint32_t flags;
 	uint32_t l2_alloc_size; /* Not applicable for Xavier */
 	struct nvpva_ioctl_part prefences;
