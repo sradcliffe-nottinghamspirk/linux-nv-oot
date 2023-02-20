@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 obj-m += pex9749-thermal.o
+obj-m += tegra234-oc-event.o
