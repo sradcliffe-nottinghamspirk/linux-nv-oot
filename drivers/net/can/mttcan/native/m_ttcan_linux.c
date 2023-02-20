@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include "../include/m_ttcan.h"
@@ -1787,7 +1787,11 @@ static int mttcan_probe(struct platform_device *pdev)
 	priv->gpio_can_stb.active_low = flags & OF_GPIO_ACTIVE_LOW;
 	priv->instance = of_alias_get_id(np, "mttcan");
 	priv->poll = of_property_read_bool(np, "use-polling");
-	of_property_read_u32_array(np, "tt-param", priv->tt_param, 2);
+
+	if (of_property_read_u32_array(np, "tt-param", priv->tt_param, 2) != 0) {
+		pr_info("TT CAN feature is not supported\n");
+	}
+
 	if (of_property_read_u32_array(np, "tx-config",
 		priv->tx_conf, TX_CONF_MAX)) {
 		dev_err(priv->device, "tx-config missing\n");

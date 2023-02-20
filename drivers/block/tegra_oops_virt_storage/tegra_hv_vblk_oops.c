@@ -118,7 +118,7 @@ static int32_t wait_for_fops_completion(struct vblk_dev *vblkdev_oops, bool is_r
 static ssize_t vblk_oops_read(char *buf, size_t bytes, loff_t pos)
 {
 	struct vsc_request *vsc_req;
-	struct vs_request req_in;
+	struct vs_request req_in = {0};
 	struct vs_request req_out;
 	uint32_t blocks, block_pos;
 	uint32_t block_size = vblkdev_oops->config.blk_config.hardblk_size;
@@ -203,7 +203,7 @@ static ssize_t vblk_oops_write(const char *buf, size_t bytes,
 		loff_t pos)
 {
 	struct vsc_request *vsc_req;
-	struct vs_request req_in;
+	struct vs_request req_in = {0};
 	struct vs_request req_out;
 	uint32_t blocks, block_pos;
 	uint32_t block_size = vblkdev_oops->config.blk_config.hardblk_size;
@@ -308,7 +308,7 @@ static ssize_t vblk_oops_panic_write(const char *buf, size_t bytes,
 		loff_t pos)
 {
 	struct vsc_request *vsc_req;
-	struct vs_request req_in;
+	struct vs_request req_in = {0};
 	uint32_t blocks, block_pos;
 	uint32_t block_size = vblkdev_oops->config.blk_config.hardblk_size;
 
