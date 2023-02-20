@@ -2,7 +2,7 @@
 //
 // tegra210_i2s.c - Tegra210 I2S driver
 //
-// Copyright (c) 2020-2022 NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2020-2023 NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -895,6 +895,12 @@ static int tegra210_i2s_hw_params(struct snd_pcm_substream *substream,
 	if (i2s->srate_override)
 		srate = i2s->srate_override;
 
+	/* For playback I2S RX-CIF and for capture TX-CIF is used */
+	if (substream->stream == TEGRA_PLAYBACK_STREAM)
+		path = I2S_RX_PATH;
+	else
+		path = I2S_TX_PATH;
+
 	if (i2s->audio_ch_override[path])
 		cif_conf.audio_ch = i2s->audio_ch_override[path];
 
@@ -904,12 +910,6 @@ static int tegra210_i2s_hw_params(struct snd_pcm_substream *substream,
 	if (i2s->audio_fmt_override[path])
 		cif_conf.audio_bits =
 			tegra210_cif_fmt[i2s->audio_fmt_override[path]];
-
-	/* For playback I2S RX-CIF and for capture TX-CIF is used */
-	if (substream->stream == TEGRA_PLAYBACK_STREAM)
-		path = I2S_RX_PATH;
-	else
-		path = I2S_TX_PATH;
 
 	if (substream->stream == TEGRA_PLAYBACK_STREAM) {
 		unsigned int max_th;
