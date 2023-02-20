@@ -1358,7 +1358,12 @@ static int tegra_hv_vblk_remove(struct platform_device *pdev)
 
 	destroy_workqueue(vblkdev->wq);
 	tegra_hv_ivc_unreserve(vblkdev->ivck);
-	tegra_hv_mempool_unreserve(vblkdev->ivmk);
+
+	if ((vblkdev->config.blk_config.use_vm_address == 1U
+				&& vblkdev->config.blk_config.req_ops_supported & VS_BLK_IOCTL_OP_F)
+				|| vblkdev->config.blk_config.use_vm_address == 0U) {
+		tegra_hv_mempool_unreserve(vblkdev->ivmk);
+	}
 
 #if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
 	if (vblkdev->epl_id == IP_SDMMC)
