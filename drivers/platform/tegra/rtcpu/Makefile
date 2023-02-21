@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 LINUXINCLUDE += -I$(srctree.nvidia)/drivers/gpu/host1x/hw/
 LINUXINCLUDE += -I$(srctree.nvidia)/drivers/gpu/host1x/include
@@ -9,7 +9,13 @@ LINUXINCLUDE += -I$(srctree)/include
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/platform/tegra/rtcpu
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/platform/tegra
 
+LINUX_VERSION := $(shell expr $(VERSION) \* 256 + $(PATCHLEVEL))
+LINUX_VERSION_6_2 := $(shell expr 6 \* 256 + 2)
+
+# capture-ivc is currently broken for Linux v6.2 and so skip for Linux v6.2+
+ifeq ($(shell test $(LINUX_VERSION) -lt $(LINUX_VERSION_6_2); echo $$?),0)
 obj-m += capture-ivc.o
+endif
 obj-m += ivc-bus.o
 obj-m += camchar.o
 obj-m += camera-diagnostics.o
