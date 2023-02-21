@@ -1,14 +1,16 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef __TEGRA_IVC_EXT_H
 #define __TEGRA_IVC_EXT_H
 
 #include <linux/types.h>
+#include <linux/version.h>
 #include <soc/tegra/ivc-priv.h>
 
+#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
 /**
  * tegra_ivc_channel_notified - notifies the peer device
  * @ivc		pointer of the IVC channel
@@ -116,5 +118,64 @@ int tegra_ivc_read_peek(struct tegra_ivc *ivc, void __user *usr_buf, void *buf, 
  * Returns no. of bytes written to ivc channel else return error.
  */
 int tegra_ivc_write(struct tegra_ivc *ivc, const void __user *usr_buf, const void *buf, size_t size);
+#else
+static inline int tegra_ivc_channel_notified(struct tegra_ivc *ivc)
+{
+	return -ENOTSUPP;
+}
+
+static inline void tegra_ivc_channel_reset(struct tegra_ivc *ivc)
+{
+	return;
+}
+
+static inline bool tegra_ivc_empty(struct tegra_ivc *ivc,
+				   struct tegra_ivc_header *header)
+{
+	return true;
+}
+
+static inline int tegra_ivc_channel_sync(struct tegra_ivc *ivc)
+{
+	return -ENOTSUPP;
+}
+
+static inline uint32_t tegra_ivc_frames_available(struct tegra_ivc *ivc,
+		struct tegra_ivc_header *header)
+{
+	return 0;
+}
+
+static inline int tegra_ivc_can_read(struct tegra_ivc *ivc)
+{
+	return -ENOTSUPP;
+};
+
+static inline int tegra_ivc_can_write(struct tegra_ivc *ivc)
+{
+	return -ENOTSUPP;
+};
+
+static inline int tegra_ivc_read(struct tegra_ivc *ivc, void __user *usr_buf,
+				 void *buf, size_t max_read)
+{
+	return -ENOTSUPP;
+}
+
+static inline int tegra_ivc_read_peek(struct tegra_ivc *ivc,
+				      void __user *usr_buf, void *buf,
+				      size_t offset, size_t size)
+{
+	return -ENOTSUPP;
+};
+
+static inline int tegra_ivc_write(struct tegra_ivc *ivc,
+				  const void __user *usr_buf,
+				  const void *buf, size_t size)
+{
+	return -ENOTSUPP;
+};
+
+#endif /* (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE) */
 
 #endif /* __TEGRA_IVC_EXT_H */
