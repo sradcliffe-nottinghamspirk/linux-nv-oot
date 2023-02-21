@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: endpoint: " fmt
 
@@ -363,12 +363,12 @@ endpoint_fops_poll(struct file *filp, poll_table *wait)
 	struct endpoint_t *endpoint = filp->private_data;
 
 	if (WARN_ON(!endpoint))
-		return POLLNVAL;
+		return (__force __poll_t)POLLNVAL;
 
 	mutex_lock(&endpoint->fops_lock);
 	if (!atomic_read(&endpoint->in_use)) {
 		mutex_unlock(&endpoint->fops_lock);
-		return POLLNVAL;
+		return (__force __poll_t)POLLNVAL;
 	}
 
 	/* add all waitq if they are different for read, write & link+state.*/
@@ -380,10 +380,10 @@ endpoint_fops_poll(struct file *filp, poll_table *wait)
 	 */
 	if (atomic_read(&endpoint->linkevent_count)) {
 		atomic_dec(&endpoint->linkevent_count);
-		mask = (POLLPRI | POLLIN | POLLOUT);
+		mask = (__force __poll_t)(POLLPRI | POLLIN | POLLOUT);
 	} else if (atomic_read(&endpoint->dataevent_count)) {
 		atomic_dec(&endpoint->dataevent_count);
-		mask = (POLLPRI | POLLIN | POLLOUT);
+		mask = (__force __poll_t)(POLLPRI | POLLIN | POLLOUT);
 	}
 
 	mutex_unlock(&endpoint->fops_lock);
