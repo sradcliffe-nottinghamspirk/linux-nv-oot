@@ -17,14 +17,6 @@
 #define TEGRA_BPMP_CLK_HAS_SET_RATE	BIT(1)
 #define TEGRA_BPMP_CLK_IS_ROOT		BIT(2)
 
-/* adding definitions missing in bpmp-abi.h of older kernels: */
-#ifndef BPMP_CLK_RATE_PARENT_CHANGE_DENIED
-#define BPMP_CLK_RATE_PARENT_CHANGE_DENIED (1U << 30)
-#endif
-#ifndef BPMP_CLK_STATE_CHANGE_DENIED
-#define BPMP_CLK_STATE_CHANGE_DENIED (1U << 31)
-#endif
-
 struct tegra_bpmp_clk_info {
 	unsigned int id;
 	char name[MRQ_CLK_NAME_MAXLEN];
