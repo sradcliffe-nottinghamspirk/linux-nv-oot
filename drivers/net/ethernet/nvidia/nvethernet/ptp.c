@@ -125,11 +125,16 @@ static int ether_adjust_time(struct ptp_clock_info *ptp, s64 nsec_delta)
  *
  * @param[in] ptp: Pointer to ptp_clock_info structure.
  * @param[in] ppb: Desired period change in parts per billion.
+ * @param[in] scaled_ppm: Desired period change in parts per million.
  *
  * @retval 0 on success
  * @retval "negative value" on failure.
  */
-static int ether_adjust_freq(struct ptp_clock_info *ptp, s32 ppb)
+#if KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE
+static int ether_adjust_clock(struct ptp_clock_info *ptp, s32 ppb)
+#else
+static int ether_adjust_clock(struct ptp_clock_info *ptp, long scaled_ppm)
+#endif
 {
 	struct ether_priv_data *pdata = container_of(ptp,
 						     struct ether_priv_data,
@@ -138,6 +143,9 @@ static int ether_adjust_freq(struct ptp_clock_info *ptp, s32 ppb)
 	struct osi_ioctl ioctl_data = {};
 	unsigned long flags;
 	int ret = -1;
+#if KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE
+	s32 ppb = scaled_ppm_to_ppb(scaled_ppm);
+#endif
 
 	raw_spin_lock_irqsave(&pdata->ptp_lock, flags);
 
@@ -245,7 +253,11 @@ static struct ptp_clock_info ether_ptp_clock_ops = {
 	.n_ext_ts = 0,
 	.n_per_out = 0,
 	.pps = 0,
-	.adjfreq = ether_adjust_freq,
+#if KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE
+	.adjfreq = ether_adjust_clock,
+#else
+	.adjfine = ether_adjust_clock,
+#endif
 	.adjtime = ether_adjust_time,
 	.gettime64 = ether_get_time,
 	.settime64 = ether_set_time,
