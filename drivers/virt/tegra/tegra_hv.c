@@ -410,6 +410,8 @@ static int tegra_hv_setup(struct tegra_hv_data *hvd)
 	uint32_t i;
 	int ret;
 	uint32_t *interrupts_arr;
+	uint64_t ivcsize = 0;
+	uint64_t mpsize = 0;
 
 	hvd->dev = of_find_compatible_node(NULL, NULL, "nvidia,tegra-hv");
 	if (!hvd->dev) {
@@ -576,6 +578,9 @@ static int tegra_hv_setup(struct tegra_hv_data *hvd)
 			ERR("failed to add queue #%u\n", qd->id);
 			return ret;
 		}
+
+		ivcsize += qd->size;
+		BUG_ON(ivcsize < qd->size);
 	}
 
 	hvd->mempools =
@@ -600,9 +605,14 @@ static int tegra_hv_setup(struct tegra_hv_data *hvd)
 		ivmk->size = mpd->size;
 		ivmk->peer_vmid = mpd->peer_vmid;
 
+		mpsize += mpd->size;
+		BUG_ON(mpsize < mpd->size);
+
 		INFO("added mempool %u: ipa=%llx size=%llx peer=%u\n",
 				mpd->id, mpd->pa, mpd->size, mpd->peer_vmid);
 	}
+
+	INFO("Memory usage: ivc:0x%llx mempool=0x%llx\n", ivcsize, mpsize);
 
 	return 0;
 }
