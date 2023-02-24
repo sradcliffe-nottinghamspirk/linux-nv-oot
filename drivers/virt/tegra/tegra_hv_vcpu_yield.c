@@ -215,7 +215,7 @@ out:
 	return ret;
 }
 
-const struct file_operations fops = {
+static const struct file_operations fops = {
 	.owner = THIS_MODULE,
 	.open = tegra_hv_vcpu_yield_open,
 	.release = tegra_hv_vcpu_yield_release,
