@@ -169,7 +169,7 @@ static __poll_t ivc_dev_poll(struct file *filp, poll_table *wait)
 	/* If we have rcvd ivc interrupt, inform the user */
 	mutex_lock(&ivcd->file_lock);
 	if (ivcd->ivc_intr_rcvd == true) {
-		mask |= POLLIN | POLLRDNORM;
+		mask |= ((__force __poll_t)POLLIN) | ((__force __poll_t)POLLRDNORM);
 		ivcd->ivc_intr_rcvd = false;
 	}
 	mutex_unlock(&ivcd->file_lock);
