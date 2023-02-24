@@ -170,7 +170,7 @@
 static struct crypto_dev_to_ivc_map g_crypto_to_ivc_map[MAX_NUMBER_MISC_DEVICES];
 
 static bool gcm_supports_dma;
-struct device *gpcdma_dev;
+static struct device *gpcdma_dev;
 
 /* Security Engine Linked List */
 struct tegra_virtual_se_ll {
