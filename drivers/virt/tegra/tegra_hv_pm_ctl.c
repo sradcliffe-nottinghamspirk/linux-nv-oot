@@ -333,8 +333,8 @@ static __poll_t tegra_hv_pm_ctl_poll(struct file *filp,
 {
 	struct tegra_hv_pm_ctl *data = filp->private_data;
 	__poll_t req_events = poll_requested_events(table);
-	__poll_t read_mask = POLLIN | POLLRDNORM;
-	__poll_t write_mask = POLLOUT | POLLWRNORM;
+	__poll_t read_mask = ((__force __poll_t)POLLIN) | ((__force __poll_t)POLLRDNORM);
+	__poll_t write_mask = ((__force __poll_t)POLLOUT) | ((__force __poll_t)POLLWRNORM);
 	__poll_t mask = 0;
 
 	mutex_lock(&data->mutex_lock);
