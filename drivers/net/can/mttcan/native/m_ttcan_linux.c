@@ -624,7 +624,7 @@ static void mttcan_tx_complete(struct net_device *dev)
 #endif
 		clear_bit(msg_no, &ttcan->tx_object);
 		stats->tx_packets++;
-		stats->tx_bytes += can_get_echo_skb(dev, msg_no, 0);
+		stats->tx_bytes += can_get_echo_skb(dev, msg_no, NULL);
 		completed_tx &= ~(1U << msg_no);
 	}
 
@@ -655,7 +655,7 @@ static void mttcan_tx_cancelled(struct net_device *dev)
 		msg_no = ffs(cancelled_msg) - 1;
 		buff_bit = 1U << msg_no;
 		if (ttcan->tx_object & buff_bit) {
-			can_free_echo_skb(dev, msg_no, 0);
+			can_free_echo_skb(dev, msg_no, NULL);
 			clear_bit(msg_no, &ttcan->tx_object);
 			cancelled_msg &= ~(buff_bit);
 			stats->tx_aborted_errors++;
