@@ -51,7 +51,16 @@ dtbo-oot-y :=
 DTB_LIST := $(dtb-oot-y)
 DTBO_LIST := $(dtbo-oot-y)
 dtb-oot-y :=
-kdts := $(shell find $(tegra-dtstree)/platform -name kernel-dts)
+fdts := $(shell find $(tegra-dtstree)/platform -name kernel-dts)
+
+# Remove the DTs from protected soc list
+ifneq ($(protected_soc_list),)
+kdts := $(foreach dt_path, $(fdts), $(if $(filter $(protected_soc_list),$(patsubst -,$(space),$(subst /, $(space),$(dt_path)))),,$(dt_path)))
+kdts := $(filter-out $(space)$(space),$(kdts))
+else
+kdts := $(fdts)
+endif
+
 dts_makefile=$(foreach d,$(wildcard $1*), $(call dts_makefile,$(d)/,$(2)) $(if $(findstring Makefile,$(d)),$(d)))
 dts_mfiles = $(call dts_makefile, $(kdts), Makefile)
 
