@@ -104,7 +104,7 @@ struct tegra_hv_data {
  *
  * This should be accessed only through get_hvd().
  */
-static const struct tegra_hv_data *tegra_hv_data;
+static struct tegra_hv_data *tegra_hv_data;
 
 struct ivc_notify_info {
 	// Trap based notification
@@ -140,7 +140,7 @@ static void ivc_raise_irq(struct tegra_ivc *ivc_channel, void *data)
 	*ivc->cookie.notify_va = ivc->qd->raise_irq;
 }
 
-static const struct tegra_hv_data *get_hvd(void)
+static struct tegra_hv_data *get_hvd(void)
 {
 	if (!tegra_hv_data) {
 		INFO("%s: not initialized yet\n", __func__);
@@ -152,7 +152,7 @@ static const struct tegra_hv_data *get_hvd(void)
 
 const struct ivc_info_page *tegra_hv_get_ivc_info(void)
 {
-	const struct tegra_hv_data *hvd = get_hvd();
+	struct tegra_hv_data *hvd = get_hvd();
 
 	if (IS_ERR(hvd))
 		return (void *)hvd;
@@ -163,7 +163,7 @@ EXPORT_SYMBOL(tegra_hv_get_ivc_info);
 
 int tegra_hv_get_vmid(void)
 {
-	const struct tegra_hv_data *hvd = get_hvd();
+	struct tegra_hv_data *hvd = get_hvd();
 
 	if (IS_ERR(hvd))
 		return -1;
@@ -329,7 +329,7 @@ static int tegra_hv_add_ivc(struct tegra_hv_data *hvd,
 	return 0;
 }
 
-static struct hv_ivc *ivc_device_by_id(const struct tegra_hv_data *hvd, uint32_t id)
+static struct hv_ivc *ivc_device_by_id(struct tegra_hv_data *hvd, uint32_t id)
 {
 	if (id > hvd->max_qid) {
 		return NULL;
@@ -390,7 +390,7 @@ static void tegra_hv_cleanup(struct tegra_hv_data *hvd)
 static ssize_t vmid_show(struct class *class,
 	struct class_attribute *attr, char *buf)
 {
-	const struct tegra_hv_data *hvd = get_hvd();
+	struct tegra_hv_data *hvd = get_hvd();
 
 	BUG_ON(!hvd);
 	return snprintf(buf, PAGE_SIZE, "%d\n", hvd->guestid);
@@ -609,7 +609,7 @@ static int ivc_dump(struct hv_ivc *ivc)
 struct tegra_hv_ivc_cookie *tegra_hv_ivc_reserve(struct device_node *dn,
 		int id, const struct tegra_hv_ivc_ops *ops)
 {
-	const struct tegra_hv_data *hvd = get_hvd();
+	struct tegra_hv_data *hvd = get_hvd();
 	struct hv_ivc *ivc;
 	struct tegra_hv_ivc_cookie *ivck;
 	int ret;
