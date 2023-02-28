@@ -2,7 +2,7 @@
 /*
  * RTC driver for NVIDIA Voltage Regulator Power Sequencer
  *
- * Copyright (C) 2022 NVIDIA CORPORATION. All rights reserved.
+ * Copyright (C) 2022-2023 NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/i2c.h>
@@ -214,7 +214,7 @@ static int nvvrs_rtc_read_time(struct device *dev, struct rtc_time *tm)
 			info->drv_data->map[RTC_T3], ret);
 		goto out;
 	}
-	secs |= ret << 24;
+	secs |= (time64_t)ret << 24;
 
 	ret = i2c_smbus_read_byte_data(client, info->drv_data->map[RTC_T2]);
 	if (ret < 0) {
@@ -222,7 +222,7 @@ static int nvvrs_rtc_read_time(struct device *dev, struct rtc_time *tm)
 			info->drv_data->map[RTC_T2], ret);
 		goto out;
 	}
-	secs |= ret << 16;
+	secs |= (time64_t)ret << 16;
 
 	ret = i2c_smbus_read_byte_data(client, info->drv_data->map[RTC_T1]);
 	if (ret < 0) {
@@ -230,7 +230,7 @@ static int nvvrs_rtc_read_time(struct device *dev, struct rtc_time *tm)
 			info->drv_data->map[RTC_T1], ret);
 		goto out;
 	}
-	secs |= ret << 8;
+	secs |= (time64_t)ret << 8;
 
 	ret = i2c_smbus_read_byte_data(client, info->drv_data->map[RTC_T0]);
 	if (ret < 0) {
