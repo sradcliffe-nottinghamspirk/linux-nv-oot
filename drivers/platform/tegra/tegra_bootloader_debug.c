@@ -311,91 +311,94 @@ static int __init tegra_bootloader_debuginit(void)
 	void __iomem *ptr_bl_debug_data_start = NULL;
 	void __iomem *ptr_bl_boot_cfg_start = NULL;
 
-	bl_debug_node = debugfs_create_dir(dir_name, NULL);
+	if (debugfs_initialized()) {
+		bl_debug_node = debugfs_create_dir(dir_name, NULL);
 
-	if (IS_ERR_OR_NULL(bl_debug_node)) {
-		pr_err("%s: failed to create debugfs entries: %ld\n",
-			module_name, PTR_ERR(bl_debug_node));
-		goto out_err;
-	}
-
-	pr_info("%s: created %s directory\n", module_name, dir_name);
-
-	bl_debug_verify_reg_node = debugfs_create_file(gr_file_mb1, S_IRUGO,
-				bl_debug_node, NULL, &debug_gr_fops_mb1);
-
-	if (IS_ERR_OR_NULL(bl_debug_verify_reg_node)) {
-		pr_err("%s: failed to create debugfs entries: %ld\n",
-			module_name, PTR_ERR(bl_debug_verify_reg_node));
-		goto out_err;
-	}
-
-	bl_debug_verify_reg_node = debugfs_create_file(gr_file_mb2, S_IRUGO,
-				bl_debug_node, NULL, &debug_gr_fops_mb2);
-
-	if (IS_ERR_OR_NULL(bl_debug_verify_reg_node)) {
-		pr_err("%s: failed to create debugfs entries: %ld\n",
-			module_name, PTR_ERR(bl_debug_verify_reg_node));
-		goto out_err;
-	}
-
-	bl_debug_verify_reg_node = debugfs_create_file(gr_file_cpu_bl, S_IRUGO,
-				bl_debug_node, NULL, &debug_gr_fops_cpu_bl);
-
-	if (IS_ERR_OR_NULL(bl_debug_verify_reg_node)) {
-		pr_err("%s: failed to create debugfs entries: %ld\n",
-			module_name, PTR_ERR(bl_debug_verify_reg_node));
-		goto out_err;
-	}
-
-	tegra_bl_mapped_debug_data_start =
-		phys_to_virt(tegra_bl_debug_data_start);
-	if (tegra_bl_debug_data_start != 0
-			&& !pfn_valid(__phys_to_pfn(tegra_bl_debug_data_start))) {
-		ptr_bl_debug_data_start = ioremap(tegra_bl_debug_data_start,
-				tegra_bl_debug_data_size);
-
-		WARN_ON(!ptr_bl_debug_data_start);
-		if (!ptr_bl_debug_data_start) {
-			pr_err("%s: Failed to map tegra_bl_debug_data_start%08x\n",
-			   __func__, (unsigned int)tegra_bl_debug_data_start);
-			goto out_err;
-		}
-
-		pr_info("Remapped tegra_bl_debug_data_start(0x%llx)"
-			" to address(0x%llx), size(0x%llx)\n",
-			(u64)tegra_bl_debug_data_start,
-			(__force u64)ptr_bl_debug_data_start,
-			(u64)tegra_bl_debug_data_size);
-		tegra_bl_mapped_debug_data_start = (__force void *)ptr_bl_debug_data_start;
-	}
-
-	/*
-	 * The BCP can be optional, so ignore creating if variables are not set
-	 */
-	if (tegra_bl_bcp_start && tegra_bl_bcp_size) {
-		bl_debug_boot_cfg = debugfs_create_file(boot_cfg, 0444,
-			bl_debug_node, NULL, &boot_cfg_fops);
-		if (IS_ERR_OR_NULL(bl_debug_boot_cfg)) {
+		if (IS_ERR_OR_NULL(bl_debug_node)) {
 			pr_err("%s: failed to create debugfs entries: %ld\n",
-				__func__, PTR_ERR(bl_debug_boot_cfg));
+				module_name, PTR_ERR(bl_debug_node));
 			goto out_err;
 		}
 
-		tegra_bl_mapped_boot_cfg_start =
-			phys_to_virt(tegra_bl_bcp_start);
-		if (!pfn_valid(__phys_to_pfn(tegra_bl_bcp_start))) {
-			ptr_bl_boot_cfg_start = ioremap(tegra_bl_bcp_start,
-							tegra_bl_bcp_size);
+		pr_info("%s: created %s directory\n", module_name, dir_name);
 
-			WARN_ON(!ptr_bl_boot_cfg_start);
-			if (!ptr_bl_boot_cfg_start) {
-				pr_err("%s: Failed to map tegra_bl_prof_start %08x\n",
-					__func__,
-					(unsigned int)tegra_bl_bcp_start);
+		bl_debug_verify_reg_node = debugfs_create_file(gr_file_mb1, S_IRUGO,
+					bl_debug_node, NULL, &debug_gr_fops_mb1);
+
+		if (IS_ERR_OR_NULL(bl_debug_verify_reg_node)) {
+			pr_err("%s: failed to create debugfs entries: %ld\n",
+				module_name, PTR_ERR(bl_debug_verify_reg_node));
+			goto out_err;
+		}
+
+		bl_debug_verify_reg_node = debugfs_create_file(gr_file_mb2, S_IRUGO,
+					bl_debug_node, NULL, &debug_gr_fops_mb2);
+
+		if (IS_ERR_OR_NULL(bl_debug_verify_reg_node)) {
+			pr_err("%s: failed to create debugfs entries: %ld\n",
+				module_name, PTR_ERR(bl_debug_verify_reg_node));
+			goto out_err;
+		}
+
+		bl_debug_verify_reg_node = debugfs_create_file(gr_file_cpu_bl, S_IRUGO,
+					bl_debug_node, NULL, &debug_gr_fops_cpu_bl);
+
+		if (IS_ERR_OR_NULL(bl_debug_verify_reg_node)) {
+			pr_err("%s: failed to create debugfs entries: %ld\n",
+				module_name, PTR_ERR(bl_debug_verify_reg_node));
+			goto out_err;
+		}
+
+		tegra_bl_mapped_debug_data_start =
+			phys_to_virt(tegra_bl_debug_data_start);
+		if (tegra_bl_debug_data_start != 0
+				&& !pfn_valid(__phys_to_pfn(tegra_bl_debug_data_start))) {
+			ptr_bl_debug_data_start = ioremap(tegra_bl_debug_data_start,
+					tegra_bl_debug_data_size);
+
+			WARN_ON(!ptr_bl_debug_data_start);
+			if (!ptr_bl_debug_data_start) {
+				pr_err("%s: Failed to map tegra_bl_debug_data_start%08x\n",
+				   __func__, (unsigned int)tegra_bl_debug_data_start);
 				goto out_err;
 			}
-			tegra_bl_mapped_boot_cfg_start = (__force void *)ptr_bl_boot_cfg_start;
+
+			pr_info("Remapped tegra_bl_debug_data_start(0x%llx)"
+				" to address(0x%llx), size(0x%llx)\n",
+				(u64)tegra_bl_debug_data_start,
+				(__force u64)ptr_bl_debug_data_start,
+				(u64)tegra_bl_debug_data_size);
+			tegra_bl_mapped_debug_data_start = (__force void *)ptr_bl_debug_data_start;
+		}
+
+		/*
+		 * The BCP can be optional, so ignore creating if variables are not set
+		 */
+		if (tegra_bl_bcp_start && tegra_bl_bcp_size) {
+			bl_debug_boot_cfg = debugfs_create_file(boot_cfg, 0444,
+				bl_debug_node, NULL, &boot_cfg_fops);
+			if (IS_ERR_OR_NULL(bl_debug_boot_cfg)) {
+				pr_err("%s: failed to create debugfs entries: %ld\n",
+					__func__, PTR_ERR(bl_debug_boot_cfg));
+				goto out_err;
+			}
+
+			tegra_bl_mapped_boot_cfg_start =
+				phys_to_virt(tegra_bl_bcp_start);
+			if (!pfn_valid(__phys_to_pfn(tegra_bl_bcp_start))) {
+				ptr_bl_boot_cfg_start = ioremap(tegra_bl_bcp_start,
+								tegra_bl_bcp_size);
+
+				WARN_ON(!ptr_bl_boot_cfg_start);
+				if (!ptr_bl_boot_cfg_start) {
+					pr_err("%s: Failed to map tegra_bl_prof_start %08x\n",
+						__func__,
+						(unsigned int)tegra_bl_bcp_start);
+					goto out_err;
+				}
+				tegra_bl_mapped_boot_cfg_start =
+					(__force void *)ptr_bl_boot_cfg_start;
+			}
 		}
 	}
 #endif /* CONFIG_DEBUG_FS */
