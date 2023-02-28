@@ -2,7 +2,7 @@
 /*
  * Voltage Regulator Specification: Power Sequencer MFD Driver
  *
- * Copyright (C) 2020-2022 NVIDIA CORPORATION. All rights reserved.
+ * Copyright (C) 2020-2023 NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/i2c.h>
@@ -284,6 +284,7 @@ static const struct of_device_id nvvrs_dt_match[] = {
 	{ .compatible = "nvidia,vrs-pseq" },
 	{}
 };
+MODULE_DEVICE_TABLE(of, nvvrs_dt_match);
 
 static struct i2c_driver nvvrs_pseq_driver = {
 	.driver = {
