@@ -2,8 +2,9 @@
 //
 // tegra210_admaif.c - Tegra ADMAIF driver
 //
-// Copyright (c) 2020-2022 NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2020-2023 NVIDIA CORPORATION.  All rights reserved.
 
+#include <linux/version.h>
 #include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/module.h>
@@ -791,9 +792,13 @@ static int tegra_admaif_dai_probe(struct snd_soc_dai *dai)
 {
 	struct tegra_admaif *admaif = snd_soc_dai_get_drvdata(dai);
 
+#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
+	snd_soc_dai_init_dma_data(dai, &admaif->playback_dma_data[dai->id],
+				  &admaif->capture_dma_data[dai->id]);
+#else
 	dai->capture_dma_data = &admaif->capture_dma_data[dai->id];
 	dai->playback_dma_data = &admaif->playback_dma_data[dai->id];
-
+#endif
 	return 0;
 }
 

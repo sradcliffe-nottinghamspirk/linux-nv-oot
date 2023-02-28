@@ -3,6 +3,7 @@
  * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
+#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/of_platform.h>
@@ -236,8 +237,13 @@ static struct snd_soc_dai_ops tegra210_admaif_dai_ops = {
 
 static int tegra210_admaif_dai_probe(struct snd_soc_dai *dai)
 {
+#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
+	snd_soc_dai_init_dma_data(dai, &admaif->playback_dma_data[dai->id],
+				  &admaif->capture_dma_data[dai->id]);
+#else
 	dai->capture_dma_data = &admaif->capture_dma_data[dai->id];
 	dai->playback_dma_data = &admaif->playback_dma_data[dai->id];
+#endif
 
 	return 0;
 }
