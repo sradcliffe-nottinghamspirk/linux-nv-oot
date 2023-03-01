@@ -72,3 +72,7 @@ nvidia/drivers/video/tegra/dc/bridge/maxim_gmsl_dp_serializer.c drivers/video/te
 
 # Files/directory for TI FPDLink DP serializer
 nvidia/drivers/video/tegra/dc/bridge/ti_fpdlink_dp_serializer.c drivers/video/tegra/dc/bridge
+
+# Files/directory for NVIDIA I2C VRS11
+nvidia/drivers/i2c/busses/i2c-nvvrs11.c drivers/i2c/busses/i2c-nvvrs11.c
+nvidia/include/linux/i2c-nvvrs11.h include/linux/i2c-nvvrs11.h
