@@ -2,7 +2,7 @@
 //
 // tegra186_arad.c - Tegra186 ARAD driver
 //
-// Copyright (c) 2015-2021, NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2015-2023, NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/delay.h>
@@ -655,7 +655,7 @@ static const struct regmap_config tegra186_arad_regmap_config = {
 };
 
 static const struct of_device_id tegra186_arad_of_match[] = {
-	{ .compatible = "nvidia,tegra186-arad" },
+	{ .compatible = "nvidia,tegra186-arad-oot" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra186_arad_of_match);

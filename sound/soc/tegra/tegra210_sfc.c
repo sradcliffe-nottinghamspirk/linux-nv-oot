@@ -2,7 +2,7 @@
 //
 // tegra210_sfc.c - Tegra210 SFC driver
 //
-// Copyright (c) 2014-2021 NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2014-2023 NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -3445,7 +3445,7 @@ static const struct regmap_config tegra210_sfc_regmap_config = {
 };
 
 static const struct of_device_id tegra210_sfc_of_match[] = {
-	{ .compatible = "nvidia,tegra210-sfc" },
+	{ .compatible = "nvidia,tegra210-sfc-oot" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_sfc_of_match);

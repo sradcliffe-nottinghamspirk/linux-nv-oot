@@ -2,7 +2,7 @@
 //
 // tegra210_ope.c - Tegra210 OPE driver
 //
-// Copyright (c) 2014-2021, NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2014-2023, NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -300,7 +300,7 @@ static const struct regmap_config tegra210_ope_regmap_config = {
 };
 
 static const struct of_device_id tegra210_ope_of_match[] = {
-	{ .compatible = "nvidia,tegra210-ope" },
+	{ .compatible = "nvidia,tegra210-ope-oot" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_ope_of_match);

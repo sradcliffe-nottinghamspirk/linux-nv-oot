@@ -2,7 +2,7 @@
 //
 // tegra210_afc.c - Tegra210 AFC driver
 //
-// Copyright (c) 2014-2021 NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2014-2023 NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -489,8 +489,8 @@ static const struct tegra210_afc_soc_data soc_data_tegra186 = {
 };
 
 static const struct of_device_id tegra210_afc_of_match[] = {
-	{ .compatible = "nvidia,tegra210-afc", .data = &soc_data_tegra210 },
-	{ .compatible = "nvidia,tegra186-afc", .data = &soc_data_tegra186 },
+	{ .compatible = "nvidia,tegra210-afc-oot", .data = &soc_data_tegra210 },
+	{ .compatible = "nvidia,tegra186-afc-oot", .data = &soc_data_tegra186 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_afc_of_match);

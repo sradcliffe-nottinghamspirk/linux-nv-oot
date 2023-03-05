@@ -2,7 +2,7 @@
 //
 // tegra210_mvc.c - Tegra210 MVC driver
 //
-// Copyright (c) 2014-2021 NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2014-2023 NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -688,7 +688,7 @@ static const struct regmap_config tegra210_mvc_regmap_config = {
 };
 
 static const struct of_device_id tegra210_mvc_of_match[] = {
-	{ .compatible = "nvidia,tegra210-mvc" },
+	{ .compatible = "nvidia,tegra210-mvc-oot" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_mvc_of_match);
