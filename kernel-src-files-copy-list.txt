@@ -10,6 +10,10 @@ nvidia/include/linux/nvmap_t19x.h include/linux/nvmap_t19x.h
 nvidia/include/trace/events/nvmap.h include/trace/events/nvmap.h
 nvidia/include/uapi/linux/nvmap.h include/uapi/linux/nvmap.h
 
+# Files/directories for the tegra_gr_comm module
+nvidia/drivers/video/tegra/virt drivers/video/tegra
+nvidia/include/linux/tegra_gr_comm.h include/linux
+
 # Files/directories for cvnas module
 nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
 nvidia/include/linux/cvnas.h include/linux/cvnas.h
