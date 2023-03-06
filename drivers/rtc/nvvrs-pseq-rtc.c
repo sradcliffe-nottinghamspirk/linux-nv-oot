@@ -519,6 +519,12 @@ static void nvvrs_rtc_shutdown(struct platform_device *pdev)
 	/* TODO */
 }
 
+static const struct platform_device_id nvvrs_rtc_id[] = {
+	{ "nvvrs-pseq-rtc", },
+	{ },
+};
+MODULE_DEVICE_TABLE(platform, nvvrs_rtc_id);
+
 static struct platform_driver nvvrs_rtc_driver = {
 	.driver		= {
 		.name   = "nvvrs-pseq-rtc",
@@ -527,6 +533,7 @@ static struct platform_driver nvvrs_rtc_driver = {
 	.probe		= nvvrs_rtc_probe,
 	.remove		= nvvrs_rtc_remove,
 	.shutdown	= nvvrs_rtc_shutdown,
+	.id_table       = nvvrs_rtc_id,
 };
 
 module_platform_driver(nvvrs_rtc_driver);
