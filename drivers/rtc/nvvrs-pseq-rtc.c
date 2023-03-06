@@ -396,16 +396,9 @@ static const struct rtc_class_ops nvvrs_rtc_ops = {
 static int nvvrs_rtc_probe(struct platform_device *pdev)
 {
 	struct nvvrs_rtc_info *info;
-	struct device_node *np;
 	struct device *parent;
 	struct i2c_client *client;
 	int ret = 0;
-
-	np = of_get_child_by_name(pdev->dev.parent->of_node, "rtc");
-	if (np && !of_device_is_available(np)) {
-		dev_err(&pdev->dev, "Missing rtc device node\n");
-		return -ENODEV;
-	}
 
 	info = devm_kzalloc(&pdev->dev, sizeof(struct nvvrs_rtc_info), GFP_KERNEL);
 	if (!info) {
