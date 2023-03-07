@@ -7,6 +7,8 @@ extern phys_addr_t tegra_bl_debug_data_start;
 extern phys_addr_t tegra_bl_debug_data_size;
 extern phys_addr_t tegra_bl_prof_start;
 extern phys_addr_t tegra_bl_prof_size;
+extern phys_addr_t tegra_bl_prof_ro_start;
+extern phys_addr_t tegra_bl_prof_ro_size;
 extern phys_addr_t tegra_bl_bcp_start;
 extern phys_addr_t tegra_bl_bcp_size;
 
