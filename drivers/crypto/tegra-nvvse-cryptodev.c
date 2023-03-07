@@ -134,9 +134,15 @@ struct tnvvse_cmac_req_data {
 	uint8_t result;
 };
 
+#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
+static void tnvvse_crypto_complete(void *data, int err)
+{
+	struct tnvvse_crypto_completion *done = data;
+#else
 static void tnvvse_crypto_complete(struct crypto_async_request *req, int err)
 {
 	struct tnvvse_crypto_completion *done = req->data;
+#endif
 
 	if (err != -EINPROGRESS) {
 		done->req_err = err;
