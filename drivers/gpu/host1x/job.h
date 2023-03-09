@@ -25,12 +25,24 @@ struct host1x_job_wait {
 	bool relative;
 };
 
+struct host1x_job_reg_write {
+	u32 reg;
+	u32 value;
+};
+
+enum host1x_job_cmd_type {
+	HOST1X_JOB_CMD_GATHER,
+	HOST1X_JOB_CMD_WAIT,
+	HOST1X_JOB_CMD_REG_WRITE,
+};
+
 struct host1x_job_cmd {
-	bool is_wait;
+	enum host1x_job_cmd_type type;
 
 	union {
 		struct host1x_job_gather gather;
 		struct host1x_job_wait wait;
+		struct host1x_job_reg_write reg_write;
 	};
 };
 

@@ -122,30 +122,37 @@ EXPORT_SYMBOL(host1x_job_put);
 void host1x_job_add_gather(struct host1x_job *job, struct host1x_bo *bo,
 			   unsigned int words, unsigned int offset)
 {
-	struct host1x_job_gather *gather = &job->cmds[job->num_cmds].gather;
+	struct host1x_job_cmd *cmd = &job->cmds[job->num_cmds++];
 
-	gather->words = words;
-	gather->bo = bo;
-	gather->offset = offset;
-
-	job->num_cmds++;
+	cmd->type = HOST1X_JOB_CMD_GATHER;
+	cmd->gather.words = words;
+	cmd->gather.bo = bo;
+	cmd->gather.offset = offset;
 }
 EXPORT_SYMBOL(host1x_job_add_gather);
 
 void host1x_job_add_wait(struct host1x_job *job, u32 id, u32 thresh,
 			 bool relative, u32 next_class)
 {
-	struct host1x_job_cmd *cmd = &job->cmds[job->num_cmds];
+	struct host1x_job_cmd *cmd = &job->cmds[job->num_cmds++];
 
-	cmd->is_wait = true;
+	cmd->type = HOST1X_JOB_CMD_WAIT;
 	cmd->wait.id = id;
 	cmd->wait.threshold = thresh;
 	cmd->wait.next_class = next_class;
 	cmd->wait.relative = relative;
-
-	job->num_cmds++;
 }
 EXPORT_SYMBOL(host1x_job_add_wait);
+
+void host1x_job_add_reg_write(struct host1x_job *job, u32 reg, u32 value)
+{
+	struct host1x_job_cmd *cmd = &job->cmds[job->num_cmds++];
+
+	cmd->type = HOST1X_JOB_CMD_REG_WRITE;
+	cmd->reg_write.reg = reg;
+	cmd->reg_write.value = value;
+}
+EXPORT_SYMBOL(host1x_job_add_reg_write);
 
 static unsigned int pin_job(struct host1x *host, struct host1x_job *job)
 {
@@ -226,7 +233,7 @@ static unsigned int pin_job(struct host1x *host, struct host1x_job *job)
 		struct iova *alloc;
 		unsigned int j;
 
-		if (job->cmds[i].is_wait)
+		if (job->cmds[i].type != HOST1X_JOB_CMD_GATHER)
 			continue;
 
 		g = &job->cmds[i].gather;
@@ -547,7 +554,7 @@ static inline int copy_gathers(struct device *host, struct host1x_job *job,
 	for (i = 0; i < job->num_cmds; i++) {
 		struct host1x_job_gather *g;
 
-		if (job->cmds[i].is_wait)
+		if (job->cmds[i].type != HOST1X_JOB_CMD_GATHER)
 			continue;
 
 		g = &job->cmds[i].gather;
@@ -576,7 +583,7 @@ static inline int copy_gathers(struct device *host, struct host1x_job *job,
 		struct host1x_job_gather *g;
 		void *gather;
 
-		if (job->cmds[i].is_wait)
+		if (job->cmds[i].type != HOST1X_JOB_CMD_GATHER)
 			continue;
 		g = &job->cmds[i].gather;
 
@@ -625,7 +632,7 @@ int host1x_job_pin(struct host1x_job *job, struct device *dev)
 	for (i = 0; i < job->num_cmds; i++) {
 		struct host1x_job_gather *g;
 
-		if (job->cmds[i].is_wait)
+		if (job->cmds[i].type != HOST1X_JOB_CMD_GATHER)
 			continue;
 		g = &job->cmds[i].gather;
 
@@ -638,7 +645,7 @@ int host1x_job_pin(struct host1x_job *job, struct device *dev)
 			g->base = job->gather_addr_phys[i];
 
 		for (j = i + 1; j < job->num_cmds; j++) {
-			if (!job->cmds[j].is_wait &&
+			if (job->cmds[i].type == HOST1X_JOB_CMD_GATHER &&
 			    job->cmds[j].gather.bo == g->bo) {
 				job->cmds[j].gather.handled = true;
 				job->cmds[j].gather.base = g->base;

@@ -368,6 +368,7 @@ void host1x_job_add_gather(struct host1x_job *job, struct host1x_bo *bo,
 			   unsigned int words, unsigned int offset);
 void host1x_job_add_wait(struct host1x_job *job, u32 id, u32 thresh,
 			 bool relative, u32 next_class);
+void host1x_job_add_reg_write(struct host1x_job *job, u32 reg, u32 value);
 struct host1x_job *host1x_job_get(struct host1x_job *job);
 void host1x_job_put(struct host1x_job *job);
 int host1x_job_pin(struct host1x_job *job, struct device *dev);

@@ -209,7 +209,7 @@ static void show_channel_gathers(struct output *o, struct host1x_cdma *cdma)
 			struct host1x_job_gather *g;
 			u32 *mapped;
 
-			if (job->cmds[i].is_wait)
+			if (job->cmds[i].type != HOST1X_JOB_CMD_GATHER)
 				continue;
 
 			g = &job->cmds[i].gather;

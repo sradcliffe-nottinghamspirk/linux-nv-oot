@@ -122,14 +122,14 @@ static void submit_gathers(struct host1x_job *job, u32 job_syncpt_base)
 	for (i = 0; i < job->num_cmds; i++) {
 		struct host1x_job_cmd *cmd = &job->cmds[i];
 
-		if (cmd->is_wait) {
+		if (cmd->type == HOST1X_JOB_CMD_WAIT) {
 			if (cmd->wait.relative)
 				threshold = job_syncpt_base + cmd->wait.threshold;
 			else
 				threshold = cmd->wait.threshold;
 
 			submit_wait(job, cmd->wait.id, threshold, cmd->wait.next_class);
-		} else {
+		} else if (cmd->type == HOST1X_JOB_CMD_GATHER) {
 			struct host1x_job_gather *g = &cmd->gather;
 
 			dma_addr_t addr = g->base + g->offset;
@@ -156,6 +156,10 @@ static void submit_gathers(struct host1x_job *job, u32 job_syncpt_base)
 
 				host1x_cdma_push(cdma, op1, op2);
 			}
+		} else if (cmd->type == HOST1X_JOB_CMD_REG_WRITE) {
+			struct host1x_job_reg_write *d = &cmd->reg_write;
+
+			host1x_cdma_push(cdma, host1x_opcode_incr(d->reg >> 2, 1), d->value);
 		}
 	}
 }
