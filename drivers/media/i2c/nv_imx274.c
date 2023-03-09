@@ -855,8 +855,11 @@ static int imx274_power_get(struct tegracam_device *tc_dev)
 		if (IS_ERR(parent)) {
 			dev_err(dev, "unable to get parent clcok %s",
 				parentclk_name);
-		} else
-			clk_set_parent(pw->mclk, parent);
+		} else {
+			ret = clk_set_parent(pw->mclk, parent);
+			if (ret < 0)
+				dev_dbg(dev, "%s unable to set parent clock %d\n", __func__, ret);
+		}
 	}
 
 	/* ananlog 2.7v */
@@ -1332,7 +1335,16 @@ static int imx274_remove(struct i2c_client *client)
 #endif
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct imx274 *priv = (struct imx274 *)s_data->priv;
+	struct imx274 *priv;
+
+	if (!s_data)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+		return;
+#else
+		return -EINVAL;
+#endif
+
+	priv = (struct imx274 *)s_data->priv;
 
 	imx274_debugfs_remove(priv);
 

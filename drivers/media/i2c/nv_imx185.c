@@ -550,8 +550,11 @@ static int imx185_power_get(struct tegracam_device *tc_dev)
 	parent = devm_clk_get(dev, "pllp_grtba");
 	if (IS_ERR(parent))
 		dev_err(dev, "devm_clk_get failed for pllp_grtba");
-	else
-		clk_set_parent(pw->mclk, parent);
+	else {
+		err = clk_set_parent(pw->mclk, parent);
+		if (err < 0)
+			dev_dbg(dev, "%s failed to set parent clock %d\n", __func__, err);
+	}
 
 	pw->reset_gpio = pdata->reset_gpio;
 
@@ -841,7 +844,16 @@ imx185_remove(struct i2c_client *client)
 #endif
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct imx185 *priv = (struct imx185 *)s_data->priv;
+	struct imx185 *priv;
+
+	if (!s_data)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+		return;
+#else
+		return -EINVAL;
+#endif
+
+	priv = (struct imx185 *)s_data->priv;
 
 	tegracam_v4l2subdev_unregister(priv->tc_dev);
 	tegracam_device_unregister(priv->tc_dev);
