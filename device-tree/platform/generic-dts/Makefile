@@ -13,11 +13,7 @@ include $(oottree)/scripts/Makefile.lib
 
 DTC_CPP_FLAGS += $(EXTRA_CPP_FLAGS)
 
-ifneq ($(findstring oot,$(NV_BUILD_KERNEL_OPTIONS)),)
-DTC_CPP_FLAGS += -DLINUX_VERSION=515 -DTEGRA_HOST1X_DT_VERSION=2
-else
 DTC_CPP_FLAGS += -DLINUX_VERSION=600 -DTEGRA_HOST1X_DT_VERSION=2
-endif
 
 ifneq ($(TEGRA_TOP),)
 SOURCE_TOP := $(TEGRA_TOP)
