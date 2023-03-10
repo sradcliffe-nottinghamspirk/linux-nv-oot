@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -63,7 +63,7 @@ static int tegra_virt_machine_driver_probe(struct platform_device *pdev)
 	char buffer[30];
 	int32_t adsp_admaif_bits, adsp_admaif_format;
 	int32_t adsp_admaif_channels;
-	struct snd_soc_pcm_stream adsp_admaif_dt_params;
+	struct snd_soc_pcm_stream adsp_admaif_dt_params = { };
 	struct snd_soc_pcm_runtime *rtd;
 
 	match = tegra_virt_machine_of_match;
