@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 #include <linux/cpumask.h>
 #include <linux/delay.h>
@@ -98,21 +98,26 @@ static int32_t ari_send_request(void __iomem *ari_base, u32 evt_mask,
 	return ret;
 }
 
-static uint32_t get_ari_address_index(void)
+static int32_t get_ari_address_index(void)
 {
 	uint64_t mpidr;
 	uint32_t core_id, cluster_id;
+	uint32_t ari_address;
 
 	mpidr = read_cpuid_mpidr();
 	cluster_id = MPIDR_AFFINITY_LEVEL(mpidr, 2);
 	core_id = MPIDR_AFFINITY_LEVEL(mpidr, 1);
 
-	return ((cluster_id * MAX_CORES_PER_CLUSTER) + core_id);
+	ari_address = ((cluster_id * MAX_CORES_PER_CLUSTER) + core_id);
+	if (ari_address >= MAX_CPUS) {
+		return -EOVERFLOW;
+	}
+	return ari_address;
 }
 
 static int tegra23x_mce_read_versions(u32 *major, u32 *minor)
 {
-	uint32_t cpu_idx;
+	int32_t cpu_idx;
 	int32_t ret = 0;
 
 	if (IS_ERR_OR_NULL(major) || IS_ERR_OR_NULL(minor))
@@ -120,6 +125,8 @@ static int tegra23x_mce_read_versions(u32 *major, u32 *minor)
 
 	preempt_disable();
 	cpu_idx = get_ari_address_index();
+	if (cpu_idx < 0)
+		return cpu_idx;
 	ret = ari_send_request(ari_bar_array[cpu_idx], 0U,
 			(u32)TEGRA_ARI_VERSION, 0U, 0U);
 	if (ret)
@@ -137,7 +144,7 @@ static int tegra23x_mce_read_versions(u32 *major, u32 *minor)
  */
 static int tegra23x_mce_echo_data(u64 data, u64 *matched)
 {
-	uint32_t cpu_idx;
+	int32_t cpu_idx;
 	u32 input1 = (u32)(data & 0xFFFFFFFF);
 	u32 input2 = (u32)(data >> 32);
 	u64 out1, out2;
@@ -148,6 +155,8 @@ static int tegra23x_mce_echo_data(u64 data, u64 *matched)
 
 	preempt_disable();
 	cpu_idx = get_ari_address_index();
+	if (cpu_idx < 0)
+		return cpu_idx;
 	ret = ari_send_request(ari_bar_array[cpu_idx], 0U,
 			(u32)TEGRA_ARI_ECHO, input1, input2);
 	if (ret)
@@ -165,12 +174,14 @@ static int tegra23x_mce_echo_data(u64 data, u64 *matched)
 
 static int tegra23x_mce_read_l4_cache_ways(u64 *value)
 {
-	uint32_t cpu_idx;
+	int32_t cpu_idx;
 	u64 out;
 	int32_t ret = 0;
 
 	preempt_disable();
 	cpu_idx = get_ari_address_index();
+	if (cpu_idx < 0)
+		return cpu_idx;
 	ret = ari_send_request(ari_bar_array[cpu_idx], 0U,
                                (u32)TEGRA_ARI_CCPLEX_CACHE_CONTROL, 0U, 0U);
 	if (ret)
@@ -186,7 +197,7 @@ static int tegra23x_mce_read_l4_cache_ways(u64 *value)
 
 static int tegra23x_mce_write_l4_cache_ways(u64 data, u64 *value)
 {
-	uint32_t cpu_idx;
+	int32_t cpu_idx;
 	u32 input = (u32)(data & 0x00001F1F);
 	u64 out;
 	int32_t ret = 0;
@@ -196,6 +207,8 @@ static int tegra23x_mce_write_l4_cache_ways(u64 data, u64 *value)
 
 	preempt_disable();
 	cpu_idx = get_ari_address_index();
+	if (cpu_idx < 0)
+		return cpu_idx;
 	input |= CACHE_WAYS_WRITE_EN_BIT;
 	ret = ari_send_request(ari_bar_array[cpu_idx], 0U,
 			(u32)TEGRA_ARI_CCPLEX_CACHE_CONTROL, input, 0U);
@@ -210,7 +223,7 @@ static int tegra23x_mce_write_l4_cache_ways(u64 data, u64 *value)
 
 static int tegra23x_mce_read_uncore_perfmon(u32 req, u32 *data)
 {
-	uint32_t cpu_idx;
+	int32_t cpu_idx;
 	u32 out_lo, out_hi;
 	int32_t ret = 0;
 
@@ -220,6 +233,8 @@ static int tegra23x_mce_read_uncore_perfmon(u32 req, u32 *data)
 	preempt_disable();
 
 	cpu_idx = get_ari_address_index();
+	if (cpu_idx < 0)
+		return cpu_idx;
 	ret = ari_send_request(ari_bar_array[cpu_idx], 0U,
 			(u32)TEGRA_ARI_PERFMON, req, 0U);
 
@@ -243,13 +258,15 @@ static int tegra23x_mce_read_uncore_perfmon(u32 req, u32 *data)
 
 static int tegra23x_mce_write_uncore_perfmon(u32 req, u32 data)
 {
-	uint32_t cpu_idx;
+	int32_t cpu_idx;
 	u32 out_lo, out_hi;
 	int32_t ret = 0;
 
 	preempt_disable();
 
 	cpu_idx = get_ari_address_index();
+	if (cpu_idx < 0)
+		return cpu_idx;
 	ret = ari_send_request(ari_bar_array[cpu_idx], 0U,
 			(u32)TEGRA_ARI_PERFMON, req, data);
 
@@ -271,7 +288,7 @@ static int tegra23x_mce_write_uncore_perfmon(u32 req, u32 data)
 
 static int tegra23x_mce_read_cstate_stats(u32 state, u64 *stats)
 {
-	uint32_t cpu_idx;
+	int32_t cpu_idx;
 	int32_t ret = 0;
 
 	if (IS_ERR_OR_NULL(stats))
@@ -279,6 +296,8 @@ static int tegra23x_mce_read_cstate_stats(u32 state, u64 *stats)
 
 	preempt_disable();
 	cpu_idx = get_ari_address_index();
+	if (cpu_idx < 0)
+		return cpu_idx;
 	ret = ari_send_request(ari_bar_array[cpu_idx], 0U,
 		(u32)TEGRA_ARI_CSTATE_STAT_QUERY, state, 0U);
 	if (ret)
