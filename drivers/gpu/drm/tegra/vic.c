@@ -28,6 +28,7 @@ struct vic_config {
 	const char *firmware;
 	unsigned int version;
 	bool supports_sid;
+	bool supports_timestamping;
 };
 
 struct vic {
@@ -404,12 +405,22 @@ static int vic_can_use_memory_ctx(struct tegra_drm_client *client, bool *support
 	return 0;
 }
 
+static int vic_has_job_timestamping(struct tegra_drm_client *client, bool *supported)
+{
+	struct vic *vic = to_vic(client);
+
+	*supported = vic->config->supports_timestamping;
+
+	return 0;
+}
+
 static const struct tegra_drm_client_ops vic_ops = {
 	.open_channel = vic_open_channel,
 	.close_channel = vic_close_channel,
 	.submit = tegra_drm_submit,
 	.get_streamid_offset = tegra_drm_get_streamid_offset_thi,
 	.can_use_memory_ctx = vic_can_use_memory_ctx,
+	.has_job_timestamping = vic_has_job_timestamping,
 };
 
 #define NVIDIA_TEGRA_124_VIC_FIRMWARE "nvidia/tegra124/vic03_ucode.bin"
@@ -442,6 +453,7 @@ static const struct vic_config vic_t194_config = {
 	.firmware = NVIDIA_TEGRA_194_VIC_FIRMWARE,
 	.version = 0x19,
 	.supports_sid = true,
+	.supports_timestamping = true,
 };
 
 #define NVIDIA_TEGRA_234_VIC_FIRMWARE "nvidia/tegra234/vic.bin"
@@ -450,6 +462,7 @@ static const struct vic_config vic_t234_config = {
 	.firmware = NVIDIA_TEGRA_234_VIC_FIRMWARE,
 	.version = 0x23,
 	.supports_sid = true,
+	.supports_timestamping = true,
 };
 
 static const struct of_device_id tegra_vic_of_match[] = {

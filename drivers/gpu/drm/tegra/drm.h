@@ -94,6 +94,7 @@ struct tegra_drm_client_ops {
 		      struct drm_file *file);
 	int (*get_streamid_offset)(struct tegra_drm_client *client, u32 *offset);
 	int (*can_use_memory_ctx)(struct tegra_drm_client *client, bool *supported);
+	int (*has_job_timestamping)(struct tegra_drm_client *client, bool *supported);
 };
 
 int tegra_drm_submit(struct tegra_drm_context *context,
@@ -123,6 +124,15 @@ static inline struct tegra_drm_client *
 host1x_to_drm_client(struct host1x_client *client)
 {
 	return container_of(client, struct tegra_drm_client, base);
+}
+
+static inline struct device *
+tegra_drm_context_get_memory_device(struct tegra_drm_context *context)
+{
+	if (context->memory_context)
+		return &context->memory_context->dev;
+	else
+		return context->client->base.dev;
 }
 
 int tegra_drm_register_client(struct tegra_drm *tegra,

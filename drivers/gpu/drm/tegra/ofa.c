@@ -271,12 +271,20 @@ static int ofa_can_use_memory_ctx(struct tegra_drm_client *client, bool *support
 	return 0;
 }
 
+static int ofa_has_job_timestamping(struct tegra_drm_client *client, bool *supported)
+{
+	*supported = true;
+
+	return 0;
+}
+
 static const struct tegra_drm_client_ops ofa_ops = {
 	.open_channel = ofa_open_channel,
 	.close_channel = ofa_close_channel,
 	.submit = tegra_drm_submit,
 	.get_streamid_offset = tegra_drm_get_streamid_offset_thi,
 	.can_use_memory_ctx = ofa_can_use_memory_ctx,
+	.has_job_timestamping = ofa_has_job_timestamping,
 };
 
 #define NVIDIA_TEGRA_234_OFA_FIRMWARE "nvidia/tegra234/ofa.bin"

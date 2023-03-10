@@ -189,7 +189,6 @@ int tegra_drm_ioctl_channel_map(struct drm_device *drm, void *data, struct drm_f
 	struct tegra_drm_mapping *mapping;
 	struct tegra_drm_context *context;
 	enum dma_data_direction direction;
-	struct device *mapping_dev;
 	int err = 0;
 
 	if (args->flags & ~DRM_TEGRA_CHANNEL_MAP_READ_WRITE)
@@ -210,11 +209,6 @@ int tegra_drm_ioctl_channel_map(struct drm_device *drm, void *data, struct drm_f
 	}
 
 	kref_init(&mapping->ref);
-
-	if (context->memory_context)
-		mapping_dev = &context->memory_context->dev;
-	else
-		mapping_dev = context->client->base.dev;
 
 	mapping->bo = tegra_gem_lookup(file, args->handle);
 	if (!mapping->bo) {
@@ -240,7 +234,8 @@ int tegra_drm_ioctl_channel_map(struct drm_device *drm, void *data, struct drm_f
 		goto put_gem;
 	}
 
-	mapping->map = host1x_bo_pin(mapping_dev, mapping->bo, direction, NULL);
+	mapping->map = host1x_bo_pin(tegra_drm_context_get_memory_device(context),
+				     mapping->bo, direction, NULL);
 	if (IS_ERR(mapping->map)) {
 		err = PTR_ERR(mapping->map);
 		goto put_gem;

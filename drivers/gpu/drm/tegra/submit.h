@@ -12,6 +12,13 @@ struct tegra_drm_used_mapping {
 struct tegra_drm_submit_data {
 	struct tegra_drm_used_mapping *used_mappings;
 	u32 num_used_mappings;
+	u32 id;
+
+	struct {
+		struct device *dev;
+		dma_addr_t iova;
+		void *virt;
+	} timestamps;
 };
 
 int tegra_drm_fw_validate(struct tegra_drm_client *client, u32 *data, u32 start,

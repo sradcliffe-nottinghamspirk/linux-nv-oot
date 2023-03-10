@@ -32,6 +32,7 @@ struct nvdec_config {
 	const char *firmware;
 	unsigned int version;
 	bool supports_sid;
+	bool supports_timestamping;
 	bool has_riscv;
 	bool has_extra_clocks;
 };
@@ -366,12 +367,22 @@ static int nvdec_can_use_memory_ctx(struct tegra_drm_client *client, bool *suppo
 	return 0;
 }
 
+static int nvdec_has_job_timestamping(struct tegra_drm_client *client, bool *supported)
+{
+	struct nvdec *nvdec = to_nvdec(client);
+
+	*supported = nvdec->config->supports_timestamping;
+
+	return 0;
+}
+
 static const struct tegra_drm_client_ops nvdec_ops = {
 	.open_channel = nvdec_open_channel,
 	.close_channel = nvdec_close_channel,
 	.submit = tegra_drm_submit,
 	.get_streamid_offset = tegra_drm_get_streamid_offset_thi,
 	.can_use_memory_ctx = nvdec_can_use_memory_ctx,
+	.has_job_timestamping = nvdec_has_job_timestamping,
 };
 
 #define NVIDIA_TEGRA_210_NVDEC_FIRMWARE "nvidia/tegra210/nvdec.bin"
@@ -396,11 +407,13 @@ static const struct nvdec_config nvdec_t194_config = {
 	.firmware = NVIDIA_TEGRA_194_NVDEC_FIRMWARE,
 	.version = 0x19,
 	.supports_sid = true,
+	.supports_timestamping = true,
 };
 
 static const struct nvdec_config nvdec_t234_config = {
 	.version = 0x23,
 	.supports_sid = true,
+	.supports_timestamping = true,
 	.has_riscv = true,
 	.has_extra_clocks = true,
 };

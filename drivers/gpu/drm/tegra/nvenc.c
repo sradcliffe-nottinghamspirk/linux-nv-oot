@@ -28,6 +28,7 @@ struct nvenc_config {
 	const char *firmware;
 	unsigned int version;
 	bool supports_sid;
+	bool supports_timestamping;
 	unsigned int num_instances;
 };
 
@@ -303,12 +304,22 @@ static int nvenc_can_use_memory_ctx(struct tegra_drm_client *client, bool *suppo
 	return 0;
 }
 
+static int nvenc_has_job_timestamping(struct tegra_drm_client *client, bool *supported)
+{
+	struct nvenc *nvenc = to_nvenc(client);
+
+	*supported = nvenc->config->supports_timestamping;
+
+	return 0;
+}
+
 static const struct tegra_drm_client_ops nvenc_ops = {
 	.open_channel = nvenc_open_channel,
 	.close_channel = nvenc_close_channel,
 	.submit = tegra_drm_submit,
 	.get_streamid_offset = tegra_drm_get_streamid_offset_thi,
 	.can_use_memory_ctx = nvenc_can_use_memory_ctx,
+	.has_job_timestamping = nvenc_has_job_timestamping,
 };
 
 #define NVIDIA_TEGRA_210_NVENC_FIRMWARE "nvidia/tegra210/nvenc.bin"
@@ -335,6 +346,7 @@ static const struct nvenc_config nvenc_t194_config = {
 	.firmware = NVIDIA_TEGRA_194_NVENC_FIRMWARE,
 	.version = 0x19,
 	.supports_sid = true,
+	.supports_timestamping = true,
 	.num_instances = 2,
 };
 
@@ -344,6 +356,7 @@ static const struct nvenc_config nvenc_t234_config = {
 	.firmware = NVIDIA_TEGRA_234_NVENC_FIRMWARE,
 	.version = 0x23,
 	.supports_sid = true,
+	.supports_timestamping = true,
 	.num_instances = 1,
 };
 

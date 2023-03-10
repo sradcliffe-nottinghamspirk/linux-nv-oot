@@ -9,6 +9,7 @@
 #include <linux/kref.h>
 #include <linux/list.h>
 #include <linux/nospec.h>
+#include <linux/overflow.h>
 #include <linux/pm_runtime.h>
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
@@ -19,9 +20,12 @@
 #include <drm/drm_syncobj.h>
 
 #include "drm.h"
+#include "falcon.h"
 #include "gem.h"
 #include "submit.h"
 #include "uapi.h"
+
+#include <trace/events/trace.h>
 
 #define SUBMIT_ERR(context, fmt, ...) \
 	dev_err_ratelimited(context->client->base.dev, \
@@ -407,24 +411,29 @@ static int submit_job_add_gather(struct host1x_job *job, struct tegra_drm_contex
 static struct host1x_job *
 submit_create_job(struct tegra_drm_context *context, struct gather_bo *bo,
 		  struct drm_tegra_channel_submit *args, struct tegra_drm_submit_data *job_data,
-		  struct xarray *syncpoints)
+		  struct xarray *syncpoints, struct drm_tegra_submit_cmd *cmds)
 {
-	struct drm_tegra_submit_cmd *cmds;
 	u32 i, gather_offset = 0, class;
+	bool first_gather = true;
 	struct host1x_job *job;
+	u32 needed_cmds;
 	int err;
 
 	/* Set initial class for firewall. */
 	class = context->client->base.class;
 
-	cmds = alloc_copy_user_array(u64_to_user_ptr(args->cmds_ptr), args->num_cmds,
-				     sizeof(*cmds));
-	if (IS_ERR(cmds)) {
-		SUBMIT_ERR(context, "failed to copy cmds array from userspace");
-		return ERR_CAST(cmds);
+	needed_cmds = args->num_cmds;
+	if (job_data->timestamps.virt) {
+		/* Space for TSP method commands */
+		err = check_add_overflow(needed_cmds, 2, &needed_cmds);
+		if (err) {
+			SUBMIT_ERR(context, "num_cmds too high");
+			job = ERR_PTR(-EINVAL);
+			goto done;
+		}
 	}
 
-	job = host1x_job_alloc(context->channel, args->num_cmds, 0, true);
+	job = host1x_job_alloc(context->channel, needed_cmds, 0, true);
 	if (!job) {
 		SUBMIT_ERR(context, "failed to allocate memory for job");
 		job = ERR_PTR(-ENOMEM);
@@ -449,6 +458,15 @@ submit_create_job(struct tegra_drm_context *context, struct gather_bo *bo,
 		}
 
 		if (cmd->type == DRM_TEGRA_SUBMIT_CMD_GATHER_UPTR) {
+			if (first_gather && job_data->timestamps.virt) {
+				first_gather = false;
+
+				host1x_job_add_reg_write(job, FALCON_UCLASS_METHOD_OFFSET,
+					FALCON_METHOD_TSP);
+				host1x_job_add_reg_write(job, FALCON_UCLASS_METHOD_DATA,
+					job_data->timestamps.iova >> 8);
+			}
+
 			err = submit_job_add_gather(job, context, &cmd->gather_uptr, bo,
 						    &gather_offset, job_data, &class);
 			if (err)
@@ -497,8 +515,6 @@ free_job:
 	job = ERR_PTR(err);
 
 done:
-	kvfree(cmds);
-
 	return job;
 }
 
@@ -510,6 +526,16 @@ static void release_job(struct host1x_job *job)
 
 	if (job->memory_context)
 		host1x_memory_context_put(job->memory_context);
+
+	if (IS_ENABLED(CONFIG_TRACING) && job_data->timestamps.virt) {
+		u64 *timestamps = job_data->timestamps.virt;
+
+		if (timestamps[0] != 0)
+			trace_job_timestamps(job_data->id, timestamps[0] >> 5, timestamps[1] >> 5);
+
+		dma_free_coherent(job_data->timestamps.dev, 256, job_data->timestamps.virt,
+				  job_data->timestamps.iova);
+	}
 
 	for (i = 0; i < job_data->num_used_mappings; i++)
 		tegra_drm_mapping_put(job_data->used_mappings[i].mapping);
@@ -523,17 +549,47 @@ static void release_job(struct host1x_job *job)
 	}
 }
 
+static int submit_init_profiling(struct tegra_drm_context *context,
+				 struct tegra_drm_submit_data *job_data)
+{
+	struct device *mem_dev = tegra_drm_context_get_memory_device(context);
+	bool has_timestamping = false;
+	int err;
+
+	if (!context->client->ops->has_job_timestamping)
+		return 0;
+
+	err = context->client->ops->has_job_timestamping(context->client, &has_timestamping);
+	if (err)
+		return err;
+
+	if (!has_timestamping)
+		return 0;
+
+	job_data->timestamps.virt =
+		dma_alloc_coherent(mem_dev, 256, &job_data->timestamps.iova, GFP_KERNEL);
+	if (!job_data->timestamps.virt)
+		return -ENOMEM;
+
+	job_data->timestamps.dev = mem_dev;
+
+	return 0;
+}
+
 int tegra_drm_ioctl_channel_submit(struct drm_device *drm, void *data,
 				   struct drm_file *file)
 {
 	struct tegra_drm_file *fpriv = file->driver_priv;
 	struct drm_tegra_channel_submit *args = data;
+	static atomic_t next_job_id = ATOMIC_INIT(1);
 	struct tegra_drm_submit_data *job_data;
+	struct drm_tegra_submit_cmd *cmds;
 	struct drm_syncobj *syncobj = NULL;
 	struct tegra_drm_context *context;
 	struct host1x_job *job;
 	struct gather_bo *bo;
-	u32 i;
+	u64 timestamp;
+	u32 i, job_id;
 	int err;
 
 	mutex_lock(&fpriv->lock);
@@ -589,16 +645,35 @@ int tegra_drm_ioctl_channel_submit(struct drm_device *drm, void *data,
 		goto put_bo;
 	}
 
+	/* Initialize data for tracing / profiling */
+	if (IS_ENABLED(CONFIG_TRACING)) {
+		job_id = atomic_fetch_inc(&next_job_id);
+		job_data->id = job_id;
+
+		err = submit_init_profiling(context, job_data);
+		if (err)
+			goto free_job_data;
+	}
+
 	/* Get data buffer mappings and do relocation patching. */
 	err = submit_process_bufs(context, bo, args, job_data);
 	if (err)
 		goto free_job_data;
 
+	/* Copy submit commands from userspace. */
+	cmds = alloc_copy_user_array(u64_to_user_ptr(args->cmds_ptr), args->num_cmds,
+				     sizeof(*cmds));
+	if (IS_ERR(cmds)) {
+		SUBMIT_ERR(context, "failed to copy cmds array from userspace");
+		err = PTR_ERR(cmds);
+		goto free_job_data;
+	}
+
 	/* Allocate host1x_job and add gathers and waits to it. */
-	job = submit_create_job(context, bo, args, job_data, &fpriv->syncpoints);
+	job = submit_create_job(context, bo, args, job_data, &fpriv->syncpoints, cmds);
 	if (IS_ERR(job)) {
 		err = PTR_ERR(job);
-		goto free_job_data;
+		goto free_cmds;
 	}
 
 	/* Map gather data for Host1x. */
@@ -667,6 +742,10 @@ int tegra_drm_ioctl_channel_submit(struct drm_device *drm, void *data,
 	 */
 	job_data = NULL;
 
+	/* Engine timestamps run at 32 times CNTVCT */
+	if (IS_ENABLED(CONFIG_TRACING))
+		timestamp = arch_timer_read_counter();
+
 	/* Submit job to hardware. */
 	err = host1x_job_submit(job);
 	if (err) {
@@ -687,6 +766,32 @@ int tegra_drm_ioctl_channel_submit(struct drm_device *drm, void *data,
 		drm_syncobj_replace_fence(syncobj, fence);
 	}
 
+	if (IS_ENABLED(CONFIG_TRACING)) {
+		u32 num_prefences = 0;
+
+		for (i = 0; i < args->num_cmds; i++) {
+			struct drm_tegra_submit_cmd *cmd = &cmds[i];
+
+			if (cmd->type == DRM_TEGRA_SUBMIT_CMD_WAIT_SYNCPT)
+				num_prefences++;
+		}
+
+		trace_job_submit(
+			context->client->base.dev, context->client->base.class,
+			job_id, num_prefences + 1, timestamp);
+
+		for (i = 0; i < args->num_cmds; i++) {
+			struct drm_tegra_submit_cmd *cmd = &cmds[i];
+
+			if (cmd->type != DRM_TEGRA_SUBMIT_CMD_WAIT_SYNCPT)
+				continue;
+
+			trace_job_prefence(job_id, cmd->wait_syncpt.id, cmd->wait_syncpt.value);
+		}
+
+		trace_job_postfence(job_id, host1x_syncpt_id(job->syncpt), job->syncpt_end);
+	}
+
 	goto put_job;
 
 put_memory_context:
@@ -696,16 +801,23 @@ unpin_job:
 	host1x_job_unpin(job);
 put_job:
 	host1x_job_put(job);
+free_cmds:
+	kvfree(cmds);
 free_job_data:
-	if (job_data && job_data->used_mappings) {
-		for (i = 0; i < job_data->num_used_mappings; i++)
-			tegra_drm_mapping_put(job_data->used_mappings[i].mapping);
+	if (job_data) {
+		if (job_data->timestamps.virt)
+			dma_free_coherent(job_data->timestamps.dev, 256, job_data->timestamps.virt,
+					  job_data->timestamps.iova);
 
-		kfree(job_data->used_mappings);
-	}
+		if (job_data->used_mappings) {
+			for (i = 0; i < job_data->num_used_mappings; i++)
+				tegra_drm_mapping_put(job_data->used_mappings[i].mapping);
 
-	if (job_data)
+			kfree(job_data->used_mappings);
+		}
+
 		kfree(job_data);
+	}
 put_bo:
 	gather_bo_put(&bo->base);
 unlock:

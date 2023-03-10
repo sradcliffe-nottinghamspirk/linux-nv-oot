@@ -9,7 +9,7 @@
 #include <linux/types.h>
 
 #define FALCON_UCLASS_METHOD_OFFSET		0x00000040
-
+#define FALCON_METHOD_TSP			(0x320 >> 2)
 #define FALCON_UCLASS_METHOD_DATA		0x00000044
 
 #define FALCON_IRQMSET				0x00001010
