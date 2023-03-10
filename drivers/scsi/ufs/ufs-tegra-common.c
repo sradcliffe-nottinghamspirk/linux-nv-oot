@@ -45,10 +45,8 @@ static void ufs_tegra_init_debugfs(struct ufs_hba *hba)
 
 	device_root = debugfs_create_dir(dev_name(hba->dev), NULL);
 
-#ifdef CONFIG_TEGRA_UFS_PROVISIONING
 	if (ufs_tegra->enable_ufs_provisioning)
 		debugfs_provision_init(hba, device_root);
-#endif
 }
 
 static void ufs_tegra_set_clk_div(struct ufs_hba *hba, u32 divider_val)
@@ -1572,10 +1570,8 @@ static void ufs_tegra_exit(struct ufs_hba *hba)
 	ufs_tegra_disable_mphylane_clks(ufs_tegra);
 
 #ifdef CONFIG_DEBUG_FS
-#ifdef CONFIG_TEGRA_UFS_PROVISIONING
 	if (ufs_tegra->enable_ufs_provisioning)
 		debugfs_provision_exit(hba);
-#endif
 #endif
 }
 
