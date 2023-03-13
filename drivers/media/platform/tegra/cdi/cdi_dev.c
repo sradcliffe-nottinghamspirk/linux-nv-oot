@@ -564,8 +564,12 @@ static void cdi_dev_get_cim_ver(struct device_node *np, struct cdi_dev_info *inf
 	}
 }
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int cdi_dev_probe(struct i2c_client *client)
+#else
 static int cdi_dev_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
+#endif
 {
 	struct cdi_dev_info *info;
 	struct cdi_mgr_priv *cdi_mgr = NULL;

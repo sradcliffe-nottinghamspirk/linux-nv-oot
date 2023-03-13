@@ -13,6 +13,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
+#include <linux/version.h>
 
 #include <media/tegra_v4l2_camera.h>
 #include <media/tegracam_core.h>
@@ -776,8 +777,12 @@ static const struct v4l2_subdev_internal_ops imx185_subdev_internal_ops = {
 	.open = imx185_open,
 };
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int imx185_probe(struct i2c_client *client)
+#else
 static int imx185_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
+#endif
 {
 	struct device *dev = &client->dev;
 	struct tegracam_device *tc_dev;

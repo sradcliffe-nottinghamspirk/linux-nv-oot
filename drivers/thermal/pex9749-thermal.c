@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/module.h>
 #include <linux/i2c.h>
@@ -183,7 +183,11 @@ static bool is_pex9749(struct i2c_client *client)
 	}
 }
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int pex9749_probe(struct i2c_client *client)
+#else
 static int pex9749_probe(struct i2c_client *client, const struct i2c_device_id *id)
+#endif
 {
 	struct device *dev = &client->dev;
 	struct pex9749_priv *priv;

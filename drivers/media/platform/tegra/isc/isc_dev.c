@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2015-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <linux/delay.h>
 #include <linux/device.h>
@@ -427,8 +427,12 @@ static const struct file_operations isc_dev_fileops = {
 	.release = isc_dev_release,
 };
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int isc_dev_probe(struct i2c_client *client)
+#else
 static int isc_dev_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
+#endif
 {
 	struct isc_dev_info *info;
 	struct device *pdev;
