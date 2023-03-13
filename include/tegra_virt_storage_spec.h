@@ -210,6 +210,7 @@ struct vs_config_info {
 
 struct vs_request {
 	uint32_t req_id;
+	uint32_t client_priv;
 	enum vs_req_type type;
 	union {
 		struct vs_blkdev_request blkdev_req;
