@@ -1117,11 +1117,13 @@ static int tegra_qspi_combined_seq_xfer(struct tegra_qspi *tqspi,
 			address_value = *((const u32 *)(xfer->tx_buf));
 			break;
 		case DUMMY_TRANSFER:
-		case DATA_TRANSFER:
 			if (xfer->dummy_data) {
 				tqspi->dummy_cycles = xfer->len * 8 / xfer->tx_nbits;
 				break;
+			} else {
+				transfer_phase++;
 			}
+		case DATA_TRANSFER:
 			/* Program Command, Address value in register */
 			tegra_qspi_writel(tqspi, cmd_value, QSPI_CMB_SEQ_CMD);
 			tegra_qspi_writel(tqspi, address_value,
