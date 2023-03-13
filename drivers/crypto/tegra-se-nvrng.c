@@ -3,7 +3,7 @@
  *
  * Support for Tegra NVRNG Engine Error Handling.
  *
- * Copyright (c) 2020-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2020-2023, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -159,6 +159,7 @@ static int tegra_se_nvrng_request_irq(struct tegra_se_nvrng_dev *nvrng_dev)
 static int tegra_se_nvrng_probe(struct platform_device *pdev)
 {
 	struct tegra_se_nvrng_dev *nvrng_dev;
+	int ret;
 
 	nvrng_dev = devm_kzalloc(&pdev->dev, sizeof(struct tegra_se_nvrng_dev),
 				 GFP_KERNEL);
@@ -186,7 +187,11 @@ static int tegra_se_nvrng_probe(struct platform_device *pdev)
 	if (IS_ERR(nvrng_dev->clk))
 		return PTR_ERR(nvrng_dev->clk);
 
-	clk_prepare_enable(nvrng_dev->clk);
+	ret = clk_prepare_enable(nvrng_dev->clk);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to initialize clocks\n");
+		return ret;
+	}
 	clk_set_rate(nvrng_dev->clk, CLK_RATE);
 
 	platform_set_drvdata(pdev, nvrng_dev);
@@ -266,7 +271,11 @@ static int tegra_se_nvrng_suspend(struct device *dev)
 	int ret = 0;
 
 	/* 1. Enable clock */
-	clk_prepare_enable(nvrng_dev->clk);
+	ret = clk_prepare_enable(nvrng_dev->clk);
+	if (ret) {
+		dev_err(dev, "failed to enable clocks during suspend\n");
+		return ret;
+	}
 
 	/* 2. Program NV_NVRNG_R_CTRL0_0.SW_ENGINE_ENABLED to true */
 	tegra_se_nvrng_writel(nvrng_dev, NV_NVRNG_R_CTRL0_0, SW_ENGINE_ENABLED);
@@ -308,7 +317,11 @@ static int tegra_se_nvrng_resume(struct device *dev)
 	int ret = 0;
 
 	/* 1. Enable clock */
-	clk_prepare_enable(nvrng_dev->clk);
+	ret = clk_prepare_enable(nvrng_dev->clk);
+	if (ret) {
+		dev_err(dev, "failed to enable clocks during resume\n");
+		return ret;
+	}
 
 	/* 2. Program NV_NVRNG_R_CTRL0_0.SW_ENGINE_ENABLED to true */
 	tegra_se_nvrng_writel(nvrng_dev, NV_NVRNG_R_CTRL0_0, SW_ENGINE_ENABLED);
