@@ -2,7 +2,7 @@
 /*
  * PCIe DMA test framework for Tegra PCIe
  *
- * Copyright (C) 2021-2022 NVIDIA Corporation. All rights reserved.
+ * Copyright (C) 2021-2023 NVIDIA Corporation. All rights reserved.
  */
 
 #include <linux/aer.h>
@@ -51,7 +51,7 @@ static irqreturn_t ep_isr(int irq, void *arg)
 {
 #ifndef EDMA_LIB_TEST
 	struct ep_pvt *ep = (struct ep_pvt *)arg;
-	struct pcie_epf_bar0 *epf_bar0 = ep->bar0_virt;
+	struct pcie_epf_bar0 *epf_bar0 = (__force struct pcie_epf_bar0 *)ep->bar0_virt;
 	int bit = 0;
 	u32 val;
 	unsigned long wr = DMA_WR_CHNL_MASK, rd = DMA_RD_CHNL_MASK;
@@ -87,7 +87,7 @@ static irqreturn_t ep_isr(int irq, void *arg)
 	}
 #else
 	struct ep_pvt *ep = (struct ep_pvt *)arg;
-	struct pcie_epf_bar0 *epf_bar0 = (struct pcie_epf_bar0 *)ep->bar0_virt;
+	struct pcie_epf_bar0 *epf_bar0 = (__force struct pcie_epf_bar0 *)ep->bar0_virt;
 
 	epf_bar0->wr_data[0].crc = crc32_le(~0,	ep->dma_virt + BAR0_DMA_BUF_OFFSET,
 					    epf_bar0->wr_data[0].size);
@@ -99,7 +99,7 @@ static irqreturn_t ep_isr(int irq, void *arg)
 static void tegra_pcie_dma_raise_irq(void *p)
 {
 	struct ep_pvt *ep = (struct ep_pvt *)p;
-	struct pcie_epf_bar0 *epf_bar0 = (struct pcie_epf_bar0 *)ep->bar0_virt;
+	struct pcie_epf_bar0 *epf_bar0 = (__force struct pcie_epf_bar0 *)ep->bar0_virt;
 
 	writel(epf_bar0->msi_data[0], ep->bar0_virt + BAR0_MSI_OFFSET);
 }
@@ -134,7 +134,7 @@ static void  tegra_pci_dma_put_host_bridge_device(struct device *dev)
 static int edmalib_test(struct seq_file *s, void *data)
 {
 	struct ep_pvt *ep = (struct ep_pvt *)dev_get_drvdata(s->private);
-	struct pcie_epf_bar0 *epf_bar0 = (struct pcie_epf_bar0 *)ep->bar0_virt;
+	struct pcie_epf_bar0 *epf_bar0 = (__force struct pcie_epf_bar0 *)ep->bar0_virt;
 	 /* RP uses 128M(used by EP) + 1M(reserved) offset for source and dest data transfers */
 	dma_addr_t ep_dma_addr = epf_bar0->ep_phy_addr + SZ_128M + SZ_1M;
 	dma_addr_t bar0_dma_addr = ep->bar0_phy + SZ_128M + SZ_1M;
@@ -146,7 +146,7 @@ static int edmalib_test(struct seq_file *s, void *data)
 	ep->edma.src_dma_addr = rp_dma_addr;
 	ep->edma.src_virt = ep->dma_virt + SZ_128M + SZ_1M;
 	ep->edma.fdev = &ep->pdev->dev;
-	ep->edma.epf_bar0 = (struct pcie_epf_bar0 *)ep->bar0_virt;
+	ep->edma.epf_bar0 = (__force struct pcie_epf_bar0 *)ep->bar0_virt;
 	ep->edma.bar0_phy = ep->bar0_phy;
 	ep->edma.dma_base = ep->dma_base;
 	ep->edma.priv = (void *)ep;
@@ -306,7 +306,7 @@ static int ep_test_dma_probe(struct pci_dev *pdev,
 	get_random_bytes(ep->dma_virt, BAR0_SIZE);
 
 	/* Update RP DMA system memory base address in BAR0 */
-	epf_bar0 = (struct pcie_epf_bar0 *)ep->bar0_virt;
+	epf_bar0 = (__force struct pcie_epf_bar0 *)ep->bar0_virt;
 	epf_bar0->rp_phy_addr = ep->dma_phy;
 	dev_info(&pdev->dev, "DMA mem, IOVA: 0x%llx size: %d\n", ep->dma_phy, BAR0_SIZE);
 
