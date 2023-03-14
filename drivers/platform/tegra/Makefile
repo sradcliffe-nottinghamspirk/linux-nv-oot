@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)
 
@@ -31,3 +31,4 @@ obj-m += mc-utils/
 obj-m += dce/
 obj-m += psc/
 obj-m += rtcpu/
+obj-m += aon/
