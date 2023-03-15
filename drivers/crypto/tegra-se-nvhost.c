@@ -157,18 +157,13 @@ enum tegra_se_callback {
 	SHA_CB,
 };
 
-struct tegra_se_gatherdata {
+struct tegra_se_cmdbuf {
 	dma_addr_t iova;
-	u32 *cmdbuf_addr;
+	u32 *addr;
 	struct device *dev;
 	struct kref ref;
 	struct host1x_bo bo;
 	u32 words;
-};
-
-struct tegra_se_cmdbuf {
-	atomic_t free;
-	struct tegra_se_gatherdata *gather;
 	ssize_t size;
 };
 
@@ -188,8 +183,6 @@ struct tegra_se_dev {
 	struct crypto_queue queue; /* Security Engine crypto queue */
 	struct tegra_se_slot *slot_list;	/* pointer to key slots */
 	struct tegra_se_rsa_slot *rsa_slot_list; /* rsa key slot pointer */
-	struct tegra_se_cmdbuf cmdbuf_addr_list[SE_MAX_SUBMIT_CHAIN_SZ + 5];
-	unsigned int cmdbuf_list_entry;
 	struct tegra_se_chipdata *chipdata; /* chip specific data */
 	u32 *src_ll_buf;	/* pointer to source linked list buffer */
 	dma_addr_t src_ll_buf_adr; /* Source linked list buffer dma address */
@@ -229,9 +222,6 @@ struct tegra_se_dev {
 	unsigned int dst_bytes_mapped;
 	unsigned int gather_buf_sz;
 	unsigned int aesbuf_entry;
-	struct tegra_se_cmdbuf aes_cmdbuf;
-//	u32 *aes_cmdbuf_cpuvaddr;
-//	dma_addr_t aes_cmdbuf_iova;
 	struct pm_qos_request boost_cpufreq_req;
 	/* Lock to protect cpufreq boost status */
 	struct mutex boost_cpufreq_lock;
@@ -273,7 +263,6 @@ struct tegra_se_priv_data {
 	bool sha_dst_mapped;
 	dma_addr_t buf_addr;
 	dma_addr_t iova;
-	unsigned int cmdbuf_node;
 	unsigned int aesbuf_entry;
 };
 
@@ -326,6 +315,7 @@ struct tegra_se_sha_zero_length_vector {
 struct tegra_se_aes_cmac_context {
 	struct tegra_se_dev *se_dev;	/* Security Engine device */
 	struct tegra_se_slot *slot;	/* Security Engine key slot */
+	struct tegra_se_cmdbuf *cmdbuf;
 	u32 keylen;	/* key length in bits */
 	u8 K1[TEGRA_SE_KEY_128_SIZE];	/* Key1 */
 	u8 K2[TEGRA_SE_KEY_128_SIZE];	/* Key2 */
@@ -1021,66 +1011,6 @@ static unsigned int tegra_se_count_sgs(struct scatterlist *sl, u32 nbytes)
 	return sg_nents;
 }
 
-static int tegra_se_alloc_gather(struct device *dev, ssize_t size, struct tegra_se_cmdbuf *cmdbuf)
-{
-	struct tegra_se_gatherdata *gather;
-	gather = devm_kzalloc(dev, sizeof(struct tegra_se_gatherdata), GFP_KERNEL);
-	if (!gather)
-		return -ENOMEM;
-
-	gather->cmdbuf_addr = dma_alloc_attrs(dev, size,
-					  &gather->iova, GFP_KERNEL,
-					  0);
-	if (!gather->cmdbuf_addr)
-		return -ENOMEM;
-
-	cmdbuf->gather = gather;
-
-	return 0;
-}
-
-static int tegra_se_get_free_cmdbuf(struct tegra_se_dev *se_dev)
-{
-	int i = 0;
-	unsigned int index = se_dev->cmdbuf_list_entry + 1;
-	struct tegra_se_cmdbuf *cmdbuf;
-
-	for (i = 0; i < SE_MAX_CMDBUF_TIMEOUT; i++, index++) {
-		index = index % SE_MAX_SUBMIT_CHAIN_SZ;
-		cmdbuf = &se_dev->cmdbuf_addr_list[index];
-		if (atomic_read(&cmdbuf->free)) {
-			atomic_set(&cmdbuf->free, 0);
-			break;
-		}
-		if (i % SE_MAX_SUBMIT_CHAIN_SZ == 0)
-			udelay(SE_WAIT_UDELAY);
-	}
-
-	return (i == SE_MAX_CMDBUF_TIMEOUT) ? -ENOMEM : index;
-}
-
-static int tegra_se_init_cmdbuf_addr(struct tegra_se_dev *se_dev)
-{
-	int i = 0;
-
-	for (i = 0; i < SE_MAX_SUBMIT_CHAIN_SZ; i++) {
-		tegra_se_alloc_gather(se_dev->dev->parent, SZ_16K, &se_dev->cmdbuf_addr_list[i]);
-		atomic_set(&se_dev->cmdbuf_addr_list[i].free, 1);
-	}
-
-#if 0
-	for (i = 0; i < SE_MAX_SUBMIT_CHAIN_SZ; i++) {
-		se_dev->cmdbuf_addr_list[i].cmdbuf_addr =
-			se_dev->aes_cmdbuf.cmdbuf_addr + (i * SZ_4K);
-		se_dev->cmdbuf_addr_list[i].iova = se_dev->aes_cmdbuf.iova +
-					(i * SZ_4K * SE_WORD_SIZE_BYTES);
-		atomic_set(&se_dev->cmdbuf_addr_list[i].free, 1);
-	}
-#endif
-
-	return 0;
-}
-
 static void tegra_se_sha_complete_callback(void *priv, int nr_completed)
 {
 	struct tegra_se_priv_data *priv_data = priv;
@@ -1089,15 +1019,11 @@ static void tegra_se_sha_complete_callback(void *priv, int nr_completed)
 	struct crypto_ahash *tfm;
 	struct tegra_se_req_context *req_ctx;
 	struct tegra_se_sha_context *sha_ctx;
-	struct tegra_se_cmdbuf *cmdbuf;
 	int dst_len;
 
 	pr_debug("%s:%d sha callback", __func__, __LINE__);
 
 	se_dev = priv_data->se_dev;
-	cmdbuf = &se_dev->cmdbuf_addr_list[priv_data->cmdbuf_node];
-	atomic_set(&se_dev->cmdbuf_addr_list[priv_data->cmdbuf_node].free, 1);
-
 
 	req = priv_data->sha_req;
 	if (!req) {
@@ -1145,15 +1071,12 @@ static void tegra_se_aes_complete_callback(void *priv, int nr_completed)
 	struct tegra_se_priv_data *priv_data = priv;
 	struct skcipher_request *req;
 	struct tegra_se_dev *se_dev;
-	struct tegra_se_cmdbuf *cmdbuf;
 	void *buf;
 	u32 num_sgs;
 
 	pr_debug("%s(%d) aes callback\n", __func__, __LINE__);
 
 	se_dev = priv_data->se_dev;
-	cmdbuf = &se_dev->cmdbuf_addr_list[priv_data->cmdbuf_node];
-	atomic_set(&se_dev->cmdbuf_addr_list[priv_data->cmdbuf_node].free, 1);
 
 	if (!priv_data->req_cnt) {
 		devm_kfree(se_dev->dev, priv_data);
@@ -1212,19 +1135,36 @@ static void se_nvhost_write_method(u32 *buf, u32 op1, u32 op2, u32 *offset)
 	*offset = *offset + 2;
 }
 
-static struct host1x_bo *tegra_se_cmdbuf_bo_get(struct host1x_bo *host_bo)
+static struct host1x_bo *tegra_se_cmdbuf_get(struct host1x_bo *host_bo)
 {
+	struct tegra_se_cmdbuf *cmdbuf = container_of(host_bo, struct tegra_se_cmdbuf, bo);
+
+	kref_get(&cmdbuf->ref);
+
 	return host_bo;
 }
 
-static void tegra_se_cmdbuf_bo_put(struct host1x_bo *host_bo)
+static void tegra_se_cmdbuf_release(struct kref *ref)
 {
+	struct tegra_se_cmdbuf *cmdbuf = container_of(ref, struct tegra_se_cmdbuf, ref);
+
+	dma_free_attrs(cmdbuf->dev->parent, cmdbuf->size, cmdbuf->addr,
+		       cmdbuf->iova, 0);
+
+	kfree(cmdbuf);
+}
+
+static void tegra_se_cmdbuf_put(struct host1x_bo *host_bo)
+{
+	struct tegra_se_cmdbuf *cmdbuf = container_of(host_bo, struct tegra_se_cmdbuf, bo);
+
+	kref_put(&cmdbuf->ref, tegra_se_cmdbuf_release);
 }
 
 static struct host1x_bo_mapping *
-tegra_se_cmdbuf_bo_pin(struct device *dev, struct host1x_bo *bo, enum dma_data_direction direction)
+tegra_se_cmdbuf_pin(struct device *dev, struct host1x_bo *bo, enum dma_data_direction direction)
 {
-	struct tegra_se_gatherdata *gather = container_of(bo, struct tegra_se_gatherdata, bo);
+	struct tegra_se_cmdbuf *cmdbuf = container_of(bo, struct tegra_se_cmdbuf, bo);
 	struct host1x_bo_mapping *map;
 	int err;
 
@@ -1243,8 +1183,8 @@ tegra_se_cmdbuf_bo_pin(struct device *dev, struct host1x_bo *bo, enum dma_data_d
 		goto free;
 	}
 
-	err = dma_get_sgtable(gather->dev->parent, map->sgt, gather->cmdbuf_addr,
-			gather->iova, gather->words * 4);
+	err = dma_get_sgtable(cmdbuf->dev->parent, map->sgt, cmdbuf->addr,
+			cmdbuf->iova, cmdbuf->words * 4);
 	if (err)
 		goto free_sgt;
 
@@ -1253,7 +1193,7 @@ tegra_se_cmdbuf_bo_pin(struct device *dev, struct host1x_bo *bo, enum dma_data_d
 		goto free_sgt;
 
 	map->phys = sg_dma_address(map->sgt->sgl);
-	map->size = gather->words * 4;
+	map->size = cmdbuf->words * 4;
 	map->chunks = err;
 
 	return map;
@@ -1266,7 +1206,7 @@ free:
 	return ERR_PTR(err);
 }
 
-static void tegra_se_cmdbuf_bo_unpin(struct host1x_bo_mapping *map)
+static void tegra_se_cmdbuf_unpin(struct host1x_bo_mapping *map)
 {
 	if (!map)
 		return;
@@ -1279,25 +1219,47 @@ static void tegra_se_cmdbuf_bo_unpin(struct host1x_bo_mapping *map)
 	kfree(map);
 }
 
-static void *tegra_se_cmdbuf_bo_mmap(struct host1x_bo *host_bo)
+static void *tegra_se_cmdbuf_mmap(struct host1x_bo *host_bo)
 {
-	struct tegra_se_gatherdata *gather = container_of(host_bo, struct tegra_se_gatherdata, bo);
+	struct tegra_se_cmdbuf *cmdbuf = container_of(host_bo, struct tegra_se_cmdbuf, bo);
 
-	return gather->cmdbuf_addr;
+	return cmdbuf->addr;
 }
 
-static void tegra_se_cmdbuf_bo_munmap(struct host1x_bo *host_bo, void *addr)
+static void tegra_se_cmdbuf_munmap(struct host1x_bo *host_bo, void *addr)
 {
 }
 
-const struct host1x_bo_ops tegra_se_cmdbuf_ops = {
-	.get = tegra_se_cmdbuf_bo_get,
-	.put = tegra_se_cmdbuf_bo_put,
-	.pin = tegra_se_cmdbuf_bo_pin,
-	.unpin = tegra_se_cmdbuf_bo_unpin,
-	.mmap = tegra_se_cmdbuf_bo_mmap,
-	.munmap = tegra_se_cmdbuf_bo_munmap,
+static const struct host1x_bo_ops tegra_se_cmdbuf_ops = {
+	.get = tegra_se_cmdbuf_get,
+	.put = tegra_se_cmdbuf_put,
+	.pin = tegra_se_cmdbuf_pin,
+	.unpin = tegra_se_cmdbuf_unpin,
+	.mmap = tegra_se_cmdbuf_mmap,
+	.munmap = tegra_se_cmdbuf_munmap,
 };
+
+static struct tegra_se_cmdbuf *tegra_se_alloc_cmdbuf(struct device *dev, ssize_t size)
+{
+	struct tegra_se_cmdbuf *cmdbuf;
+
+	cmdbuf = devm_kzalloc(dev, sizeof(struct tegra_se_cmdbuf), GFP_KERNEL);
+	if (!cmdbuf)
+		return ERR_PTR(-ENOMEM);
+
+	cmdbuf->addr = dma_alloc_attrs(dev, size, &cmdbuf->iova,
+							GFP_KERNEL, 0);
+	if (!cmdbuf->addr)
+		return ERR_PTR(-ENOMEM);
+
+	cmdbuf->size = size;
+	cmdbuf->dev  = dev;
+
+	host1x_bo_init(&cmdbuf->bo, &tegra_se_cmdbuf_ops);
+	kref_init(&cmdbuf->ref);
+
+	return cmdbuf;
+}
 
 static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 					 struct tegra_se_cmdbuf *cmdbuf,
@@ -1326,9 +1288,6 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 			goto exit;
 		}
 	}
-
-	host1x_bo_init(&cmdbuf->gather->bo, &tegra_se_cmdbuf_ops);
-	kref_init(&cmdbuf->gather->ref);
 
 	job = host1x_job_alloc(se_dev->channel, 1, 0, true);
 	if (!job) {
@@ -1363,16 +1322,16 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 	job->engine_streamid_offset = SE_STREAMID_REG_OFFSET;
 	se_dev->client.num_syncpts = 1;
 
-	cmdbuf->gather->dev = se_dev->dev;
-	cmdbuf->gather->words = num_words;
+	cmdbuf->dev = se_dev->dev;
+	cmdbuf->words = num_words;
 
 	/* push increment after work has been completed */
-	se_nvhost_write_method(&cmdbuf->gather->cmdbuf_addr[num_words], nvhost_opcode_nonincr(
+	se_nvhost_write_method(&cmdbuf->addr[num_words], nvhost_opcode_nonincr(
 					host1x_uclass_incr_syncpt_r(), 1),
 			       nvhost_class_host_incr_syncpt(
 				0x00000001, syncpt_id), &num_words);
 
-	host1x_job_add_gather(job, &cmdbuf->gather->bo, num_words, offset);
+	host1x_job_add_gather(job, &cmdbuf->bo, num_words, offset);
 #if 0
 	err = nvhost_job_add_client_gather_address(job, num_words,
 						   pdata->class, iova);
@@ -1414,7 +1373,6 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 		priv->buf_addr = se_dev->aes_addr;
 		priv->req_cnt = se_dev->req_cnt;
 		priv->gather_buf_sz = se_dev->gather_buf_sz;
-		priv->cmdbuf_node = se_dev->cmdbuf_list_entry;
 
 		/* Register callback to be called once
 		 * syncpt value has been reached
@@ -1439,7 +1397,6 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 		priv->sha_dst_mapped = se_dev->sha_dst_mapped;
 		priv->sha_last = se_dev->sha_last;
 		priv->buf_addr = se_dev->dst_ll->addr;
-		priv->cmdbuf_node = se_dev->cmdbuf_list_entry;
 
 		err = nvhost_intr_register_notifier(
 			se_dev->pdev, syncpt_id, job->syncpt_end,
@@ -1455,10 +1412,7 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 		/* wait until host1x has processed work */
 		 host1x_syncpt_wait(
 			job->syncpt, job->syncpt_end,
-			(u32)MAX_SCHEDULE_TIMEOUT, NULL);
-
-		atomic_set(&se_dev->cmdbuf_addr_list[
-			   se_dev->cmdbuf_list_entry].free, 1);
+			MAX_SCHEDULE_TIMEOUT, NULL);
 	}
 
 	se_dev->req_cnt = 0;
@@ -1509,7 +1463,7 @@ static int tegra_se_aes_ins_op(struct tegra_se_dev *se_dev, u8 *pdata,
 				  enum tegra_se_callback callback)
 {
 	u32 *pdata_buf = (u32 *)pdata;
-	u32 *cpuvaddr = cmdbuf->gather->cmdbuf_addr;
+	u32 *cpuvaddr = cmdbuf->addr;
 	u32 val = 0, j;
 	u32 cmdbuf_num_words = 0, i = 0;
 	int err = 0;
@@ -1663,7 +1617,7 @@ static int tegra_se_send_key_data(struct tegra_se_dev *se_dev, u8 *pdata,
 {
 	u32 data_size;
 	u32 *pdata_buf = (u32 *)pdata;
-	u32 *cpuvaddr = cmdbuf->gather->cmdbuf_addr;
+	u32 *cpuvaddr = cmdbuf->addr;
 	u8 pkt = 0, quad = 0;
 	u32 val = 0, j;
 	u32 cmdbuf_num_words = 0, i = 0;
@@ -1932,24 +1886,21 @@ static int tegra_se_send_sha_data(struct tegra_se_dev *se_dev,
 	struct tegra_se_ll *src_ll = se_dev->src_ll;
 	struct tegra_se_ll *dst_ll = se_dev->dst_ll;
 	struct tegra_se_cmdbuf *cmdbuf;
-	unsigned int total = count, val, index;
+	unsigned int total = count, val;
 	u64 msg_len;
 
-	err = tegra_se_get_free_cmdbuf(se_dev);
-	if (err < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		goto index_out;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+				SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		return PTR_ERR(cmdbuf);
 	}
-	index = err;
 
-	cmdbuf_cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	cmdbuf_iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	se_dev->cmdbuf_list_entry = index;
+	cmdbuf_cpuvaddr = cmdbuf->addr;
+	cmdbuf_iova = cmdbuf->iova;
 
 	while (total) {
 		if (src_ll->data_len & SE_BUFF_SIZE_MASK) {
-			cmdbuf = &se_dev->cmdbuf_addr_list[index];
-			atomic_set(&se_dev->cmdbuf_addr_list[index].free, 1);
 			return -EINVAL;
 		}
 
@@ -2053,15 +2004,11 @@ static int tegra_se_send_sha_data(struct tegra_se_dev *se_dev,
 
 	cmdbuf_num_words = i;
 
-	err = tegra_se_channel_submit_gather(se_dev, &se_dev->cmdbuf_addr_list[index],
+	err = tegra_se_channel_submit_gather(se_dev, cmdbuf,
 					0, cmdbuf_num_words, SHA_CB);
-	if (err) {
+	if (err)
 		dev_err(se_dev->dev, "Channel submission fail err = %d\n", err);
-		atomic_set(&se_dev->cmdbuf_addr_list[index].free, 1);
 
-	}
-
-index_out:
 	return err;
 }
 
@@ -2427,7 +2374,7 @@ static int tegra_se_prepare_cmdbuf(struct tegra_se_dev *se_dev,
 				   struct tegra_se_cmdbuf *cmdbuf)
 {
 	int i, ret = 0;
-	u32 *cpuvaddr = cmdbuf->gather->cmdbuf_addr;
+	u32 *cpuvaddr = cmdbuf->addr;
 	struct tegra_se_aes_context *aes_ctx;
 	struct skcipher_request *req;
 	struct tegra_se_req_context *req_ctx;
@@ -2534,7 +2481,6 @@ static void tegra_se_process_new_req(struct tegra_se_dev *se_dev)
 	struct skcipher_request *req;
 	u32 *cpuvaddr = NULL;
 	dma_addr_t iova = 0;
-	unsigned int index = 0;
 	struct tegra_se_cmdbuf *cmdbuf;
 	int err = 0, i = 0;
 
@@ -2555,24 +2501,21 @@ static void tegra_se_process_new_req(struct tegra_se_dev *se_dev)
 	if (err)
 		goto mem_out;
 
-	err = tegra_se_get_free_cmdbuf(se_dev);
-	if (err < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		goto index_out;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+				SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		goto mem_out;
 	}
 
-	index = err;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	se_dev->cmdbuf_list_entry = index;
-	cmdbuf = &se_dev->cmdbuf_addr_list[index];
-
-	err = tegra_se_prepare_cmdbuf(se_dev, &se_dev->cmdbuf_addr_list[index]);
+	err = tegra_se_prepare_cmdbuf(se_dev, cmdbuf);
 	if (err)
 		goto cmdbuf_out;
 
-	err = tegra_se_channel_submit_gather(se_dev, &se_dev->cmdbuf_addr_list[index], 0,
+	err = tegra_se_channel_submit_gather(se_dev, cmdbuf, 0,
 					     se_dev->cmdbuf_cnt, AES_CB);
 	if (err)
 		goto cmdbuf_out;
@@ -2582,8 +2525,6 @@ static void tegra_se_process_new_req(struct tegra_se_dev *se_dev)
 
 	return;
 cmdbuf_out:
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 1);
-index_out:
 	dma_unmap_sg(se_dev->dev, &se_dev->sg, 1, DMA_BIDIRECTIONAL);
 	//if (se_dev->dynamic_mem)
 	//	kfree(se_dev->aes_buf);
@@ -2801,9 +2742,9 @@ static int tegra_se_aes_setkey(struct crypto_skcipher *tfm,
 	struct tegra_se_aes_context *ctx = crypto_tfm_ctx(&tfm->base);
 	struct tegra_se_dev *se_dev;
 	struct tegra_se_slot *pslot;
+	struct tegra_se_cmdbuf *cmdbuf;
 	u8 *pdata = (u8 *)key;
 	int ret = 0;
-	unsigned int index = 0;
 	u32 *cpuvaddr = NULL;
 
 	se_dev = se_devices[SE_AES];
@@ -2873,17 +2814,15 @@ static int tegra_se_aes_setkey(struct crypto_skcipher *tfm,
 		goto out;
 	}
 
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		goto keyslt_free;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+				SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto out;
 	}
 
-	index = ret;
-
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
 
 	/* load the key */
 
@@ -2891,13 +2830,13 @@ static int tegra_se_aes_setkey(struct crypto_skcipher *tfm,
 		ret = tegra_se_send_key_data(
 			se_dev, pdata, keylen, ctx->slot->slot_num,
 			SE_KEY_TABLE_TYPE_KEY, se_dev->opcode_addr,
-			&se_dev->cmdbuf_addr_list[index], AES_CB);
+			cmdbuf, AES_CB);
 	} else {
 		keylen = keylen / 2;
 		ret = tegra_se_send_key_data(
 			se_dev, pdata, keylen, ctx->slot->slot_num,
 			SE_KEY_TABLE_TYPE_XTS_KEY1, se_dev->opcode_addr,
-			&se_dev->cmdbuf_addr_list[index], AES_CB);
+			cmdbuf, AES_CB);
 		if (ret)
 			goto keyslt_free;
 
@@ -2906,13 +2845,13 @@ static int tegra_se_aes_setkey(struct crypto_skcipher *tfm,
 					     keylen, ctx->slot2->slot_num,
 					     SE_KEY_TABLE_TYPE_XTS_KEY2,
 					     se_dev->opcode_addr,
-					     &se_dev->cmdbuf_addr_list[index], AES_CB);
+					     cmdbuf, AES_CB);
 		} else {
 			ret = tegra_se_send_key_data(se_dev, pdata + keylen,
 					     keylen, ctx->slot->slot_num,
 					     SE_KEY_TABLE_TYPE_XTS_KEY2,
 					     se_dev->opcode_addr,
-					     &se_dev->cmdbuf_addr_list[index], AES_CB);
+					     cmdbuf, AES_CB);
 		}
 	}
 keyslt_free:
@@ -2985,11 +2924,20 @@ static int tegra_se_rng_drbg_get_random(struct crypto_rng *tfm, const u8 *src,
 	u8 *rdata_addr;
 	int ret = 0, j;
 	unsigned int num_blocks, data_len = 0;
+	struct tegra_se_cmdbuf *cmdbuf;
 	struct tegra_se_req_context *req_ctx =
 		devm_kzalloc(se_dev->dev,
 			     sizeof(struct tegra_se_req_context), GFP_KERNEL);
 	if (!req_ctx)
 		return -ENOMEM;
+
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+				SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto free_ctx;
+	}
 
 	num_blocks = (dlen / TEGRA_SE_RNG_DT_SIZE);
 	data_len = (dlen % TEGRA_SE_RNG_DT_SIZE);
@@ -3016,10 +2964,9 @@ static int tegra_se_rng_drbg_get_random(struct crypto_rng *tfm, const u8 *src,
 		se_dev->dst_ll->data_len = TEGRA_SE_RNG_DT_SIZE;
 
 		tegra_se_send_data(se_dev, req_ctx, NULL, TEGRA_SE_RNG_DT_SIZE,
-				   se_dev->opcode_addr,
-				   se_dev->aes_cmdbuf.gather->cmdbuf_addr);
+				   se_dev->opcode_addr, cmdbuf->addr);
 		ret = tegra_se_channel_submit_gather(
-				se_dev, &se_dev->aes_cmdbuf,
+				se_dev, cmdbuf,
 				0, se_dev->cmdbuf_cnt,
 				NONE);
 		if (ret)
@@ -3038,6 +2985,7 @@ static int tegra_se_rng_drbg_get_random(struct crypto_rng *tfm, const u8 *src,
 		ret = dlen;
 
 	mutex_unlock(&se_dev->mtx);
+free_ctx:
 	devm_kfree(se_dev->dev, req_ctx);
 
 	return ret;
@@ -3687,6 +3635,7 @@ static int tegra_t23x_se_aes_cmac_op(struct ahash_request *req,
 	struct tegra_se_dev *se_dev;
 	struct tegra_se_ll *src_ll;
 	u32 num_sgs, total_bytes = 0;
+	struct tegra_se_cmdbuf *cmdbuf;
 	int ret = 0;
 
 	se_dev = se_devices[SE_CMAC];
@@ -3700,6 +3649,18 @@ static int tegra_t23x_se_aes_cmac_op(struct ahash_request *req,
 	if (!(cmac_ctx->nbytes + req->nbytes)) {
 		ret = -EINVAL;
 		goto out;
+	}
+
+	if (se_dev->cmdbuf_cnt) {
+		cmdbuf = cmac_ctx->cmdbuf;
+	} else {
+		cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+					SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+		if (IS_ERR(cmdbuf)) {
+			dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+			ret = PTR_ERR(cmdbuf);
+			goto out;
+		}
 	}
 
 	if (process_cur_req) {
@@ -3738,9 +3699,9 @@ static int tegra_t23x_se_aes_cmac_op(struct ahash_request *req,
 
 	tegra_se_send_data(se_dev, req_ctx, NULL, total_bytes,
 			   se_dev->opcode_addr,
-			   se_dev->aes_cmdbuf.gather->cmdbuf_addr);
+			   cmdbuf->addr);
 	ret = tegra_se_channel_submit_gather(
-		se_dev, &se_dev->aes_cmdbuf,
+		se_dev, cmdbuf,
 		0, se_dev->cmdbuf_cnt, NONE);
 	if (ret)
 		goto out;
@@ -3772,6 +3733,7 @@ static int tegra_se_aes_cmac_op(struct ahash_request *req, bool process_cur_req)
 	struct tegra_se_req_context *req_ctx = ahash_request_ctx(req);
 	struct tegra_se_dev *se_dev;
 	struct tegra_se_ll *src_ll;
+	struct tegra_se_cmdbuf *cmdbuf;
 	u32 num_sgs, blocks_to_process, last_block_bytes = 0, offset = 0;
 	u8 piv[TEGRA_SE_AES_IV_SIZE];
 	unsigned int total;
@@ -3786,12 +3748,21 @@ static int tegra_se_aes_cmac_op(struct ahash_request *req, bool process_cur_req)
 
 	mutex_lock(&se_dev->mtx);
 
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+			SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto out;
+	}
+
 	if (process_cur_req) {
 		if ((cmac_ctx->nbytes + req->nbytes)
 				> (TEGRA_SE_AES_BLOCK_SIZE * 20)) {
 			dev_err(se_dev->dev, "num of SG buffers bytes are more\n");
 			mutex_unlock(&se_dev->mtx);
-			return -EOPNOTSUPP;
+			ret = -EOPNOTSUPP;
+			goto out;
 		}
 
 		num_sgs = tegra_se_count_sgs(req->src, req->nbytes);
@@ -3837,7 +3808,7 @@ static int tegra_se_aes_cmac_op(struct ahash_request *req, bool process_cur_req)
 			se_dev, piv, TEGRA_SE_AES_IV_SIZE,
 			cmac_ctx->slot->slot_num, SE_KEY_TABLE_TYPE_ORGIV,
 			se_dev->opcode_addr,
-			&se_dev->aes_cmdbuf, NONE);
+			cmdbuf, NONE);
 		if (ret)
 			goto out;
 
@@ -3847,9 +3818,9 @@ static int tegra_se_aes_cmac_op(struct ahash_request *req, bool process_cur_req)
 
 		tegra_se_send_data(se_dev, req_ctx, NULL, total,
 				   se_dev->opcode_addr,
-				   se_dev->aes_cmdbuf.gather->cmdbuf_addr);
+				   cmdbuf->addr);
 		ret = tegra_se_channel_submit_gather(
-			se_dev, &se_dev->aes_cmdbuf,
+			se_dev, cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 		if (ret)
 			goto out;
@@ -3895,13 +3866,13 @@ static int tegra_se_aes_cmac_op(struct ahash_request *req, bool process_cur_req)
 			se_dev, piv, TEGRA_SE_AES_IV_SIZE,
 			cmac_ctx->slot->slot_num, SE_KEY_TABLE_TYPE_ORGIV,
 			se_dev->opcode_addr,
-			&se_dev->aes_cmdbuf, NONE);
+			cmdbuf, NONE);
 	} else {
 		ret = tegra_se_send_key_data(
 			se_dev, piv, TEGRA_SE_AES_IV_SIZE,
 			cmac_ctx->slot->slot_num, SE_KEY_TABLE_TYPE_UPDTDIV,
 			se_dev->opcode_addr,
-			&se_dev->aes_cmdbuf, NONE);
+			cmdbuf, NONE);
 	}
 
 	if (ret)
@@ -3914,9 +3885,9 @@ static int tegra_se_aes_cmac_op(struct ahash_request *req, bool process_cur_req)
 				cmac_ctx->slot->slot_num, 0, use_orig_iv);
 
 	tegra_se_send_data(se_dev, req_ctx, NULL, TEGRA_SE_AES_BLOCK_SIZE,
-			   se_dev->opcode_addr, se_dev->aes_cmdbuf.gather->cmdbuf_addr);
+			   se_dev->opcode_addr, cmdbuf->addr);
 	ret = tegra_se_channel_submit_gather(
-			se_dev, &se_dev->aes_cmdbuf,
+			se_dev, cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 	if (ret)
 		goto out;
@@ -3942,6 +3913,7 @@ static int tegra_se_aes_cmac_setkey(struct crypto_ahash *tfm, const u8 *key,
 	struct tegra_se_req_context *req_ctx = NULL;
 	struct tegra_se_dev *se_dev;
 	struct tegra_se_slot *pslot;
+	struct tegra_se_cmdbuf *cmdbuf;
 	u8 piv[TEGRA_SE_AES_IV_SIZE];
 	u32 *pbuf;
 	dma_addr_t pbuf_adr;
@@ -3972,6 +3944,15 @@ static int tegra_se_aes_cmac_setkey(struct crypto_ahash *tfm, const u8 *key,
 		ret = -EINVAL;
 		goto free_ctx;
 	}
+
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+				SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto free_ctx;
+	}
+	ctx->cmdbuf = cmdbuf;
 
 	if (key) {
 		if (!ctx->slot ||
@@ -4014,12 +3995,12 @@ static int tegra_se_aes_cmac_setkey(struct crypto_ahash *tfm, const u8 *key,
 		ret = tegra_se_send_key_data(
 			se_dev, (u8 *)key, keylen, ctx->slot->slot_num,
 			SE_KEY_TABLE_TYPE_CMAC, se_dev->opcode_addr,
-			&se_dev->aes_cmdbuf, NONE);
+			cmdbuf, NONE);
 	} else {
 		ret = tegra_se_send_key_data(
 			se_dev, (u8 *)key, keylen, ctx->slot->slot_num,
 			SE_KEY_TABLE_TYPE_KEY, se_dev->opcode_addr,
-			&se_dev->aes_cmdbuf, NONE);
+			cmdbuf, NONE);
 	}
 	if (ret) {
 		dev_err(se_dev->dev,
@@ -4034,7 +4015,7 @@ static int tegra_se_aes_cmac_setkey(struct crypto_ahash *tfm, const u8 *key,
 	ret = tegra_se_send_key_data(
 		se_dev, piv, TEGRA_SE_AES_IV_SIZE, ctx->slot->slot_num,
 		SE_KEY_TABLE_TYPE_ORGIV, se_dev->opcode_addr,
-		&se_dev->aes_cmdbuf, NONE);
+		cmdbuf, NONE);
 	if (ret) {
 		dev_err(se_dev->dev,
 			"tegra_se_send_key_data for loading cmac iv failed\n");
@@ -4059,9 +4040,9 @@ static int tegra_se_aes_cmac_setkey(struct crypto_ahash *tfm, const u8 *key,
 
 		tegra_se_send_data(se_dev, req_ctx, NULL,
 				   TEGRA_SE_AES_BLOCK_SIZE, se_dev->opcode_addr,
-				   se_dev->aes_cmdbuf.gather->cmdbuf_addr);
+				   cmdbuf->addr);
 		ret = tegra_se_channel_submit_gather(
-			se_dev, &se_dev->aes_cmdbuf,
+			se_dev, cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 		if (ret) {
 			dev_err(se_dev->dev,
@@ -4195,7 +4176,7 @@ static int tegra_se_sha_hmac_setkey(struct crypto_ahash *tfm, const u8 *key,
 	struct tegra_se_sha_context *ctx = crypto_ahash_ctx(tfm);
 	struct tegra_se_req_context *req_ctx = NULL;
 	struct tegra_se_dev *se_dev;
-	unsigned int index;
+	struct tegra_se_cmdbuf *cmdbuf;
 	dma_addr_t iova;
 	u32 *cpuvaddr;
 	u8 _key[TEGRA_SE_KEY_256_SIZE] = { 0 };
@@ -4241,28 +4222,24 @@ static int tegra_se_sha_hmac_setkey(struct crypto_ahash *tfm, const u8 *key,
 
 	ctx->keylen = keylen;
 
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		goto free_keyslot;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_16K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto free_req_ctx;
 	}
 
-	index = ret;
-
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 
 	ret = tegra_se_send_key_data(se_dev, _key, TEGRA_SE_KEY_256_SIZE,
 		ctx->slot->slot_num, SE_KEY_TABLE_TYPE_HMAC,
-		se_dev->opcode_addr, &se_dev->cmdbuf_addr_list[index], NONE);
+		se_dev->opcode_addr, cmdbuf, NONE);
 
 	if (ret)
 		dev_err(se_dev->dev,
 			"tegra_se_send_key_data for loading HMAC key failed\n");
 
-free_keyslot:
 	if (ret)
 		tegra_se_free_key_slot(ctx->slot);
 free_req_ctx:
@@ -4362,37 +4339,34 @@ static int tegra_se_send_rsa_data(struct tegra_se_dev *se_dev,
 	int err = 0;
 	u32 val = 0;
 
-	cmdbuf = kzalloc(sizeof(*cmdbuf), GFP_KERNEL);
-	if (!cmdbuf)
-		return -ENOMEM;
-
-	if (tegra_se_alloc_gather(se_dev->dev->parent, SZ_4K, cmdbuf)) {
-		dev_err(se_dev->dev, "Failed to allocate memory for cmdbuf\n");
-		return -ENOMEM;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_4K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		return PTR_ERR(cmdbuf);
 	}
 
 	cmdbuf->size = SZ_4K;
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
 
 	val = SE_CONFIG_ENC_ALG(ALG_RSA) |
 		SE_CONFIG_DEC_ALG(ALG_NOP) |
 		SE_CONFIG_DST(DST_MEMORY);
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_incr(se_dev->opcode_addr, 8);
-	cmdbuf->gather->cmdbuf_addr[i++] = val;
-	cmdbuf->gather->cmdbuf_addr[i++] = RSA_KEY_SLOT(rsa_ctx->slot->slot_num);
-	cmdbuf->gather->cmdbuf_addr[i++] = (rsa_ctx->mod_len / 64) - 1;
-	cmdbuf->gather->cmdbuf_addr[i++] = (rsa_ctx->exp_len / 4);
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(se_dev->src_ll->addr);
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->src_ll->addr)) |
+	cmdbuf->addr[i++] = __nvhost_opcode_incr(se_dev->opcode_addr, 8);
+	cmdbuf->addr[i++] = val;
+	cmdbuf->addr[i++] = RSA_KEY_SLOT(rsa_ctx->slot->slot_num);
+	cmdbuf->addr[i++] = (rsa_ctx->mod_len / 64) - 1;
+	cmdbuf->addr[i++] = (rsa_ctx->exp_len / 4);
+	cmdbuf->addr[i++] = (u32)(se_dev->src_ll->addr);
+	cmdbuf->addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->src_ll->addr)) |
 				SE_ADDR_HI_SZ(se_dev->src_ll->data_len));
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(se_dev->dst_ll->addr);
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->dst_ll->addr)) |
+	cmdbuf->addr[i++] = (u32)(se_dev->dst_ll->addr);
+	cmdbuf->addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->dst_ll->addr)) |
 				SE_ADDR_HI_SZ(se_dev->dst_ll->data_len));
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
 				SE_OPERATION_LASTBUF(LASTBUF_TRUE) |
 				SE_OPERATION_OP(OP_START);
 
@@ -4401,11 +4375,6 @@ static int tegra_se_send_rsa_data(struct tegra_se_dev *se_dev,
 	err = tegra_se_channel_submit_gather(se_dev, cmdbuf,
 					     0, cmdbuf_num_words,
 					     NONE);
-
-	dma_free_attrs(se_dev->dev->parent, SZ_4K, cmdbuf->gather->cmdbuf_addr,
-		       cmdbuf->gather->iova, 0);
-	kfree(cmdbuf);
-
 	return err;
 }
 
@@ -4467,22 +4436,16 @@ static int tegra_se_rsa_setkey(struct crypto_akcipher *tfm, const void *key,
 	ctx->mod_len = module_key_length;
 	ctx->exp_len = exponent_key_length;
 
-	cmdbuf = kzalloc(sizeof(*cmdbuf), GFP_KERNEL);
-	if (!cmdbuf)
-		return -ENOMEM;
-
-
-	if (tegra_se_alloc_gather(se_dev->dev->parent, SZ_64K, cmdbuf))
-	{
-		tegra_se_rsa_free_key_slot(ctx->slot);
-		dev_err(se_dev->dev, "Failed to allocate memory for cmdbuf\n");
-		return -ENOMEM;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_64K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		return PTR_ERR(cmdbuf);
 	}
 
 	cmdbuf->size = SZ_64K;
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
 
 	if (exponent_key_length) {
 		key_size_words = (exponent_key_length / key_word_size);
@@ -4492,14 +4455,14 @@ static int tegra_se_rsa_setkey(struct crypto_akcipher *tfm, const void *key,
 				RSA_KEY_TYPE(RSA_KEY_TYPE_EXP) |
 				RSA_KEY_PKT_WORD_ADDR(j);
 			val = SE_RSA_KEYTABLE_PKT(pkt);
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_ADDR_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = val;
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = val;
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_DATA_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = *pkeydata++;
+			cmdbuf->addr[i++] = *pkeydata++;
 		}
 	}
 
@@ -4511,20 +4474,20 @@ static int tegra_se_rsa_setkey(struct crypto_akcipher *tfm, const void *key,
 				RSA_KEY_TYPE(RSA_KEY_TYPE_MOD) |
 				RSA_KEY_PKT_WORD_ADDR(j);
 			val = SE_RSA_KEYTABLE_PKT(pkt);
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_ADDR_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = val;
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = val;
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_DATA_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = *pkeydata++;
+			cmdbuf->addr[i++] = *pkeydata++;
 		}
 	}
 
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
 				SE_OPERATION_LASTBUF(LASTBUF_TRUE) |
 				SE_OPERATION_OP(OP_DUMMY);
 	cmdbuf_num_words = i;
@@ -4536,10 +4499,6 @@ static int tegra_se_rsa_setkey(struct crypto_akcipher *tfm, const void *key,
 	mutex_unlock(&se_dev->mtx);
 	if (err)
 		tegra_se_rsa_free_key_slot(ctx->slot);
-
-	dma_free_attrs(se_dev->dev->parent, SZ_64K, cmdbuf->gather->cmdbuf_addr,
-		       cmdbuf->gather->iova, 0);
-	kfree(cmdbuf);
 
 	return err;
 }
@@ -4742,21 +4701,16 @@ static int tegra_se_dh_setkey(struct crypto_kpp *tfm)
 		return -EDOM;
 	}
 
-	cmdbuf = kzalloc(sizeof(*cmdbuf), GFP_KERNEL);
-	if (!cmdbuf)
-		return -ENOMEM;
-
-
-	if (tegra_se_alloc_gather(se_dev->dev->parent, SZ_64K, cmdbuf)) {
-		tegra_se_rsa_free_key_slot(ctx->slot);
-		dev_err(se_dev->dev, "Failed to allocate cmdbuf\n");
-		return -ENOMEM;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_64K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		return PTR_ERR(cmdbuf);
 	}
 
 	cmdbuf->size = SZ_64K;
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
 
 	if (exponent_key_length) {
 		key_size_words = (exponent_key_length / key_word_size);
@@ -4766,14 +4720,14 @@ static int tegra_se_dh_setkey(struct crypto_kpp *tfm)
 				RSA_KEY_TYPE(RSA_KEY_TYPE_EXP) |
 				RSA_KEY_PKT_WORD_ADDR(j);
 			val = SE_RSA_KEYTABLE_PKT(pkt);
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_ADDR_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = val;
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = val;
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_DATA_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = be32_to_cpu(*pkeydata++);
+			cmdbuf->addr[i++] = be32_to_cpu(*pkeydata++);
 		}
 	}
 
@@ -4786,20 +4740,20 @@ static int tegra_se_dh_setkey(struct crypto_kpp *tfm)
 				RSA_KEY_TYPE(RSA_KEY_TYPE_MOD) |
 				RSA_KEY_PKT_WORD_ADDR(j);
 			val = SE_RSA_KEYTABLE_PKT(pkt);
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_ADDR_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = val;
-			cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+			cmdbuf->addr[i++] = val;
+			cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 					se_dev->opcode_addr +
 					SE_RSA_KEYTABLE_DATA_OFFSET, 1);
-			cmdbuf->gather->cmdbuf_addr[i++] = be32_to_cpu(*pkeydata++);
+			cmdbuf->addr[i++] = be32_to_cpu(*pkeydata++);
 		}
 	}
 
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
 				SE_OPERATION_LASTBUF(LASTBUF_TRUE) |
 				SE_OPERATION_OP(OP_DUMMY);
 	cmdbuf_num_words = i;
@@ -4811,9 +4765,6 @@ static int tegra_se_dh_setkey(struct crypto_kpp *tfm)
 		dev_err(se_dev->dev, "%s: channel_submit failed\n", __func__);
 		tegra_se_rsa_free_key_slot(ctx->slot);
 	}
-	dma_free_attrs(se_dev->dev->parent, SZ_64K, cmdbuf->gather->cmdbuf_addr,
-		       cmdbuf->gather->iova, 0);
-	kfree(cmdbuf);
 
 	return err;
 }
@@ -4928,39 +4879,35 @@ static int tegra_se_dh_compute_value(struct kpp_request *req)
 		goto unmap_src;
 	}
 
-	cmdbuf = kzalloc(sizeof(*cmdbuf), GFP_KERNEL);
-	if (!cmdbuf)
-		return -ENOMEM;
-
-
-	if (tegra_se_alloc_gather(se_dev->dev->parent, SZ_4K, cmdbuf)) {
-		dev_err(se_dev->dev, "%s: dma_alloc_attrs failed\n", __func__);
-		err = -ENOMEM;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_4K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		err = PTR_ERR(cmdbuf);
 		goto unmap_dst;
 	}
 
 	cmdbuf->size = SZ_4K;
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE);
 
 	val = SE_CONFIG_ENC_ALG(ALG_RSA) | SE_CONFIG_DEC_ALG(ALG_NOP) |
 		SE_CONFIG_DST(DST_MEMORY);
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_incr(se_dev->opcode_addr, 8);
-	cmdbuf->gather->cmdbuf_addr[i++] = val;
-	cmdbuf->gather->cmdbuf_addr[i++] = RSA_KEY_SLOT(dh_ctx->slot->slot_num);
-	cmdbuf->gather->cmdbuf_addr[i++] = (dh_ctx->p_size / 64) - 1;
-	cmdbuf->gather->cmdbuf_addr[i++] = (dh_ctx->key_size / 4);
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(se_dev->src_ll->addr);
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->src_ll->addr)) |
+	cmdbuf->addr[i++] = __nvhost_opcode_incr(se_dev->opcode_addr, 8);
+	cmdbuf->addr[i++] = val;
+	cmdbuf->addr[i++] = RSA_KEY_SLOT(dh_ctx->slot->slot_num);
+	cmdbuf->addr[i++] = (dh_ctx->p_size / 64) - 1;
+	cmdbuf->addr[i++] = (dh_ctx->key_size / 4);
+	cmdbuf->addr[i++] = (u32)(se_dev->src_ll->addr);
+	cmdbuf->addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->src_ll->addr)) |
 				SE_ADDR_HI_SZ(se_dev->src_ll->data_len));
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(se_dev->dst_ll->addr);
-	cmdbuf->gather->cmdbuf_addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->dst_ll->addr)) |
+	cmdbuf->addr[i++] = (u32)(se_dev->dst_ll->addr);
+	cmdbuf->addr[i++] = (u32)(SE_ADDR_HI_MSB(MSB(se_dev->dst_ll->addr)) |
 				SE_ADDR_HI_SZ(se_dev->dst_ll->data_len));
 
-	cmdbuf->gather->cmdbuf_addr[i++] = __nvhost_opcode_nonincr(
+	cmdbuf->addr[i++] = __nvhost_opcode_nonincr(
 			se_dev->opcode_addr + SE_RSA_OPERATION_OFFSET, 1);
-	cmdbuf->gather->cmdbuf_addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
+	cmdbuf->addr[i++] = SE_OPERATION_WRSTALL(WRSTALL_TRUE) |
 				SE_OPERATION_LASTBUF(LASTBUF_TRUE) |
 				SE_OPERATION_OP(OP_START);
 
@@ -4971,14 +4918,11 @@ static int tegra_se_dh_compute_value(struct kpp_request *req)
 				cmdbuf_num_words, NONE);
 	if (err) {
 		dev_err(se_dev->dev, "%s: channel_submit failed\n", __func__);
-		goto exit;
+		goto unmap_dst;
 	}
 
 	tegra_se_fix_endianness(se_dev, req->dst, num_dst_sgs,
 				req->dst_len, false);
-exit:
-	dma_free_attrs(se_dev->dev->parent, SZ_4K, cmdbuf->gather->cmdbuf_addr,
-		       cmdbuf->gather->iova, 0);
 unmap_dst:
 	tegra_unmap_sg(se_dev->dev, req->dst, DMA_FROM_DEVICE, req->dst_len);
 unmap_src:
@@ -5051,10 +4995,10 @@ static int tegra_se_aes_ccm_setkey(struct crypto_aead *tfm, const u8 *key,
 	struct tegra_se_aes_ccm_ctx *ctx = crypto_aead_ctx(tfm);
 	struct tegra_se_dev *se_dev;
 	struct tegra_se_slot *pslot;
+	struct tegra_se_cmdbuf *cmdbuf;
 	u32 *cpuvaddr = NULL;
 	dma_addr_t iova = 0;
 	int ret = 0;
-	unsigned int index = 0;
 
 	se_dev = se_devices[SE_AEAD];
 
@@ -5086,25 +5030,21 @@ static int tegra_se_aes_ccm_setkey(struct crypto_aead *tfm, const u8 *key,
 	ctx->keylen = keylen;
 
 	/* Get free command buffer */
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		goto keyslt_free;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_16K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto free_ctx;
 	}
 
-	index = ret;
-
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 
 	ret = tegra_se_send_key_data(
 		se_dev, (u8 *)key, keylen, ctx->slot->slot_num,
 		SE_KEY_TABLE_TYPE_KEY, se_dev->opcode_addr,
-		&se_dev->cmdbuf_addr_list[index], NONE);
+		cmdbuf, NONE);
 
-keyslt_free:
 	tegra_se_free_key_slot(ctx->slot);
 
 free_ctx:
@@ -5286,9 +5226,10 @@ static int tegra_se_ccm_compute_auth(struct aead_request *req, bool encrypt)
 	unsigned int assoclen, cryptlen;
 	struct scatterlist *sg, *sg_start;
 	unsigned int ilen, pad_bytes_len, pt_bytes = 0, total = 0;
-	u32 num_sgs, mapped_len = 0, index, *cpuvaddr = NULL;
+	u32 num_sgs, mapped_len = 0, *cpuvaddr = NULL;
 	struct tegra_se_dev *se_dev;
 	struct tegra_se_ll *src_ll;
+	struct tegra_se_cmdbuf *cmdbuf;
 	dma_addr_t pt_addr, adata_addr, iova = 0;
 	u8 *buf, *adata = NULL;
 	int ret, count;
@@ -5424,19 +5365,15 @@ static int tegra_se_ccm_compute_auth(struct aead_request *req, bool encrypt)
 	total += pad_bytes_len;
 
 	/* 4 - Compute CBC_MAC */
-	/* 4.1 - Get free command buffer */
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_16K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
 		goto out;
 	}
 
-	index = ret;
-
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 	se_dev->dst_ll = se_dev->src_ll; /* dummy */
 
 	req_ctx->op_mode = SE_AES_OP_MODE_CBC_MAC;
@@ -5448,7 +5385,7 @@ static int tegra_se_ccm_compute_auth(struct aead_request *req, bool encrypt)
 
 	tegra_se_send_data(se_dev, req_ctx, NULL, total, se_dev->opcode_addr,
 			cpuvaddr);
-	ret = tegra_se_channel_submit_gather(se_dev, &se_dev->cmdbuf_addr_list[index],
+	ret = tegra_se_channel_submit_gather(se_dev, cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 
 	/* 4.1 - Read result */
@@ -5498,6 +5435,7 @@ static int tegra_se_ccm_ctr(struct aead_request *req, bool encrypt)
 	struct tegra_se_aes_ccm_ctx *ctx = crypto_aead_ctx(tfm);
 	struct tegra_se_req_context *req_ctx = aead_request_ctx(req);
 	struct tegra_se_ll *src_ll, *dst_ll;
+	struct tegra_se_cmdbuf *cmdbuf;
 	struct scatterlist *src_sg, *dst_sg, *src_sg_start;
 	unsigned int assoclen, cryptlen, total, pad_bytes_len;
 	unsigned int mapped_cryptlen, mapped_len;
@@ -5507,6 +5445,13 @@ static int tegra_se_ccm_ctr(struct aead_request *req, bool encrypt)
 	dma_addr_t dst_buf_dma_addr;
 
 	se_dev = se_devices[SE_AEAD];
+
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent,
+			SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		return PTR_ERR(cmdbuf);
+	}
 
 	/* 0. Setup */
 	assoclen = req->assoclen;
@@ -5654,12 +5599,12 @@ static int tegra_se_ccm_ctr(struct aead_request *req, bool encrypt)
 				ctx->slot->slot_num, 0, true);
 
 	tegra_se_send_ctr_seed(se_dev, (u32 *)req->iv, se_dev->opcode_addr,
-				se_dev->aes_cmdbuf.gather->cmdbuf_addr);
+				cmdbuf->addr);
 
 	tegra_se_send_data(se_dev, req_ctx, NULL, total, se_dev->opcode_addr,
-			se_dev->aes_cmdbuf.gather->cmdbuf_addr);
+			cmdbuf->addr);
 	ret = tegra_se_channel_submit_gather(se_dev,
-			&se_dev->aes_cmdbuf,
+			cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 
 	num_sgs = tegra_se_count_sgs(req->dst, assoclen + cryptlen);
@@ -5889,7 +5834,6 @@ static int tegra_se_aes_gcm_setkey(struct crypto_aead *tfm, const u8 *key,
 	u32 *cpuvaddr = NULL;
 	dma_addr_t iova = 0;
 	int ret = 0;
-	unsigned int index = 0;
 
 	se_dev = se_devices[SE_AEAD];
 
@@ -5920,30 +5864,21 @@ static int tegra_se_aes_gcm_setkey(struct crypto_aead *tfm, const u8 *key,
 	ctx->slot = pslot;
 	ctx->keylen = keylen;
 
-	/* Get free command buffer */
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		goto keyslt_free;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_16K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto free_ctx;
 	}
 
-	index = ret;
-
-	cmdbuf = &se_dev->cmdbuf_addr_list[index];
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 
 	ret = tegra_se_send_key_data(
 		se_dev, (u8 *)key, keylen, ctx->slot->slot_num,
 		SE_KEY_TABLE_TYPE_GCM, se_dev->opcode_addr,
-		&se_dev->cmdbuf_addr_list[index], NONE);
+		cmdbuf, NONE);
 
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 1);
-
-
-keyslt_free:
 	tegra_se_free_key_slot(ctx->slot);
 
 free_ctx:
@@ -5982,7 +5917,8 @@ static int tegra_se_gcm_gmac(struct aead_request *req, bool encrypt)
 	struct tegra_se_dev *se_dev;
 	struct tegra_se_ll *src_ll;
 	struct scatterlist *sg;
-	int ret, index;
+	struct tegra_se_cmdbuf *cmdbuf;
+	int ret;
 	u32 *cpuvaddr = NULL;
 	dma_addr_t iova = 0;
 
@@ -6001,19 +5937,15 @@ static int tegra_se_gcm_gmac(struct aead_request *req, bool encrypt)
 		return ret;
 
 	/* 2 - Prepare command buffer and submit request to hardware */
-	/* 2.1 Get free command buffer */
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		tegra_unmap_sg(se_dev->dev, sg, DMA_TO_DEVICE, assoclen);
-		return -EBUSY;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_16K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto out;
 	}
 
-	index = ret;
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 	se_dev->dst_ll = se_dev->src_ll; /* dummy */
 
 	/* 2.2 Prepare and submit request */
@@ -6025,9 +5957,10 @@ static int tegra_se_gcm_gmac(struct aead_request *req, bool encrypt)
 
 	tegra_se_send_gcm_data(se_dev, req_ctx, assoclen, se_dev->opcode_addr,
 				cpuvaddr, SE_AES_GMAC);
-	ret = tegra_se_channel_submit_gather(se_dev, &se_dev->cmdbuf_addr_list[index],
+	ret = tegra_se_channel_submit_gather(se_dev, cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 
+out:
 	/* 3 - Clean up */
 	tegra_unmap_sg(se_dev->dev, sg, DMA_TO_DEVICE, assoclen);
 
@@ -6043,9 +5976,10 @@ static int tegra_se_gcm_op(struct aead_request *req, bool encrypt)
 	struct tegra_se_ll *src_ll, *dst_ll;
 	struct scatterlist *src_sg, *src_sg_start;
 	struct tegra_se_dev *se_dev;
+	struct tegra_se_cmdbuf *cmdbuf;
 	u32 *cpuvaddr = NULL, num_sgs;
 	dma_addr_t iova = 0;
-	int ret, count, index;
+	int ret, index, count;
 	u32 iv[4];
 	u8 *dst_buf;
 	dma_addr_t dst_buf_dma_addr;
@@ -6142,19 +6076,15 @@ static int tegra_se_gcm_op(struct aead_request *req, bool encrypt)
 	}
 
 	/* 2. Encrypt/Decrypt using GCTR and perform GHASH on plain text */
-	/* 2.1 Get free command buffer */
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		goto out;
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_16K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		ret = PTR_ERR(cmdbuf);
+		goto free_dst_buf;
 	}
 
-	index = ret;
-
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 
 	/* 2.2 Prepare and program J0 (i.e. iv || 0^31 || 1) using IV */
 	memset(iv, 0, 16);
@@ -6172,10 +6102,9 @@ static int tegra_se_gcm_op(struct aead_request *req, bool encrypt)
 				se_dev->opcode_addr, cpuvaddr,
 				encrypt ? SE_AES_GCM_ENC : SE_AES_GCM_DEC);
 
-	ret = tegra_se_channel_submit_gather(se_dev, &se_dev->cmdbuf_addr_list[index],
+	ret = tegra_se_channel_submit_gather(se_dev, cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 
-out:
 	/* 3 clean up */
 	tegra_unmap_sg(se_dev->dev, src_sg_start, DMA_TO_DEVICE, mapped_len);
 	num_sgs = tegra_se_count_sgs(req->dst, assoclen + cryptlen);
@@ -6228,27 +6157,25 @@ static int tegra_se_gcm_final(struct aead_request *req, bool encrypt)
 	struct crypto_aead *tfm = crypto_aead_reqtfm(req);
 	struct tegra_se_aes_gcm_ctx *ctx = crypto_aead_ctx(tfm);
 	struct tegra_se_req_context *req_ctx = aead_request_ctx(req);
+	struct tegra_se_cmdbuf *cmdbuf;
 	u32 *cpuvaddr = NULL;
 	unsigned int cryptlen;
 	dma_addr_t iova = 0;
-	int ret, index, i;
+	int ret, i;
 	struct tegra_se_dev *se_dev;
 	u32 iv[4], val;
 
 	/* 1 Get free command buffer */
 	se_dev = ctx->se_dev;
-	ret = tegra_se_get_free_cmdbuf(se_dev);
-	if (ret < 0) {
-		dev_err(se_dev->dev, "Couldn't get free cmdbuf\n");
-		return -EBUSY;
+
+	cmdbuf = tegra_se_alloc_cmdbuf(se_dev->dev->parent, SZ_16K);
+	if (IS_ERR(cmdbuf)) {
+		dev_err(se_dev->dev, "cmdbuf allocation failed\n");
+		return PTR_ERR(cmdbuf);
 	}
 
-	index = ret;
-
-	cpuvaddr = se_dev->cmdbuf_addr_list[index].gather->cmdbuf_addr;
-	iova = se_dev->cmdbuf_addr_list[index].gather->iova;
-	atomic_set(&se_dev->cmdbuf_addr_list[index].free, 0);
-	se_dev->cmdbuf_list_entry = index;
+	cpuvaddr = cmdbuf->addr;
+	iova = cmdbuf->iova;
 
 	/* 2. Configure AAD and MSG length */
 	if (encrypt)
@@ -6302,7 +6229,7 @@ static int tegra_se_gcm_final(struct aead_request *req, bool encrypt)
 	se_dev->cmdbuf_cnt = i;
 
 	/* 5 Submit request */
-	ret = tegra_se_channel_submit_gather(se_dev, &se_dev->cmdbuf_addr_list[index],
+	ret = tegra_se_channel_submit_gather(se_dev, cmdbuf,
 			0, se_dev->cmdbuf_cnt, NONE);
 
 	return ret;
@@ -7590,21 +7517,6 @@ static int tegra_se_probe(struct platform_device *pdev)
 
 	tegra_se_init_aesbuf(se_dev);
 
-	if (is_algo_supported(node, "drbg") || is_algo_supported(node, "aes") ||
-	    is_algo_supported(node, "cmac") || is_algo_supported(node, "sha")) {
-		err = tegra_se_alloc_gather(
-			se_dev->dev->parent, SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ,
-			&se_dev->aes_cmdbuf);
-		if (err)
-			goto cmd_buf_alloc_fail;
-
-		err = tegra_se_init_cmdbuf_addr(se_dev);
-		if (err) {
-			dev_err(se_dev->dev, "failed to init cmdbuf addr\n");
-			goto dma_free;
-		}
-	}
-
 	tegra_se_boost_cpu_init(se_dev);
 	err = of_property_read_u32(node, "pka0-rsa-priority", &val);
 	if (!err)
@@ -7628,12 +7540,6 @@ static int tegra_se_probe(struct platform_device *pdev)
 	dev_info(se_dev->dev, "%s: complete", __func__);
 
 	return 0;
-dma_free:
-	dma_free_attrs(se_dev->dev->parent, SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ,
-		       se_dev->aes_cmdbuf.gather->cmdbuf_addr, se_dev->aes_cmdbuf.gather->iova,
-		       0);
-cmd_buf_alloc_fail:
-	kfree(se_dev->total_aes_buf);
 aes_buf_alloc_fail:
 	nvhost_syncpt_put_ref_ext(se_dev->pdev, se_dev->syncpt_id);
 reg_fail:
@@ -7658,12 +7564,6 @@ static int tegra_se_remove(struct platform_device *pdev)
 	}
 
 	tegra_se_boost_cpu_deinit(se_dev);
-
-	if (se_dev->aes_cmdbuf.gather->cmdbuf_addr)
-		dma_free_attrs(
-		se_dev->dev->parent, SZ_16K * SE_MAX_SUBMIT_CHAIN_SZ,
-		se_dev->aes_cmdbuf.gather->cmdbuf_addr, se_dev->aes_cmdbuf.gather->iova,
-		0);
 
 	node = of_node_get(se_dev->dev->of_node);
 	if (is_algo_supported(node, "drbg"))
