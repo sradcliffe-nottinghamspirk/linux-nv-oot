@@ -174,39 +174,37 @@ put_fence:
 	return err;
 }
 
+struct host1x_pollfd_fence {
+	struct list_head list;
+
+	wait_queue_head_t *wq;
+
+	struct dma_fence *fence;
+	struct dma_fence_cb callback;
+	bool callback_set;
+};
+
 struct host1x_pollfd {
 	struct kref ref;
 	struct mutex lock;
-
-	struct dma_fence *fence;
 	wait_queue_head_t wq;
-	struct dma_fence_cb callback;
-	bool callback_set;
+
+	struct list_head fences;
 };
 
 static int host1x_pollfd_release(struct inode *inode, struct file *file)
 {
 	struct host1x_pollfd *pollfd = file->private_data;
-	int err;
+	struct host1x_pollfd_fence *pfd_fence;
 
 	mutex_lock(&pollfd->lock);
 
-	if (pollfd->fence) {
-		if (pollfd->callback_set) {
-			err = dma_fence_remove_callback(pollfd->fence, &pollfd->callback);
-			if (err) {
-				/* callback could be executing concurrently */
-				/*
-				 * take fence lock. once we acquire the lock we know
-				 * callbacks have finished.
-				 */
-				spin_lock_irq(pollfd->fence->lock);
-				spin_unlock_irq(pollfd->fence->lock);
-			} else {
-				host1x_fence_cancel(pollfd->fence);
-			}
+	list_for_each_entry(pfd_fence, &pollfd->fences, list) {
+		if (pfd_fence->callback_set) {
+			if (dma_fence_remove_callback(pfd_fence->fence, &pfd_fence->callback))
+				host1x_fence_cancel(pfd_fence->fence);
 		}
-		dma_fence_put(pollfd->fence);
+		dma_fence_put(pfd_fence->fence);
 	}
 
 	mutex_unlock(&pollfd->lock);
@@ -217,16 +215,19 @@ static int host1x_pollfd_release(struct inode *inode, struct file *file)
 static unsigned int host1x_pollfd_poll(struct file *file, poll_table *wait)
 {
 	struct host1x_pollfd *pollfd = file->private_data;
+	struct host1x_pollfd_fence *pfd_fence, *pfd_fence_temp;
 	unsigned int mask = 0;
 
 	poll_wait(file, &pollfd->wq, wait);
 
 	mutex_lock(&pollfd->lock);
 
-	if (pollfd->fence && dma_fence_is_signaled(pollfd->fence)) {
-		mask = POLLPRI | POLLIN;
-		dma_fence_put(pollfd->fence);
-		pollfd->fence = NULL;
+	list_for_each_entry_safe(pfd_fence, pfd_fence_temp, &pollfd->fences, list) {
+		if (dma_fence_is_signaled(pfd_fence->fence)) {
+			mask = POLLPRI | POLLIN;
+			dma_fence_put(pfd_fence->fence);
+			list_del(&pfd_fence->list);
+		}
 	}
 
 	mutex_unlock(&pollfd->lock);
@@ -264,6 +265,7 @@ static int dev_file_ioctl_create_pollfd(struct host1x *host1x, void __user *data
 	init_waitqueue_head(&pollfd->wq);
 	mutex_init(&pollfd->lock);
 	kref_init(&pollfd->ref);
+	INIT_LIST_HEAD(&pollfd->fences);
 
 	fd = get_unused_fd_flags(O_CLOEXEC);
 	if (fd < 0) {
@@ -291,13 +293,14 @@ free_pollfd:
 
 static void host1x_pollfd_callback(struct dma_fence *fence, struct dma_fence_cb *cb)
 {
-	struct host1x_pollfd *pollfd = container_of(cb, struct host1x_pollfd, callback);
+	struct host1x_pollfd_fence *pfd_fence = container_of(cb, struct host1x_pollfd_fence, callback);
 
-	wake_up_all(&pollfd->wq);
+	wake_up_all(pfd_fence->wq);
 }
 
 static int dev_file_ioctl_trigger_pollfd(struct host1x *host1x, void __user *data)
 {
+	struct host1x_pollfd_fence *pfd_fence;
 	struct host1x_trigger_pollfd args;
 	struct host1x_syncpt *syncpt;
 	struct host1x_pollfd *pollfd;
@@ -327,25 +330,26 @@ static int dev_file_ioctl_trigger_pollfd(struct host1x *host1x, void __user *dat
 		goto put_file;
 	}
 
-	mutex_lock(&pollfd->lock);
-
-	if (pollfd->fence) {
-		mutex_unlock(&pollfd->lock);
-		err = -EBUSY;
+	pfd_fence = kzalloc(sizeof(*pfd_fence), GFP_KERNEL);
+	if (!pfd_fence) {
+		err = -ENOMEM;
 		goto put_file;
 	}
 
 	fence = host1x_fence_create(syncpt, args.threshold, false);
 	if (IS_ERR(fence)) {
-		mutex_unlock(&pollfd->lock);
 		err = PTR_ERR(fence);
-		goto put_file;
+		goto free_pfd_fence;
 	}
 
-	pollfd->fence = fence;
+	pfd_fence->fence = fence;
+	pfd_fence->wq = &pollfd->wq;
 
-	pollfd->callback_set = false;
-	err = dma_fence_add_callback(fence, &pollfd->callback, host1x_pollfd_callback);
+	mutex_lock(&pollfd->lock);
+	list_add(&pfd_fence->list, &pollfd->fences);
+
+	pfd_fence->callback_set = false;
+	err = dma_fence_add_callback(fence, &pfd_fence->callback, host1x_pollfd_callback);
 	if (err == -ENOENT) {
 		/*
 		 * We don't free the fence here -- it will be done from the poll
@@ -355,16 +359,19 @@ static int dev_file_ioctl_trigger_pollfd(struct host1x *host1x, void __user *dat
 		wake_up_all(&pollfd->wq);
 	} else if (err != 0) {
 		mutex_unlock(&pollfd->lock);
-		goto put_fence;
+		goto remove_fence;
 	}
-	pollfd->callback_set = true;
+	pfd_fence->callback_set = true;
 
 	mutex_unlock(&pollfd->lock);
 
 	return 0;
 
-put_fence:
+remove_fence:
+	list_del(&pfd_fence->list);
 	dma_fence_put(fence);
+free_pfd_fence:
+	kfree(pfd_fence);
 put_file:
 	fput(file);
 
