@@ -7,6 +7,9 @@ obj-m += block/tegra_virt_storage/
 ifdef CONFIG_PSTORE
 obj-m += block/tegra_oops_virt_storage/
 endif
+ifdef CONFIG_BT
+obj-m += bluetooth/realtek/
+endif
 obj-m += c2c/
 obj-m += clink/
 obj-m += cpuidle/
