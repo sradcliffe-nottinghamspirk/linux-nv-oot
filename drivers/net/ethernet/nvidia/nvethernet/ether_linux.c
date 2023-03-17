@@ -4667,6 +4667,10 @@ static int ether_get_mac_address(struct ether_priv_data *pdata)
 		eth_mac_addr = addr;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
+        dev_addr_mod(ndev, 0, eth_mac_addr, ETH_ALEN);
+#endif
+
 	/* Found a valid mac address */
 	memcpy(ndev->dev_addr, eth_mac_addr, ETH_ALEN);
 	memcpy(osi_core->mac_addr, eth_mac_addr, ETH_ALEN);
