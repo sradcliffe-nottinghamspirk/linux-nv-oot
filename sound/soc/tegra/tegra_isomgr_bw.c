@@ -1,7 +1,7 @@
 /*
  * tegra_isomgr_bw.c - ADMA bandwidth calculation
  *
- * Copyright (c) 2016-2021 NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2023 NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -21,7 +21,6 @@
 #include <sound/soc.h>
 #include "tegra_isomgr_bw.h"
 #include <linux/interconnect.h>
-#include <dt-bindings/interconnect/tegra_icc_id.h>
 
 #define MAX_BW	393216 /*Maximum KiloByte*/
 #define MAX_DEV_NUM 256
@@ -88,8 +87,7 @@ void tegra_isomgr_adma_setbw(struct snd_pcm_substream *substream,
 	}
 
 	if (adma->icc_path_handle)
-		icc_set_bw(adma->icc_path_handle, adma->current_bandwidth,
-			   adma->current_bandwidth);
+		icc_set_bw(adma->icc_path_handle, adma->current_bandwidth, MAX_BW);
 }
 EXPORT_SYMBOL(tegra_isomgr_adma_setbw);
 
@@ -108,9 +106,7 @@ void tegra_isomgr_adma_register(struct device *dev)
 
 	mutex_init(&adma->mutex);
 
-	adma->icc_path_handle = icc_get(dev, TEGRA_ICC_APEDMA,
-					TEGRA_ICC_PRIMARY);
-
+	adma->icc_path_handle = devm_of_icc_get(dev, "write");
 	if (IS_ERR(adma->icc_path_handle)) {
 		pr_err("%s: Failed to register Interconnect. err=%ld\n",
 		__func__, PTR_ERR(adma->icc_path_handle));
