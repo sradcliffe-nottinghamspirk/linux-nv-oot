@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/* Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
 #ifndef ETHER_LINUX_H
 #define ETHER_LINUX_H
@@ -286,6 +286,10 @@ static inline int ether_avail_txdesc_cnt(struct osi_dma_priv_data *osi_dma,
 
 #define ETHER_VM_IRQ_TX_CHAN_MASK(x)	BIT((x) * 2U)
 #define ETHER_VM_IRQ_RX_CHAN_MASK(x)	BIT(((x) * 2U) + 1U)
+
+/* MDIO clause 45 bit */
+#define MII_ADDR_C45		OSI_BIT(30)
+#define MII_DEVADDR_C45_SHIFT	16
 
 /**
  * @brief DMA Transmit Channel NAPI
