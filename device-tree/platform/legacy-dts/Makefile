@@ -11,6 +11,10 @@ cmd_and_fixdep =                                                             \
 
 include $(oottree)/scripts/Makefile.lib
 
+# Stop warning of the graph port and graph endpoint
+DTC_FLAGS += -Wno-graph_port
+DTC_FLAGS += -Wno-graph_endpoint
+
 DTC_CPP_FLAGS += $(EXTRA_CPP_FLAGS)
 
 DTC_CPP_FLAGS += -DLINUX_VERSION=600 -DTEGRA_HOST1X_DT_VERSION=2
