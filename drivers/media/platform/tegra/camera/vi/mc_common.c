@@ -2,7 +2,7 @@
 /*
  * Tegra Video Input device common APIs
  *
- * Copyright (c) 2015-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2015-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/init.h>
@@ -155,9 +155,12 @@ static int vi_parse_dt(struct tegra_mc_vi *vi, struct platform_device *dev)
 {
 	int err = 0;
 	int num_channels = 0;
-	int i;
 	struct tegra_channel *item;
 	struct device_node *node = dev->dev.of_node;
+	struct device_node *ports;
+	struct device_node *port;
+	int value = 0xFF;
+	int ret = 0;
 
 	err = of_property_read_u32(node, "num-channels", &num_channels);
 	if (err) {
@@ -166,11 +169,24 @@ static int vi_parse_dt(struct tegra_mc_vi *vi, struct platform_device *dev)
 		num_channels = 0;
 	}
 	vi->num_channels = num_channels;
-	for (i = 0; i < num_channels; i++) {
+
+	ports = of_get_child_by_name(node, "ports");
+	if (ports == NULL)
+		ports = node;
+
+	for_each_child_of_node(ports, port) {
+		if (!port->name || of_node_cmp(port->name, "port"))
+			continue;
+
+		ret = of_property_read_u32(port, "reg", &value);
+		if (ret < 0)
+			continue;
+
 		item = devm_kzalloc(vi->dev, sizeof(*item), GFP_KERNEL);
 		if (!item)
 			return -ENOMEM;
-		item->id = i;
+
+		item->id = value;
 		list_add_tail(&item->list, &vi->vi_chans);
 	}
 
