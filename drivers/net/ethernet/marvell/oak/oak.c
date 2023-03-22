@@ -12,6 +12,8 @@
  * disclaimer.
  *
  */
+#include <linux/version.h>
+
 #include "oak.h"
 
 /* private function prototypes */
@@ -646,7 +648,11 @@ static void oak_read_set_mac_address(struct pci_dev *pdev)
 		if (rc != 0) {
 			pr_info("Device MAC address : %pM\n", device_mac);
 			ether_addr_copy(np->mac_address, nic_mac);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 			eth_hw_addr_set(netdev, nic_mac);
+#else
+			memcpy(netdev->dev_addr, nic_mac, ETH_ALEN);
+#endif
 			pr_info("MAC address of NIC : %pM\n", nic_mac);
 		}
 	}

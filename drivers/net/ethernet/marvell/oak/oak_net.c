@@ -12,6 +12,8 @@
  * disclaimer.
  *
  */
+#include <linux/version.h>
+
 #include "oak_net.h"
 #include "oak_ethtool.h"
 #include "oak_chksum.h"
@@ -630,8 +632,11 @@ int oak_net_set_mac_addr(struct net_device *dev, void *p_addr)
 	if (rc == 0) {
 		rc = -EINVAL;
 	} else {
-		//memcpy(dev->dev_addr, addr->sa_data, ETH_ALEN);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 		dev_addr_mod(dev, 0, addr->sa_data, ETH_ALEN);
+#else
+		memcpy(dev->dev_addr, addr->sa_data, ETH_ALEN);
+#endif
 
 		/* When an interface come up we need to remember the
 		 * MAC address of an interface. Because the same MAC
