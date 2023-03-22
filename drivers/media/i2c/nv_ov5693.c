@@ -11,6 +11,7 @@
 #include <linux/gpio.h>
 #include <linux/module.h>
 #include <linux/debugfs.h>
+#include <linux/version.h>
 
 #include <linux/seq_file.h>
 #include <linux/of.h>
@@ -1142,8 +1143,12 @@ static const struct v4l2_subdev_internal_ops ov5693_subdev_internal_ops = {
 	.open = ov5693_open,
 };
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int ov5693_probe(struct i2c_client *client)
+#else
 static int ov5693_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
+#endif
 {
 	struct device *dev = &client->dev;
 	struct device_node *node = client->dev.of_node;
