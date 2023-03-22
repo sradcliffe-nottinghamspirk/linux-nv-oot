@@ -383,16 +383,10 @@ exit_falcon:
 static int ofa_remove(struct platform_device *pdev)
 {
 	struct ofa *ofa = platform_get_drvdata(pdev);
-	int err;
 
 	pm_runtime_disable(&pdev->dev);
 
-	err = host1x_client_unregister(&ofa->client.base);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to unregister host1x client: %d\n",
-			err);
-		return err;
-	}
+	host1x_client_unregister(&ofa->client.base);
 
 	falcon_exit(&ofa->falcon);
 

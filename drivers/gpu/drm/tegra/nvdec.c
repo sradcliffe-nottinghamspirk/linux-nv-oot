@@ -870,12 +870,7 @@ static int nvdec_remove(struct platform_device *pdev)
 		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
 			err);
 
-	err = host1x_client_unregister(&nvdec->client.base);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to unregister host1x client: %d\n",
-			err);
-		return err;
-	}
+	host1x_client_unregister(&nvdec->client.base);
 
 	falcon_exit(&nvdec->falcon);
 

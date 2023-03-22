@@ -527,7 +527,6 @@ unregister_client:
 static int virt_engine_remove(struct platform_device *pdev)
 {
 	struct virt_engine *virt_engine = platform_get_drvdata(pdev);
-	int err;
 #ifndef CONFIG_TEGRA_SYSTEM_TYPE_ACK
 	struct tegra_soc_hwpm_ip_ops hwpm_ip_ops;
 	u32 hwpm_ip_index = virt_engine_get_ip_index(pdev->name);
@@ -547,12 +546,7 @@ static int virt_engine_remove(struct platform_device *pdev)
 	virt_engine_cleanup_actmon_debugfs(virt_engine);
 	virt_engine_cleanup();
 
-	err = host1x_client_unregister(&virt_engine->client.base);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to unregister host1x client: %d\n",
-			err);
-		return err;
-	}
+	host1x_client_unregister(&virt_engine->client.base);
 
 	return 0;
 }

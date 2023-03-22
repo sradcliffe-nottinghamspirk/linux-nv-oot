@@ -1893,18 +1893,12 @@ static int tegra_hdmi_probe(struct platform_device *pdev)
 static int tegra_hdmi_remove(struct platform_device *pdev)
 {
 	struct tegra_hdmi *hdmi = platform_get_drvdata(pdev);
-	int err;
 
 #if !(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
 	pm_runtime_disable(&pdev->dev);
 #endif
 
-	err = host1x_client_unregister(&hdmi->client);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to unregister host1x client: %d\n",
-			err);
-		return err;
-	}
+	host1x_client_unregister(&hdmi->client);
 
 	tegra_output_remove(&hdmi->output);
 
