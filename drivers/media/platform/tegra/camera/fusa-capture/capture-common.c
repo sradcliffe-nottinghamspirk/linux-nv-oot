@@ -352,10 +352,11 @@ void destroy_buffer_table(
 	if (unlikely(tab == NULL))
 		return;
 
-	write_lock(&tab->hlock);
 
 	hash_for_each_safe(tab->hhead, bkt, next, pin, hnode) {
+		write_lock(&tab->hlock);
 		hash_del(&pin->hnode);
+		write_unlock(&tab->hlock);
 		dma_buf_unmap_attachment(
 			pin->atch, pin->sgt, flag_dma_direction(pin->flag));
 		dma_buf_detach(pin->buf, pin->atch);
@@ -363,7 +364,6 @@ void destroy_buffer_table(
 		kmem_cache_free(tab->cache, pin);
 	}
 
-	write_unlock(&tab->hlock);
 
 	kmem_cache_destroy(tab->cache);
 	kfree(tab);
