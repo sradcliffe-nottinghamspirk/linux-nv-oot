@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION.  All rights reserved.
  */
 
 #include <linux/aer.h>
@@ -277,7 +277,7 @@ static void tvnet_host_update_link_sm(struct tvnet_priv *tvnet)
 /* One way link state machine*/
 static void tvnet_host_user_link_up_req(struct tvnet_priv *tvnet)
 {
-	struct ctrl_msg msg;
+	struct ctrl_msg msg = {};
 
 	tvnet_host_clear_data_msg_counters(tvnet);
 	tvnet_host_alloc_empty_buffers(tvnet);
@@ -289,7 +289,7 @@ static void tvnet_host_user_link_up_req(struct tvnet_priv *tvnet)
 
 static void tvnet_host_user_link_down_req(struct tvnet_priv *tvnet)
 {
-	struct ctrl_msg msg;
+	struct ctrl_msg msg = {};
 
 	tvnet->rx_link_state = DIR_LINK_STATE_SENT_DOWN;
 	msg.msg_id = CTRL_MSG_LINK_DOWN;
@@ -305,7 +305,7 @@ static void tvnet_host_rcv_link_up_msg(struct tvnet_priv *tvnet)
 
 static void tvnet_host_rcv_link_down_msg(struct tvnet_priv *tvnet)
 {
-	struct ctrl_msg msg;
+	struct ctrl_msg msg = {};
 
 	/* Stop using empty buffers of remote system */
 	tvnet_host_stop_tx_queue(tvnet);
