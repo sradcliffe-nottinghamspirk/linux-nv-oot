@@ -148,7 +148,8 @@ struct host1x {
 	void __iomem *hv_regs; /* hypervisor region */
 	void __iomem *common_regs;
 	void __iomem *actmon_regs;
-	int syncpt_irq;
+	int syncpt_irqs[8];
+	int num_syncpt_irqs;
 	int general_irq;
 	struct host1x_syncpt *syncpt;
 	struct host1x_syncpt_base *bases;

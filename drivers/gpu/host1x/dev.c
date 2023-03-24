@@ -795,7 +795,7 @@ static int host1x_probe(struct platform_device *pdev)
 {
 	struct resource *res;
 	struct host1x *host;
-	int err;
+	int err, i;
 
 	host = devm_kzalloc(&pdev->dev, sizeof(*host), GFP_KERNEL);
 	if (!host)
@@ -833,9 +833,29 @@ static int host1x_probe(struct platform_device *pdev)
 			return PTR_ERR(host->actmon_regs);
 	}
 
-	host->syncpt_irq = platform_get_irq(pdev, 0);
-	if (host->syncpt_irq < 0)
-		return host->syncpt_irq;
+	for (i = 0; i < ARRAY_SIZE(host->syncpt_irqs); i++) {
+		char irq_name[] = "syncptX";
+		sprintf(irq_name, "syncpt%d", i);
+
+		err = platform_get_irq_byname_optional(pdev, irq_name);
+		if (err == -ENXIO)
+			break;
+		if (err < 0)
+			return err;
+
+		host->syncpt_irqs[i] = err;
+	}
+
+	host->num_syncpt_irqs = i;
+
+	/* Device tree without irq names */
+	if (i == 0) {
+		host->syncpt_irqs[0] = platform_get_irq(pdev, 0);
+		if (host->syncpt_irqs[0] < 0)
+			return host->syncpt_irqs[0];
+
+		host->num_syncpt_irqs = 1;
+	}
 
 	host->general_irq = platform_get_irq_byname_optional(pdev, "host1x");
 
