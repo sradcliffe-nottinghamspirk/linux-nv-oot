@@ -636,7 +636,7 @@ edma_xfer_status_t tegra_pcie_edma_submit_xfer(void *cookie,
 		dma_ll_virt = &db->desc[ch->db_pos];
 		dma_ll_virt->size = tx_info->desc[i].sz;
 		/* calculate number of packets and add those many headers */
-		total_sz += ((tx_info->desc[i].sz / ch->desc_sz) + 1) * 30;
+		total_sz += (u64)(((tx_info->desc[i].sz / ch->desc_sz) + 1) * 30);
 		total_sz += tx_info->desc[i].sz;
 		dma_ll_virt->sar_low = lower_32_bits(tx_info->desc[i].src);
 		dma_ll_virt->sar_high = upper_32_bits(tx_info->desc[i].src);
