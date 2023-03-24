@@ -2,7 +2,7 @@
 /*
  * PCIe DMA EPF Library for Tegra PCIe
  *
- * Copyright (C) 2022 NVIDIA Corporation. All rights reserved.
+ * Copyright (C) 2022-2023 NVIDIA Corporation. All rights reserved.
  */
 
 #ifndef TEGRA_PCIE_EDMA_TEST_COMMON_H
@@ -196,7 +196,9 @@ static int edmalib_common_test(struct edmalib_common *edma)
 		return 0;
 	}
 
-	nents_per_ch = nents / num_chans;
+	if (num_chans != 0)
+		nents_per_ch = nents / num_chans;
+
 	if (nents_per_ch == 0) {
 		dev_err(edma->fdev, "%s: nents(%d) < enabled chanes(%d)\n",
 			__func__, nents, num_chans);
