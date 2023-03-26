@@ -1135,7 +1135,9 @@ static int nvpps_probe(struct platform_device *pdev)
 		    goto error_ret;
 		}
 
-		nvpps_ptp_tsc_sync_config(pdev);
+		/* skip PTP TSC sync configuration if `ptp_tsc_sync_dis` is set */
+		if ((of_property_read_bool(np, "ptp_tsc_sync_dis")) == false)
+			nvpps_ptp_tsc_sync_config(pdev);
 	}
 
 	return 0;
