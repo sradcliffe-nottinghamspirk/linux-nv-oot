@@ -29,6 +29,8 @@ Optional properties:
 				 The value is a 16bit hexa-decimal value. The minimum value(0x1F) supported
 				 correspond to 1us and max value(0xFFFF) supported correspond to approx 2.1ms.
 				 If unspecified, NvPPS driver uses 0x26C(corresponding to 20us) by default
+- ptp_tsc_sync_dis: boolean flag to indicate if nvpps should disable PTP TSC sync logic.
+					The default behaviour is to keep PTP TSC sync logic enabled.
 
 Example:
 
@@ -57,7 +59,8 @@ nvpps {
 	interface = "mgbe2_0";
 	sec_interface = "eqos_0";
 	ptp_tsc_k_int = /bits/ 8 <0x70>;
-	ptp_tsc_lock_threshold = /bits/ 16 <0x26C>
+	ptp_tsc_lock_threshold = /bits/ 16 <0x26C>;
+	ptp_tsc_sync_dis;
 };
 
 Example: GPIO as optional
