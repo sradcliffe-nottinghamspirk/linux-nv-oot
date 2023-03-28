@@ -29,4 +29,5 @@ endif
 obj-m += mc-hwpm.o
 obj-m += mc-utils/
 obj-m += dce/
+obj-m += psc/
 obj-m += rtcpu/
