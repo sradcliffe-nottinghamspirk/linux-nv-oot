@@ -225,13 +225,16 @@ static int tegra_camera_isomgr_unregister(struct tegra_camera_info *info)
 static int tegra_camera_isomgr_request(
 		struct tegra_camera_info *info, uint iso_bw, uint lt)
 {
+#if defined(CONFIG_TEGRA_ISOMGR)
 	int ret = 0;
+#endif
 
 	dev_dbg(info->dev,
 		"%s++ bw=%u, lt=%u\n", __func__, iso_bw, lt);
 
 #if IS_ENABLED(CONFIG_INTERCONNECT) && IS_ENABLED(CONFIG_TEGRA_T23X_GRHOST)
 	if (tegra_get_chip_id() == TEGRA234) {
+		int ret = 0;
 		/* VI6 does not tolerate DVFS, so we need to request max DRAM floor */
 		ret = icc_set_bw(info->icc_iso_path_handle,
 			iso_bw, UINT_MAX);
@@ -426,7 +429,7 @@ int tegra_camera_update_isobw(void)
 	struct tegra_camera_info *info;
 	unsigned long total_khz;
 	unsigned long bw;
-#ifdef CONFIG_TEGRA_MC
+#ifdef CONFIG_NV_TEGRA_MC
 	unsigned long bw_mbps;
 #endif
 	int ret = 0;
@@ -576,8 +579,6 @@ static long tegra_camera_ioctl(struct file *file,
 
 	case _IOC_NR(TEGRA_CAMERA_IOCTL_GET_BW):
 	{
-		unsigned long mc_hz = 0;
-		u64 bw = 0;
 #if IS_ENABLED(CONFIG_INTERCONNECT) && IS_ENABLED(CONFIG_TEGRA_T23X_GRHOST)
 		if (tegra_get_chip_id() == TEGRA234) {
 			dev_err(info->dev,
@@ -587,7 +588,6 @@ static long tegra_camera_ioctl(struct file *file,
 
 		}
 #endif
-
 		return -EFAULT;
 		break;
 	}

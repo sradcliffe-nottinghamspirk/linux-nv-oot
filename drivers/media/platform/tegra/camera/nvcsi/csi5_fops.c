@@ -2,7 +2,7 @@
 /*
  * Tegra CSI5 device common APIs
  *
- * Copyright (c) 2016-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2023, NVIDIA CORPORATION.  All rights reserved.
  */
 #include <linux/log2.h>
 #include <media/csi.h>

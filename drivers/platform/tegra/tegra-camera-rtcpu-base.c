@@ -71,18 +71,6 @@ static int tegra_rce_cam_wait_for_idle(struct device *dev);
 static void tegra_rce_cam_assert_resets(struct device *dev);
 static int tegra_rce_cam_deassert_resets(struct device *dev);
 
-static const char * const sce_reset_names[] = {
-	"nvidia,reset-group-1",
-	"nvidia,reset-group-2",
-	NULL,
-};
-
-static const char * const sce_reg_names[] = {
-	"sce-pm",
-	"sce-cfg",
-	NULL
-};
-
 static const char * const rce_reset_names[] = {
 	"reset-names",			/* all named resets */
 	NULL,
@@ -351,79 +339,6 @@ static void tegra_camrtc_set_fwloaddone(struct device *dev, bool fwloaddone)
 
 		writel(val, rtcpu->pm_base + TEGRA_PM_R5_CTRL_0);
 	}
-}
-
-static int tegra_sce_cam_deassert_resets(struct device *dev)
-{
-	struct tegra_cam_rtcpu *rtcpu = dev_get_drvdata(dev);
-	int err;
-
-	err = camrtc_reset_group_deassert(rtcpu->resets[0]);
-	if (err)
-		return err;
-
-	/* Configure R5 core */
-	if (rtcpu->cfg_base != NULL) {
-		u32 val = readl(rtcpu->cfg_base + TEGRA_APS_FRSC_SC_CTL_0);
-
-		if (val != TEGRA_R5R_SC_DISABLE) {
-			/* Disable R5R and smartcomp in camera mode */
-			writel(TEGRA_R5R_SC_DISABLE,
-				rtcpu->cfg_base + TEGRA_APS_FRSC_SC_CTL_0);
-
-			/* Enable JTAG/Coresight */
-			writel(TEGRA_FN_MODEIN,
-				rtcpu->cfg_base + TEGRA_APS_FRSC_SC_MODEIN_0);
-		}
-	}
-
-	/* Group 2 */
-	err = camrtc_reset_group_deassert(rtcpu->resets[1]);
-	if (err)
-		return err;
-
-	/* Group 3: nCPUHALT controlled by PM, not by CAR. */
-	tegra_camrtc_set_fwloaddone(dev, true);
-
-	return 0;
-}
-
-static void tegra_sce_cam_assert_resets(struct device *dev)
-{
-	struct tegra_cam_rtcpu *rtcpu = dev_get_drvdata(dev);
-
-	tegra_camrtc_set_fwloaddone(dev, false);
-
-	camrtc_reset_group_assert(rtcpu->resets[1]);
-	camrtc_reset_group_assert(rtcpu->resets[0]);
-}
-
-static int tegra_sce_cam_wait_for_idle(struct device *dev)
-{
-	struct tegra_cam_rtcpu *rtcpu = dev_get_drvdata(dev);
-	long timeout = rtcpu->cmd_timeout;
-	long delay_stride = HZ / 50;
-
-	if (rtcpu->pm_base == NULL)
-		return 0;
-
-	/* Poll for WFI assert.*/
-	for (;;) {
-		u32 val = readl(rtcpu->pm_base + TEGRA_PM_PWR_STATUS_0);
-
-		if ((val & TEGRA_PM_WFIPIPESTOPPED) == 0)
-			break;
-
-		if (timeout < 0) {
-			dev_warn(dev, "timeout waiting for WFI\n");
-			return -EBUSY;
-		}
-
-		msleep(delay_stride);
-		timeout -= delay_stride;
-	}
-
-	return 0;
 }
 
 static int tegra_rce_cam_wait_for_idle(struct device *dev)

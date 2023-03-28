@@ -2,7 +2,7 @@
 /*
  * VI5 driver
  *
- * Copyright (c) 2017-2022, NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2017-2023, NVIDIA Corporation.  All rights reserved.
  */
 
 #include <asm/ioctls.h>
@@ -284,7 +284,7 @@ static int vi5_remove(struct platform_device *pdev)
 	return 0;
 }
 
-struct nvhost_device_data t19_vi5_info = {
+static struct nvhost_device_data t19_vi5_info = {
 	.devfs_name		= "vi",
 	.moduleid		= 2, //NVHOST_MODULE_VI,
 	.clocks = {
@@ -300,7 +300,7 @@ struct nvhost_device_data t19_vi5_info = {
 	.bwmgr_client_id	= TEGRA_BWMGR_CLIENT_VI,
 };
 
-struct nvhost_device_data t23x_vi0_info = {
+static struct nvhost_device_data t23x_vi0_info = {
 	.devfs_name		= "vi0",
 	.moduleid		= 2, //NVHOST_MODULE_VI,
 	.clocks = {
@@ -312,7 +312,7 @@ struct nvhost_device_data t23x_vi0_info = {
 	.post_virt_init		= vi5_priv_late_probe,
 };
 
-struct nvhost_device_data t23x_vi1_info = {
+static struct nvhost_device_data t23x_vi1_info = {
 	.devfs_name		= "vi1",
 	.moduleid		= 3, //NVHOST_MODULE_VI2,
 	.clocks = {

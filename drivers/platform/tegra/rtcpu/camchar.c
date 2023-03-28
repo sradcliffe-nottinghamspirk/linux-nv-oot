@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <linux/bitmap.h>
 #include <linux/cdev.h>
@@ -398,7 +398,7 @@ static struct tegra_ivc_driver camchar_driver = {
 	.ops.channel	= &tegra_ivc_channel_chardev_ops,
 };
 
-tegra_ivc_subsys_driver(camchar_driver, tegra_camchar_init, tegra_camchar_exit);
+module_driver(camchar_driver, tegra_camchar_init, tegra_camchar_exit);
 MODULE_AUTHOR("Jan Solanti <jsolanti@nvidia.com>");
 MODULE_DESCRIPTION("The character device for ivc-bus");
 MODULE_LICENSE("GPL v2");
