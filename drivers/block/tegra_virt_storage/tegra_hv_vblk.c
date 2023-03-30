@@ -372,7 +372,7 @@ static bool complete_bio_req(struct vblk_dev *vblkdev)
 			if ((vblkdev->config.blk_config.req_ops_supported & VS_BLK_IOCTL_OP_F)
 				&& (req_op(bio_req) == REQ_OP_DRV_IN))
 				vblkdev->inflight_ioctl_reqs--;
-				req_error_handler(vblkdev, bio_req);
+			req_error_handler(vblkdev, bio_req);
 		}
 
 		if (req_op(bio_req) == REQ_OP_DRV_IN)
@@ -1159,7 +1159,7 @@ static void setup_device(struct vblk_dev *vblkdev)
 	}
 
 	set_capacity(vblkdev->gd, (vblkdev->size / SECTOR_SIZE));
-	device_add_disk(vblkdev->device, vblkdev->gd, NULL);
+	(void)!device_add_disk(vblkdev->device, vblkdev->gd, NULL);
 
 	if (device_create_file(disk_to_dev(vblkdev->gd),
 		&dev_attr_phys_dev_ro)) {
