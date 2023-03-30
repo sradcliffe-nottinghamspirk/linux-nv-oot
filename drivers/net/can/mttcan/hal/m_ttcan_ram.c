@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include "../include/m_ttcan.h"
@@ -77,12 +77,15 @@ int ttcan_read_rx_msg_ram(struct ttcan_controller *ttcan, u64 read_addrs,
 			case 4:
 				ttcanfd->data[byte_index + 3] =
 					(msg_data >> 24) & 0xFF;
+				fallthrough;
 			case 3:
 				ttcanfd->data[byte_index + 2] =
 					(msg_data >> 16) & 0xFF;
+				fallthrough;
 			case 2:
 				ttcanfd->data[byte_index + 1] =
 					(msg_data >> 8) & 0xFF;
+				fallthrough;
 			case 1:
 				ttcanfd->data[byte_index + 0] =
 					 msg_data & 0xFF;
@@ -168,10 +171,13 @@ int ttcan_write_tx_msg_ram(struct ttcan_controller *ttcan, u32 write_addrs,
 		default:
 		case 4:
 			msg_data = ttcanfd->data[idx + 3] << 24;
+			fallthrough;
 		case 3:
 			msg_data += ttcanfd->data[idx + 2] << 16;
+			fallthrough;
 		case 2:
 			msg_data += ttcanfd->data[idx + 1] << 8;
+			fallthrough;
 		case 1:
 			msg_data += ttcanfd->data[idx + 0] << 0;
 		}
