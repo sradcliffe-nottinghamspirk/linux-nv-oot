@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 //
-// Copyright (C) 2020 NVIDIA CORPORATION.
+// Copyright (C) 2020-2023 NVIDIA CORPORATION.
 
 #include <linux/clk.h>
 #include <linux/completion.h>
@@ -1122,6 +1122,7 @@ static int tegra_qspi_combined_seq_xfer(struct tegra_qspi *tqspi,
 				break;
 			} else {
 				transfer_phase++;
+				fallthrough;
 			}
 		case DATA_TRANSFER:
 			/* Program Command, Address value in register */
