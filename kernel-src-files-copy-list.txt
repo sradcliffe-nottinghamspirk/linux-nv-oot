@@ -40,11 +40,6 @@ nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioctl.h
 # Files/directories for DRM
 nvidia/drivers/gpu/drm/tegra drivers/gpu/drm
 
-# Files/directories for NVGPU
-nvgpu/drivers/gpu/nvgpu drivers/gpu
-nvgpu/include
-nvgpu/nvsched
-
 # Files/directories for PODGOV
 nvidia/drivers/devfreq drivers
 nvidia/include/trace/events/nvhost_podgov.h include/trace/events/nvhost_podgov.h
