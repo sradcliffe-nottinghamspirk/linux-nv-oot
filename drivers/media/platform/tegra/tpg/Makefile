@@ -5,4 +5,6 @@ ccflags-y += -Werror
 
 
 nvhost-vi-tpg-t19x-objs += tpg_t19x.o
+ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
 obj-m += nvhost-vi-tpg-t19x.o
+endif
