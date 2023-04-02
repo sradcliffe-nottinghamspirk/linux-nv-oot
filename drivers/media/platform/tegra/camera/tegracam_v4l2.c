@@ -62,7 +62,11 @@ static int v4l2sd_stream(struct v4l2_subdev *sd, int enable)
 				goto error;
 			}
 		}
-
+		err = tegracam_ctrl_synchronize_ctrls(s_data->tegracam_ctrl_hdl);
+		if (err) {
+			dev_err(&client->dev, "Error synchronizing controls during stream start\n");
+			goto error;
+		}
 		err = sensor_ops->start_streaming(tc_dev);
 		if (err) {
 			dev_err(&client->dev, "Error turning on streaming\n");

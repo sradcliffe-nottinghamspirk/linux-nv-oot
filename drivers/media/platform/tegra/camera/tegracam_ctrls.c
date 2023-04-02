@@ -12,6 +12,8 @@
 #include <media/tegracam_utils.h>
 #include <linux/arm64-barrier.h>
 
+#define CTRL_U8_MIN 0
+#define CTRL_U8_MAX 0xFF
 #define CTRL_U32_MIN 0
 #define CTRL_U32_MAX 0x7FFFFFFF
 #define CTRL_U64_MIN 0
@@ -45,6 +47,11 @@ static const u32 tegracam_override_cids[] = {
 	TEGRA_CAMERA_CID_FRAME_RATE,
 };
 #define NUM_OVERRIDE_CTRLS ARRAY_SIZE(tegracam_override_cids)
+
+static const u32 tegracam_sync_cids[] = {
+	TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE,
+};
+#define NUM_SYNC_CTRLS ARRAY_SIZE(tegracam_sync_cids)
 
 static struct v4l2_ctrl_config ctrl_cfg_list[] = {
 /* Do not change the name field for the controls! */
@@ -165,6 +172,16 @@ static struct v4l2_ctrl_config ctrl_cfg_list[] = {
 		.max = STEREO_EEPROM_SIZE,
 		.step = 2,
 	},
+	{
+		.ops = &tegracam_ctrl_ops,
+		.id = TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE,
+		.name = "Alternating Exposure",
+		.type = V4L2_CTRL_TYPE_U8,
+		.flags = V4L2_CTRL_FLAG_HAS_PAYLOAD,
+		.min = CTRL_U8_MIN,
+		.max = CTRL_U8_MAX,
+		.step = 1,
+	},
 };
 
 static int tegracam_get_ctrl_index(u32 cid)
@@ -208,6 +225,9 @@ static int tegracam_get_compound_ctrl_size(u32 cid,
 	switch (cid) {
 	case TEGRA_CAMERA_CID_STEREO_EEPROM:
 			index = TEGRA_CAM_COMPOUND_CTRL_EEPROM_INDEX;
+			break;
+	case TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE:
+			index = TEGRA_CAM_COMPOUND_CTRL_ALT_EXP_INDEX;
 			break;
 	default:
 		return -EINVAL;
@@ -258,7 +278,8 @@ static int tegracam_setup_compound_ctrls(struct tegracam_device *tc_dev,
 	for (i = 0; i < numctrls; i++) {
 		struct v4l2_ctrl *ctrl = handler->ctrls[i];
 
-		if (ctrl->type == V4L2_CTRL_COMPOUND_TYPES) {
+		if (ctrl->type == V4L2_CTRL_COMPOUND_TYPES &&
+			ctrl->flags & V4L2_CTRL_FLAG_READ_ONLY) {
 			err = ops->fill_compound_ctrl(tc_dev, ctrl);
 			if (err)
 				return err;
@@ -276,6 +297,7 @@ static int tegracam_set_ctrls(struct tegracam_ctrl_handler *handler,
 	const struct tegracam_ctrl_ops *ops = handler->ctrl_ops;
 	struct tegracam_device *tc_dev = handler->tc_dev;
 	struct camera_common_data *s_data = tc_dev->s_data;
+	struct sensor_control_properties *ctrlprops = NULL;
 	int err = 0;
 	u32 status = 0;
 
@@ -298,15 +320,22 @@ static int tegracam_set_ctrls(struct tegracam_ctrl_handler *handler,
 	if (!status)
 		return 0;
 
+	ctrlprops =
+		&s_data->sensor_props.sensor_modes[0].control_properties;
+
 	/* For controls that require sensor to be on */
 	switch (ctrl->id) {
 	case TEGRA_CAMERA_CID_GAIN:
+		if (*ctrl->p_new.p_s64 == ctrlprops->min_gain_val - 1)
+			return 0;
 		err = ops->set_gain(tc_dev, *ctrl->p_new.p_s64);
 		break;
 	case TEGRA_CAMERA_CID_FRAME_RATE:
 		err = ops->set_frame_rate(tc_dev, *ctrl->p_new.p_s64);
 		break;
 	case TEGRA_CAMERA_CID_EXPOSURE:
+		if (*ctrl->p_new.p_s64 == ctrlprops->min_exp_time.val - 1)
+			return 0;
 		err = ops->set_exposure(tc_dev, *ctrl->p_new.p_s64);
 		break;
 	case TEGRA_CAMERA_CID_EXPOSURE_SHORT:
@@ -314,6 +343,10 @@ static int tegracam_set_ctrls(struct tegracam_ctrl_handler *handler,
 		break;
 	case TEGRA_CAMERA_CID_GROUP_HOLD:
 		err = ops->set_group_hold(tc_dev, ctrl->val);
+		break;
+	case TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE:
+		err = ops->set_alternating_exposure(tc_dev,
+			(struct alternating_exposure_cfg *)ctrl->p_new.p);
 		break;
 	default:
 		pr_err("%s: unknown ctrl id.\n", __func__);
@@ -407,6 +440,58 @@ static int tegracam_s_ctrl(struct v4l2_ctrl *ctrl)
 		return tegracam_set_ctrls_ex(handler, ctrl);
 	else
 		return tegracam_set_ctrls(handler, ctrl);
+
+	return 0;
+}
+
+/*
+ * It is needed to synchronize the alternating exposure settings in sensor with the v4l2 control
+ * value every time sensor starts streaming. If we don't do this, then since the v4l2 control would
+ * retain the alternating exposure settings from the previous stream as its current value after
+ * the streaming stops, there would be a mismatch between the settings stored in v4l2 control's
+ * current value and the actual settings stored in sensor registers, which can result in the sensor
+ * driver missing a sensor programming for alternating exposure because of condition checks at the
+ * v4l2 layer which propagate the new settings to sensor driver only if the settings differ from
+ * the control's current value.
+ */
+int tegracam_ctrl_synchronize_ctrls(struct tegracam_ctrl_handler *hdl)
+{
+	struct tegracam_device *tc_dev = hdl->tc_dev;
+	struct device *dev = tc_dev->dev;
+	const struct tegracam_ctrl_ops *ops = hdl->ctrl_ops;
+	struct v4l2_ctrl_handler *ctrl_hdl = &hdl->ctrl_handler;
+	struct v4l2_ctrl *ctrl = NULL;
+	void *ptr = NULL;
+	int err = 0;
+	u32 id;
+	int i;
+
+	if (ops == NULL)
+		return 0;
+
+	for (i = 0; i < NUM_SYNC_CTRLS; i++) {
+		id = tegracam_sync_cids[i];
+		ctrl = v4l2_ctrl_find(ctrl_hdl, tegracam_sync_cids[i]);
+		if (ctrl) {
+			switch (id) {
+			case TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE:
+				ptr = ctrl->p_cur.p;
+				if (ops->set_alternating_exposure != NULL)
+					err = ops->set_alternating_exposure(tc_dev,
+						(struct alternating_exposure_cfg *)ptr);
+				break;
+			default:
+				dev_err(dev, "%s: synchronization of control with cid %x not implemented\n",
+						__func__, id);
+				return -EINVAL;
+			}
+			if (err) {
+				dev_err(dev, "%s: error while synchronizing control with cid %x\n",
+						__func__, id);
+				return err;
+			}
+		}
+	}
 
 	return 0;
 }
@@ -507,6 +592,14 @@ int tegracam_init_ctrl_ranges_by_mode(
 	ctrlprops =
 		&s_data->sensor_props.sensor_modes[modeidx].control_properties;
 
+/*
+ * For gain and exposure we are allowing for the control to have a value one less than
+ * the minimum supported by sensor range. This value would represent the exposure/gain
+ * being left in an indeterminate state due to the sensor capturing using alternating
+ * exposures/gain settings immediately before this. This happens because once alternating
+ * exposure stops, the sensor is left with analog gain and exposure time settings
+ * corresponding to one of the two contexts, however we do not know which one.
+ */
 	for (i = 0; i < handler->numctrls; i++) {
 		struct v4l2_ctrl *ctrl = handler->ctrls[i];
 		int err = 0;
@@ -514,7 +607,7 @@ int tegracam_init_ctrl_ranges_by_mode(
 		switch (ctrl->id) {
 		case TEGRA_CAMERA_CID_GAIN:
 			err = v4l2_ctrl_modify_range(ctrl,
-				ctrlprops->min_gain_val,
+				ctrlprops->min_gain_val - 1,
 				ctrlprops->max_gain_val,
 				ctrlprops->step_gain_val,
 				ctrlprops->default_gain);
@@ -528,7 +621,7 @@ int tegracam_init_ctrl_ranges_by_mode(
 			break;
 		case TEGRA_CAMERA_CID_EXPOSURE:
 			err = v4l2_ctrl_modify_range(ctrl,
-				ctrlprops->min_exp_time.val,
+				ctrlprops->min_exp_time.val - 1,
 				ctrlprops->max_exp_time.val,
 				ctrlprops->step_exp_time.val,
 				ctrlprops->default_exp_time.val);
@@ -706,6 +799,19 @@ static int tegracam_check_ctrl_ops(
 				TEGRA_CAMERA_CID_STEREO_EEPROM, ops) == 0)
 				dev_err(dev, "Stereo EEPROM size not \
 						specified\n");
+			else if (ops->fill_compound_ctrl == NULL)
+				dev_err(dev,
+					"Missing compound control implementation for TEGRA_CAMERA_CID_STEREO_EEPROM");
+			else
+				compound_ops++;
+			break;
+		case TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE:
+			if (tegracam_get_compound_ctrl_size(
+				TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE, ops) == 0)
+				dev_err(dev, "TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE control size unspecified\n");
+			else if (ops->set_alternating_exposure == NULL)
+				dev_err(dev,
+					"Missing control implementation for TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE");
 			else
 				compound_ops++;
 			break;
@@ -725,13 +831,6 @@ static int tegracam_check_ctrl_ops(
 		if (ops->fill_string_ctrl == NULL) {
 			dev_err(dev, "Missing string control implementation\n");
 			string_ops = 0;
-		}
-	}
-
-	if (compound_ops > 0) {
-		if (ops->fill_compound_ctrl == NULL) {
-			dev_err(dev, "Missing compound control implementation\n");
-			compound_ops = 0;
 		}
 	}
 
@@ -896,6 +995,19 @@ static int tegracam_check_ctrl_cids(struct tegracam_ctrl_handler *handler)
 		}
 	}
 
+	if (ops->set_alternating_exposure != NULL) {
+		if (tegracam_get_compound_ctrl_size(
+				TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE, ops) > 0) {
+			if (!find_matching_cid(ops->ctrl_cid_list,
+				ops->numctrls,
+				TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE)) {
+				dev_err(dev,
+					"Missing TEGRA_CAMERA_CID_ALTERNATING_EXPOSURE registration\n");
+				errors_found++;
+			}
+		}
+	}
+
 	if (errors_found > 0) {
 		dev_err(dev, "ERROR: %d controls implemented but not registered with framework\n",
 			errors_found);
@@ -914,6 +1026,7 @@ int tegracam_ctrl_handler_init(struct tegracam_ctrl_handler *handler)
 	const struct tegracam_ctrl_ops *ops = handler->ctrl_ops;
 	const u32 *cids = NULL;
 	u32 numctrls = 0;
+	u8 compound_control_default_byte_value = 0xff;
 	int i, j;
 	int err = 0;
 
@@ -961,6 +1074,8 @@ int tegracam_ctrl_handler_init(struct tegracam_ctrl_handler *handler)
 				return -EINVAL;
 			}
 			ctrl_cfg->dims[0] = size;
+			ctrl_cfg->p_def = v4l2_ctrl_ptr_create(
+				(void *)&compound_control_default_byte_value);
 		}
 
 		ctrl = v4l2_ctrl_new_custom(&handler->ctrl_handler,
