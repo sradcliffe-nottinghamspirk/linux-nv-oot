@@ -1159,7 +1159,14 @@ static void setup_device(struct vblk_dev *vblkdev)
 	}
 
 	set_capacity(vblkdev->gd, (vblkdev->size / SECTOR_SIZE));
-	(void)!device_add_disk(vblkdev->device, vblkdev->gd, NULL);
+#if KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE
+	if (device_add_disk(vblkdev->device, vblkdev->gd, NULL)) {
+		dev_err(vblkdev->device, "Error adding disk!\n");
+		return;
+	}
+#else
+	device_add_disk(vblkdev->device, vblkdev->gd, NULL);
+#endif
 
 	if (device_create_file(disk_to_dev(vblkdev->gd),
 		&dev_attr_phys_dev_ro)) {
