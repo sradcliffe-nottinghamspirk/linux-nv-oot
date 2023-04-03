@@ -7,6 +7,7 @@
 #include <linux/platform_device.h>
 #include <linux/nvpps.h>
 
+#define CAN_MSG_FLUSH_TIMEOUT	100
 static void mttcan_start(struct net_device *dev);
 
 /* We are reading cntvct_el0 for TSC time. We are not issuing ISB
@@ -1960,11 +1961,19 @@ static int mttcan_suspend(struct platform_device *pdev, pm_message_t state)
 	int ret;
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct mttcan_priv *priv = netdev_priv(ndev);
+	int timeout = CAN_MSG_FLUSH_TIMEOUT;
 
 	if (netif_running(ndev)) {
 		netif_stop_queue(ndev);
 		netif_device_detach(ndev);
 	}
+
+	/* keep waiting until all requests are not sent on CAN bus. */
+	while (ttcan_tx_req_pending(priv->ttcan) && timeout--)
+		udelay(10);
+
+	if (timeout <= 0)
+		dev_err(&pdev->dev, "%s: CAN flush timeout happened.\n", __func__);
 
 	if (ndev->flags & IFF_UP) {
 		mttcan_stop(priv);
