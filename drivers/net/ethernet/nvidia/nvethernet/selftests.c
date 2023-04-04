@@ -402,6 +402,7 @@ void ether_selftest_run(struct net_device *dev,
 			if (!ret)
 				break;
 		/* Fallthrough */
+			fallthrough;
 		case ETHER_LOOPBACK_MAC:
 			if (pdata->osi_core) {
 				ioctl_data.cmd = OSI_CMD_MAC_LB;
@@ -434,6 +435,7 @@ void ether_selftest_run(struct net_device *dev,
 			if (!ret)
 				break;
 		/* Fallthrough */
+			fallthrough;
 		case ETHER_LOOPBACK_MAC:
 			if (pdata->osi_core) {
 				ioctl_data.cmd = OSI_CMD_MAC_LB;
