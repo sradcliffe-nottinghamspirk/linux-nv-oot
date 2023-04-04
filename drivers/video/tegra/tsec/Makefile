@@ -1,9 +1,13 @@
-# SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+#
+# Tsec Driver code.
+#
 
-# NOTE: Do not change or add anything in this makefile.
-# The source code and makefile rules are copied from the
-# kernel/nvidia/drivers/video/tegra/tsec. This file is
-# just place-holder for empty makefile to avoid any build
-# issue when copy is not done from command line and building
-# the tree independent of source copy.
+GCOV_PROFILE := y
+
+# Set config to build as module for OOT build
+ifeq ($(CONFIG_TEGRA_OOT_MODULE),m)
+CONFIG_TEGRA_TSEC := m
+endif
+
+obj-$(CONFIG_TEGRA_TSEC) += tsecriscv.o
+tsecriscv-y := tsec_comms/tsec_comms.o tsec_boot.o tsec.o
