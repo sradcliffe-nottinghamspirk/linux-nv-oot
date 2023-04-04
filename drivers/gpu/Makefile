@@ -5,4 +5,3 @@ obj-m += drm/tegra/
 obj-m += host1x/
 obj-m += host1x-fence/
 obj-m += host1x-nvhost/
-obj-m += nvgpu/
