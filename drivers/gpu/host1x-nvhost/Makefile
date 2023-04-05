@@ -1,10 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0
+#
+# Tegra Host1x-Nvhost Driver.
+#
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+#
 
-# NOTE: Do not change or add anything in this makefile.
-# The source code and makefile rules are copied from the
-# kernel/nvidia/drivers/gpu/host1x-nvhost. This file is
-# just place-holder for empty makefile to avoid any build
-# issue when copy is not done from command line and building
-# the tree independent of source copy.
+ccflags-y += -I$(srctree.nvidia)/include
+ccflags-y += -I$(srctree.nvidia)/include/uapi/linux
+ccflags-y += -I$(srctree.nvidia)/drivers/gpu/host1x/include
+ccflags-y += -DCONFIG_TEGRA_HOST1X
+ccflags-y += -Werror
 
+host1x-nvhost-objs = nvhost.o falcon.o
+
+obj-m += host1x-nvhost.o
