@@ -10,26 +10,13 @@ nvidia/include/linux/nvmap_t19x.h include/linux/nvmap_t19x.h
 nvidia/include/trace/events/nvmap.h include/trace/events/nvmap.h
 nvidia/include/uapi/linux/nvmap.h include/uapi/linux/nvmap.h
 
-# Files/directories for the tegra_gr_comm module
-nvidia/drivers/video/tegra/virt drivers/video/tegra
-nvidia/include/linux/tegra_gr_comm.h include/linux
-
 # Files/directories for cvnas module
 nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
 nvidia/include/linux/cvnas.h include/linux/cvnas.h
 nvidia/include/soc/tegra/fuse-helper.h include/soc/tegra/fuse-helper.h
 
-# Files/directories for host1x module
-nvidia/drivers/gpu/host1x drivers/gpu
-
 # Files/directories for the tsec module
 nvidia/drivers/video/tegra/tsec drivers/video/tegra
-
-# Files/directories for host1x-nvhost module
-nvidia/drivers/gpu/host1x-nvhost drivers/gpu
-nvidia/include/linux/nvhost.h include/linux/nvhost.h
-nvidia/include/linux/nvhost_t194.h include/linux/nvhost_t194.h
-nvidia/include/uapi/linux/nvdev_fence.h include/uapi/linux/nvdev_fence.h
 
 # Files/directories for NVDLA
 nvidia/drivers/video/tegra/host/nvdla drivers/video/tegra/host
