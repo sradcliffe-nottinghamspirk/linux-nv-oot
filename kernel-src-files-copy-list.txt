@@ -53,10 +53,6 @@ nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
 nvidia/drivers/platform/tegra/hwpm drivers/platform/tegra
 nvidia/include/uapi/linux/tegra-soc-hwpm-uapi.h include/uapi/linux/tegra-soc-hwpm-uapi.h
 
-# Files/directories for MODS
-nvidia/drivers/misc/mods drivers/misc
-nvidia/include/uapi/misc/mods.h include/uapi/misc/mods.h
-
 # Files/directory for DCE-KMD
 nvidia/drivers/platform/tegra/dce drivers/platform/tegra
 nvidia/include/linux/platform/tegra/dce/dce-client-ipc.h include/linux/platform/tegra/dce/dce-client-ipc.h
