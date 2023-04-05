@@ -37,6 +37,8 @@ static struct pci_device_id oak_pci_tbl[] = {
 	{0,} /* Terminate the table */
 };
 
+MODULE_DEVICE_TABLE(pci, oak_pci_tbl);
+
 #ifdef CONFIG_PM_SLEEP
 /* Device Power Management (DPM) support */
 static const struct dev_pm_ops oak_dpm_ops = {
