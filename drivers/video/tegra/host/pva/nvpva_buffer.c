@@ -20,7 +20,9 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/dma-buf.h>
+#ifdef CONFIG_TEGRA_CVNAS
 #include <linux/cvnas.h>
+#endif
 #include <linux/nvhost.h>
 
 #include "pva.h"
@@ -240,8 +242,10 @@ nvpva_buffer_map(struct platform_device *pdev,
 
 	struct nvhost_device_data *pdata = platform_get_drvdata(pdev);
 	struct pva *pva = pdata->private_data;
+#ifdef CONFIG_TEGRA_CVNAS
 	const dma_addr_t cvnas_begin = nvcvnas_get_cvsram_base();
 	const dma_addr_t cvnas_end = cvnas_begin + nvcvnas_get_cvsram_size();
+#endif
 	struct dma_buf_attachment *attach;
 	struct sg_table *sgt;
 	dma_addr_t dma_addr;
@@ -272,6 +276,7 @@ nvpva_buffer_map(struct platform_device *pdev,
 	phys_addr = sg_phys(sgt->sgl);
 	dma_addr = sg_dma_address(sgt->sgl);
 
+#ifdef CONFIG_TEGRA_CVNAS
 	/* Determine the heap */
 	if (phys_addr >= cvnas_begin && phys_addr < cvnas_end)
 		vm->heap = NVPVA_BUFFERS_HEAP_CVNAS;
@@ -284,6 +289,15 @@ nvpva_buffer_map(struct platform_device *pdev,
 	 */
 	if (!dma_addr || vm->heap == NVPVA_BUFFERS_HEAP_CVNAS)
 		dma_addr = phys_addr;
+#else
+	vm->heap = NVPVA_BUFFERS_HEAP_DRAM;
+
+	/*
+	 * If dma address is not available, use the physical address.
+	 */
+	if (!dma_addr)
+		dma_addr = phys_addr;
+#endif
 
 	vm->sgt		= sgt;
 	vm->attach	= attach;

@@ -27,7 +27,6 @@
 #include <linux/slab.h>
 #include <linux/errno.h>
 #include <linux/nvhost.h>
-#include <linux/cvnas.h>
 #include <linux/host1x.h>
 
 #ifdef CONFIG_EVENTLIB
