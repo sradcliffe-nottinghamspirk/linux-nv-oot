@@ -491,15 +491,14 @@ dma_addr_t nvhost_syncpt_address(struct platform_device *engine_pdev, u32 id);
 int nvhost_syncpt_unit_interface_init(struct platform_device *pdev);
 void nvhost_syncpt_unit_interface_deinit(struct platform_device *pdev);
 
+#ifdef CONFIG_TEGRA_HOST1X
 /* public host1x interrupt management APIs */
 int nvhost_intr_register_notifier(struct platform_device *pdev,
 				  u32 id, u32 thresh,
-				  void (*callback)(void *, int),
+				  void (*callback)(void *),
 				  void *private_data);
 
 /* public host1x sync-point management APIs */
-#ifdef CONFIG_TEGRA_HOST1X
-
 struct host1x *nvhost_get_host1x(struct platform_device *pdev);
 
 static inline struct flcn *get_flcn(struct platform_device *pdev)
@@ -636,6 +635,11 @@ static inline void nvhost_eventlib_log_fences(struct platform_device *pdev,
 {
 }
 #else
+/* public host1x interrupt management APIs */
+int nvhost_intr_register_notifier(struct platform_device *pdev,
+				  u32 id, u32 thresh,
+				  void (*callback)(void *, int),
+				  void *private_data);
 
 #ifdef CONFIG_DEBUG_FS
 void nvhost_register_dump_device(
