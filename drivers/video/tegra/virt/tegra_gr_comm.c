@@ -12,7 +12,6 @@
 #include <linux/slab.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
-#include <linux/of_platform.h>
 #include <linux/sched.h>
 #include <linux/wait.h>
 #include <linux/kthread.h>
@@ -31,7 +30,7 @@ struct gr_comm_ivc_context {
 	wait_queue_head_t wq;
 	struct tegra_hv_ivc_cookie *cookie;
 	struct gr_comm_queue *queue;
-	struct platform_device *pdev;
+	struct device *dev;
 	bool irq_requested;
 };
 
@@ -180,7 +179,7 @@ static irqreturn_t ivc_intr_isr(int irq, void *dev_id)
 static irqreturn_t ivc_intr_thread(int irq, void *dev_id)
 {
 	struct gr_comm_ivc_context *ctx = dev_id;
-	struct device *dev = &ctx->pdev->dev;
+	struct device *dev = ctx->dev;
 
 	/* handle ivc state changes -- MUST BE FIRST */
 	if (tegra_hv_ivc_channel_notified(ctx->cookie))
@@ -199,10 +198,9 @@ static irqreturn_t ivc_intr_thread(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int setup_mempool(struct platform_device *pdev,
+static int setup_mempool(struct device *dev, struct device_node *dn,
 		u32 queue_start, u32 queue_end)
 {
-	struct device *dev = &pdev->dev;
 	int i, ret = -EINVAL;
 
 	for (i = queue_start; i < queue_end; ++i) {
@@ -214,7 +212,7 @@ static int setup_mempool(struct platform_device *pdev,
 			goto fail;
 		}
 
-		if (of_property_read_u32_index(dev->of_node, name,
+		if (of_property_read_u32_index(dn, name,
 				PROP_MEMPOOL_INST, &inst) == 0) {
 			struct gr_comm_mempool_context *ctx;
 			struct gr_comm_queue *queue =
@@ -252,10 +250,9 @@ fail:
 	return ret;
 }
 
-static int setup_ivc(struct platform_device *pdev,
+static int setup_ivc(struct device *dev, struct device_node *dn,
 		u32 queue_start, u32 queue_end)
 {
-	struct device *dev = &pdev->dev;
 	int i, ret = -EINVAL;
 
 	for (i = queue_start; i < queue_end; ++i) {
@@ -267,7 +264,7 @@ static int setup_ivc(struct platform_device *pdev,
 			goto fail;
 		}
 
-		if (of_property_read_u32_index(dev->of_node, name,
+		if (of_property_read_u32_index(dn, name,
 				PROP_IVC_INST, &inst) == 0) {
 			struct device_node *hv_dn;
 			struct gr_comm_ivc_context *ctx;
@@ -275,7 +272,7 @@ static int setup_ivc(struct platform_device *pdev,
 					&comm_context.queue[i];
 			int err;
 
-			hv_dn = of_parse_phandle(dev->of_node, name,
+			hv_dn = of_parse_phandle(dn, name,
 						PROP_IVC_NODE);
 			if (!hv_dn)
 				goto fail;
@@ -286,7 +283,7 @@ static int setup_ivc(struct platform_device *pdev,
 				goto fail;
 			}
 
-			ctx->pdev = pdev;
+			ctx->dev = dev;
 			ctx->queue = queue;
 			init_waitqueue_head(&ctx->wq);
 
@@ -338,12 +335,11 @@ fail:
 	return ret;
 }
 
-int tegra_gr_comm_init(struct platform_device *pdev, u32 elems,
+int tegra_gr_comm_init(struct device *dev, struct device_node *dn, u32 elems,
 		const size_t *queue_sizes, u32 queue_start, u32 num_queues)
 {
 	int i = 0, j;
 	int ret = 0;
-	struct device *dev = &pdev->dev;
 	u32 queue_end = queue_start + num_queues;
 
 	if (queue_end > NUM_QUEUES)
@@ -398,13 +394,13 @@ int tegra_gr_comm_init(struct platform_device *pdev, u32 elems,
 		queue->valid = true;
 	}
 
-	ret = setup_ivc(pdev, queue_start, queue_end);
+	ret = setup_ivc(dev, dn, queue_start, queue_end);
 	if (ret) {
 		dev_err(dev, "invalid IVC DT data\n");
 		goto fail;
 	}
 
-	ret = setup_mempool(pdev, queue_start, queue_end);
+	ret = setup_mempool(dev, dn, queue_start, queue_end);
 	if (ret) {
 		dev_err(dev, "mempool setup failed\n");
 		goto fail;
@@ -496,11 +492,11 @@ int tegra_gr_comm_send(u32 peer, u32 index, void *data,
 					msecs_to_jiffies(500));
 			if (!ret) {
 				if (retries > 0) {
-					dev_warn(&ivc_ctx->pdev->dev,
+					dev_warn(ivc_ctx->dev,
 						"%s retrying (remaining %d times)\n",
 						__func__, retries--);
 				} else {
-					dev_err(&ivc_ctx->pdev->dev,
+					dev_err(ivc_ctx->dev,
 						"%s timeout waiting for buffer\n",
 						__func__);
 					return -ENOMEM;
@@ -565,7 +561,7 @@ int tegra_gr_comm_sendrecv(u32 peer, u32 index, void **handle,
 		goto fail;
 	err = tegra_gr_comm_recv(index, handle, data, size, NULL);
 	if (unlikely(err))
-		dev_err(&queue->ivc_ctx->pdev->dev,
+		dev_err(queue->ivc_ctx->dev,
 			"tegra_gr_comm_recv: timeout for response!\n");
 fail:
 	mutex_unlock(&queue->resp_lock);

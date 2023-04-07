@@ -8,11 +8,11 @@
 #ifndef __TEGRA_GR_COMM_H
 #define __TEGRA_GR_COMM_H
 
-#include <linux/platform_device.h>
+#include <linux/device.h>
 
 #define TEGRA_GR_COMM_ID_SELF (0xFF)
 
-int tegra_gr_comm_init(struct platform_device *pdev, u32 elems,
+int tegra_gr_comm_init(struct device *dev, struct device_node *dn, u32 elems,
 		const size_t *queue_sizes, u32 queue_start, u32 num_queues);
 void tegra_gr_comm_deinit(u32 queue_start, u32 num_queues);
 int tegra_gr_comm_send(u32 peer, u32 index, void *data,
