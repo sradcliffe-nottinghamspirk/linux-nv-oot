@@ -1,9 +1,13 @@
-# SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ccflags-y += -I$(srctree)/drivers/devfreq
 
-# NOTE: Do not change or add anything in this makefile.
-# The source code and makefile rules are copied from the
-# kernel/nvidia/drivers/devfreq. This file is
-# just place-holder for empty makefile to avoid any build
-# issue when copy is not done from command line and building
-# the tree independent of source copy.
+obj-$(CONFIG_DEVFREQ_GOV_WMARK_SIMPLE)  += governor_wmark_simple.o
+obj-$(CONFIG_DEVFREQ_GOV_WMARK_ACTIVE)  += governor_wmark_active.o
+
+ifeq ($(CONFIG_TEGRA_OOT_MODULE),m)
+	ccflags-y += -I$(srctree.nvidia)/include
+	ccflags-y += -DGOVERNOR_POD_SCALING_V2_MODULE
+	obj-m   += governor_pod_scaling_v2.o
+else
+	obj-$(CONFIG_DEVFREQ_GOV_POD_SCALING)   += governor_pod_scaling.o
+	obj-$(CONFIG_DEVFREQ_GOV_POD_SCALING_V2)   += governor_pod_scaling_v2.o
+endif
