@@ -1,8 +1,3 @@
-#files/directory for the nvsciipc module
-nvidia/include/linux/nvscierror.h include/linux/nvscierror.h
-nvidia/include/linux/nvsciipc_interface.h include/linux/nvsciipc_interface.h
-nvidia/include/uapi/linux/nvsciipc_ioctl.h include/uapi/linux/nvsciipc_ioctl.h
-
 # Files/directories for the nvmap module
 nvidia/drivers/video/tegra/nvmap drivers/video/tegra
 nvidia/include/linux/nvmap.h include/linux/nvmap.h
@@ -20,10 +15,6 @@ nvidia/drivers/video/tegra/host/nvdla drivers/video/tegra/host
 nvidia/include/linux/arm64-barrier.h include/linux/arm64-barrier.h
 nvidia/include/uapi/linux/nvhost_nvdla_ioctl.h include/uapi/linux/nvhost_nvdla_ioctl.h
 nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioctl.h
-
-# Files/directories for PODGOV
-nvidia/drivers/devfreq drivers
-nvidia/include/trace/events/nvhost_podgov.h include/trace/events/nvhost_podgov.h
 
 # Files/directories for NVPVA
 nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host
