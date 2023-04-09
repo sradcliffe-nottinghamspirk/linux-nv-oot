@@ -29,5 +29,9 @@
 #include <linux/platform/tegra/tegra_mc.h> /* for mc_get_carveout_info */
 #include <asm/cacheflush.h>                /* for __flush_dcache_area */
 #endif
+#ifdef CONFIG_DEBUG_FS
+#include <linux/debugfs.h>                 /* for debugfs APIs */
+#endif
+#include <linux/sizes.h>                   /* for SZ_* size macros */
 
 #endif /* TSEC_LINUX_H */

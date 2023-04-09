@@ -47,6 +47,10 @@ struct tsec_device_data {
 	char *riscv_desc_bin;
 	/* name of riscv image binary */
 	char *riscv_image_bin;
+
+#ifdef CONFIG_DEBUG_FS
+	struct dentry *debug_root;
+#endif /* CONFIG_DEBUG_FS */
 };
 
 /*
