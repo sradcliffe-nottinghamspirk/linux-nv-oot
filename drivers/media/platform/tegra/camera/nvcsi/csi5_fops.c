@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Tegra CSI5 device common APIs
+ * Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
- * Copyright (c) 2016-2023, NVIDIA CORPORATION.  All rights reserved.
+ * Tegra CSI5 device common APIs
  */
 #include <linux/log2.h>
 #include <media/csi.h>
@@ -360,8 +360,10 @@ static void csi5_stream_tpg_stop(struct tegra_csi_channel *chan, u32 stream_id,
  * gain setting by 8, before v4l2 ioctl call. It is tranformed before
  * IVC message
  */
-static uint32_t get_tpg_gain_ratio_setting(int gain_ratio_tpg)
+static int get_tpg_gain_ratio_setting(int gain_ratio_tpg,
+					uint32_t *apply_gain_ratio)
 {
+	uint8_t idx;
 	const uint32_t tpg_gain_ratio_settings[] = {
 		CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_ONE_EIGHTH,
 		CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_ONE_FOURTH,
@@ -371,7 +373,12 @@ static uint32_t get_tpg_gain_ratio_setting(int gain_ratio_tpg)
 		CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_FOUR_TO_ONE,
 		CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_EIGHT_TO_ONE};
 
-	return tpg_gain_ratio_settings[order_base_2(gain_ratio_tpg)];
+	idx = order_base_2(gain_ratio_tpg);
+	if (idx >= ARRAY_SIZE(tpg_gain_ratio_settings))
+		return -EINVAL;
+
+	*apply_gain_ratio = tpg_gain_ratio_settings[idx];
+	return 0;
 }
 
 int csi5_tpg_set_gain(struct tegra_csi_channel *chan, int gain_ratio_tpg)
@@ -401,8 +408,13 @@ int csi5_tpg_set_gain(struct tegra_csi_channel *chan, int gain_ratio_tpg)
 	msg.csi_stream_tpg_apply_gain_req.stream_id = port->stream_id;
 	msg.csi_stream_tpg_apply_gain_req.virtual_channel_id =
 		port->virtual_channel_id;
-	msg.csi_stream_tpg_apply_gain_req.gain_ratio =
-		get_tpg_gain_ratio_setting(gain_ratio_tpg);
+	err = get_tpg_gain_ratio_setting(gain_ratio_tpg,
+		&msg.csi_stream_tpg_apply_gain_req.gain_ratio);
+	if (err < 0) {
+		dev_err(csi->dev, "%s: Error in setting TPG gain ratio\n",
+			__func__);
+		return err;
+	}
 
 	err = csi5_send_control_message(tegra_chan->tegra_vi_channel[0], &msg,
 			&msg.csi_stream_tpg_apply_gain_resp.result);
