@@ -324,8 +324,11 @@ static int ov5693_power_get(struct tegracam_device *tc_dev)
 		if (IS_ERR(parent)) {
 			dev_err(dev, "unable to get parent clcok %s",
 				parentclk_name);
-		} else
-			clk_set_parent(pw->mclk, parent);
+		} else {
+			ret = clk_set_parent(pw->mclk, parent);
+			if (ret < 0)
+				dev_dbg(dev, "%s failed to set parent clock %d\n", __func__, err);
+		}
 	}
 
 	/* analog 2.8v */
@@ -1241,8 +1244,17 @@ static void
 ov5693_remove(struct i2c_client *client)
 #endif
 {
+	struct ov5693 *priv;
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct ov5693 *priv = (struct ov5693 *)s_data->priv;
+
+	if (!s_data)
+#if (KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE)
+		return -EINVAL;
+#else
+		return;
+#endif
+
+	priv = (struct ov5693 *)s_data->priv;
 
 	ov5693_debugfs_remove(priv);
 
