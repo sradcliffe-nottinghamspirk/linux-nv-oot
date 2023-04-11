@@ -1355,6 +1355,9 @@ static bool tegra_qspi_validate_cmb_seq(struct tegra_qspi *tqspi,
 	if (!tqspi->soc_data->dma_mode && xfer->len > (QSPI_FIFO_DEPTH << 2))
 		return false;
 
+	if (xfer->len > tqspi->dma_buf_size)
+		return false;
+
 	return true;
 }
 
