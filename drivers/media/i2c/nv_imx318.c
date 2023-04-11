@@ -334,7 +334,7 @@ static int imx318_power_put(struct tegracam_device *tc_dev)
 	if (likely(pw->iovdd))
 		devm_regulator_put(pw->iovdd);
 
-	if (likely(pw->iovdd))
+	if (likely(pw->dvdd))
 		devm_regulator_put(pw->dvdd);
 
 	pw->avdd = NULL;
@@ -381,8 +381,13 @@ static int imx318_power_get(struct tegracam_device *tc_dev)
 		if (IS_ERR(parent)) {
 			dev_err(dev, "unable to get parent clock %s",
 				parentclk_name);
-		} else
-			clk_set_parent(pw->mclk, parent);
+		} else {
+			ret = clk_set_parent(pw->mclk, parent);
+			if (ret < 0)
+				dev_dbg(dev,
+					"%s unable to set parent clock %d\n",
+					__func__, ret);
+		}
 	}
 
 
@@ -757,8 +762,16 @@ static void imx318_remove(struct i2c_client *client)
 #endif
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct imx318 *priv = (struct imx318 *)s_data->priv;
+	struct imx318 *priv;
 
+	if (!s_data)
+#if (KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE)
+		return -EINVAL;
+#else
+		return;
+#endif
+
+	priv = (struct imx318 *)s_data->priv;
 	tegracam_v4l2subdev_unregister(priv->tc_dev);
 	tegracam_device_unregister(priv->tc_dev);
 	imx318_eeprom_device_release(priv);
