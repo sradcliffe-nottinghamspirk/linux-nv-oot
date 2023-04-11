@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2022, NVIDIA CORPORATION & AFFILIATES.All rights reserved.
+ * Copyright (c) 2020-2023, NVIDIA CORPORATION & AFFILIATES.All rights reserved.
  *
  * SPDX-License-Identifier: GPL-2.0
  */
@@ -193,11 +193,11 @@ static ssize_t show_lic_irq_ts(struct kobject *kobj,
 			 hts.ts_raw, hts.ts_ns);
 }
 
-struct kobj_attribute gpio_en_dis_attr =
+static struct kobj_attribute gpio_en_dis_attr =
 		__ATTR(gpio_en_dis, 0220, NULL, store_gpio_en_dis);
-struct kobj_attribute lic_irq_en_dis_attr =
+static struct kobj_attribute lic_irq_en_dis_attr =
 		__ATTR(lic_irq_en_dis, 0220, NULL, store_lic_irq_en_dis);
-struct kobj_attribute lic_irq_ts_attr =
+static struct kobj_attribute lic_irq_ts_attr =
 		__ATTR(lic_irq_ts, 0440, show_lic_irq_ts, NULL);
 
 static struct attribute *attrs[] = {
