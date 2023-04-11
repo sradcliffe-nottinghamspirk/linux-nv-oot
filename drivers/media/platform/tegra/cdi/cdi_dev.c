@@ -612,6 +612,9 @@ static int cdi_dev_probe(struct i2c_client *client,
 			else if (of_property_read_bool(child,
 						"cam-pwr-nvccp"))
 				info->cam_pwr_method = CAM_PWR_NVCCP;
+			else if (of_property_read_bool(child,
+						"cam-pwr-tps2h160b"))
+				info->cam_pwr_method = CAM_PWR_TPS160;
 			else
 				info->cam_pwr_method = CAM_PWR_NO_PWR;
 

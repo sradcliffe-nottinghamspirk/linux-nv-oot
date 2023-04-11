@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #ifndef __UAPI_CDI_DEV_H__
 #define __UAPI_CDI_DEV_H__
@@ -18,6 +18,7 @@
 #define DES_PWR_NO_PWR   0xFFU
 #define CAM_PWR_NVCCP    0U
 #define CAM_PWR_MAX20087 1U
+#define CAM_PWR_TPS160   2U
 #define CAM_PWR_NO_PWR   0xFFU
 
 #define MAX_POWER_LINKS_PER_BLOCK (4U)
