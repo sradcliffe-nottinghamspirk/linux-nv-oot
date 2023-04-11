@@ -32,3 +32,4 @@ obj-m += dce/
 obj-m += psc/
 obj-m += rtcpu/
 obj-m += aon/
+obj-m += tegra-uss-io-proxy.o
