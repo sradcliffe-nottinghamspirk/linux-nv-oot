@@ -206,12 +206,17 @@ static void camrtc_clk_group_set_parent(const struct camrtc_clk_group *grp,
 		struct clk *parent)
 {
 	int index;
+	int ret;
 
 	if (IS_ERR_OR_NULL(parent))
 		return;
 
-	for (index = 0; index < grp->nclocks; index++)
-		clk_set_parent(grp->clocks[index].clk, parent);
+	for (index = 0; index < grp->nclocks; index++) {
+		ret = clk_set_parent(grp->clocks[index].clk, parent);
+		if (ret < 0)
+			pr_err("%s: unable to set parent clock %d\n",
+				__func__, ret);
+	}
 }
 
 int camrtc_clk_group_adjust_slow(const struct camrtc_clk_group *grp)
