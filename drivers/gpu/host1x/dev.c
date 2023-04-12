@@ -2,7 +2,7 @@
 /*
  * Tegra host1x driver
  *
- * Copyright (c) 2010-2022, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
+ * Copyright (c) 2010-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
 #include <linux/clk.h>
@@ -817,15 +817,17 @@ static int host1x_probe(struct platform_device *pdev)
 	if (err)
 		return err;
 
-	host->clk = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(host->clk)) {
-		err = PTR_ERR(host->clk);
+	host->clk = devm_clk_get_optional(&pdev->dev, "host1x");
+	if (!host->clk)
+		host->clk = devm_clk_get(&pdev->dev, NULL);
+	if (IS_ERR(host->clk))
+		return dev_err_probe(&pdev->dev, PTR_ERR(host->clk),
+				"failed to get host1x clock\n");
 
-		if (err != -EPROBE_DEFER)
-			dev_err(&pdev->dev, "failed to get clock: %d\n", err);
-
-		return err;
-	}
+	host->actmon_clk = devm_clk_get_optional(&pdev->dev, "actmon");
+	if (IS_ERR(host->actmon_clk))
+		return dev_err_probe(&pdev->dev, PTR_ERR(host->actmon_clk),
+				"failed to get actmon clock\n");
 
 	err = host1x_get_resets(host);
 	if (err)
@@ -949,6 +951,7 @@ static int __maybe_unused host1x_runtime_suspend(struct device *dev)
 	usleep_range(1000, 2000);
 
 	clk_disable_unprepare(host->clk);
+	clk_disable_unprepare(host->actmon_clk);
 	reset_control_bulk_release(host->nresets, host->resets);
 
 	return 0;
@@ -974,14 +977,20 @@ static int __maybe_unused host1x_runtime_resume(struct device *dev)
 
 	err = clk_prepare_enable(host->clk);
 	if (err) {
-		dev_err(dev, "failed to enable clock: %d\n", err);
+		dev_err(dev, "failed to enable host1x clock: %d\n", err);
 		goto release_reset;
+	}
+
+	err = clk_prepare_enable(host->actmon_clk);
+	if (err) {
+		dev_err(dev, "failed to enable actmon clock: %d\n", err);
+		goto disable_host1x_clk;
 	}
 
 	err = reset_control_bulk_deassert(host->nresets, host->resets);
 	if (err < 0) {
 		dev_err(dev, "failed to deassert reset: %d\n", err);
-		goto disable_clk;
+		goto disable_actmon_clk;
 	}
 
 	host1x_setup_virtualization_tables(host);
@@ -990,7 +999,9 @@ static int __maybe_unused host1x_runtime_resume(struct device *dev)
 
 	return 0;
 
-disable_clk:
+disable_actmon_clk:
+	clk_disable_unprepare(host->actmon_clk);
+disable_host1x_clk:
 	clk_disable_unprepare(host->clk);
 release_reset:
 	reset_control_bulk_release(host->nresets, host->resets);

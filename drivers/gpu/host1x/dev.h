@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2012-2015, NVIDIA Corporation.
+ * Copyright (c) 2012-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
 #ifndef HOST1X_DEV_H
@@ -136,6 +136,7 @@ struct host1x {
 	struct host1x_syncpt_base *bases;
 	struct device *dev;
 	struct clk *clk;
+	struct clk *actmon_clk;
 	struct reset_control_bulk_data resets[2];
 	unsigned int nresets;
 
