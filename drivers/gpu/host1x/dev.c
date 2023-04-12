@@ -432,6 +432,44 @@ static const struct host1x_sid_entry tegra234_sid_table[] = {
 	},
 };
 
+static const struct host1x_actmon_entry tegra234_actmon_table[] = {
+	{
+		.classid = HOST1X_CLASS_NVENC,
+		.name = "nvenc",
+		.irq = 2,
+		.offset = 0x00000,
+		.num_modules = 1,
+	},
+	{
+		.classid = HOST1X_CLASS_VIC,
+		.name = "vic",
+		.irq = 3,
+		.offset = 0x10000,
+		.num_modules = 1,
+	},
+	{
+		.classid = HOST1X_CLASS_NVDEC,
+		.name = "nvdec",
+		.irq = 4,
+		.offset = 0x20000,
+		.num_modules = 1,
+	},
+	{
+		.classid = HOST1X_CLASS_NVJPG,
+		.name = "nvjpg",
+		.irq = 5,
+		.offset = 0x30000,
+		.num_modules = 1,
+	},
+	{
+		.classid = HOST1X_CLASS_NVJPG1,
+		.name = "nvjpg1",
+		.irq = 6,
+		.offset = 0x40000,
+		.num_modules = 1,
+	},
+};
+
 static const struct host1x_info host1x08_info = {
 	.nb_channels = 63,
 	.nb_pts = 1024,
@@ -445,6 +483,8 @@ static const struct host1x_info host1x08_info = {
 	.has_common = true,
 	.num_sid_entries = ARRAY_SIZE(tegra234_sid_table),
 	.sid_table = tegra234_sid_table,
+	.num_actmon_entries = ARRAY_SIZE(tegra234_actmon_table),
+	.actmon_table = tegra234_actmon_table,
 	.streamid_vm_table = { 0x1004, 128 },
 	.classid_vm_table = { 0x1404, 25 },
 	.mmio_vm_table = { 0x1504, 25 },

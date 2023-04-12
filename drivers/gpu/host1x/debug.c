@@ -3,7 +3,7 @@
  * Copyright (C) 2010 Google, Inc.
  * Author: Erik Gilling <konkers@android.com>
  *
- * Copyright (C) 2011-2013 NVIDIA Corporation
+ * Copyright (C) 2011-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/debugfs.h>
@@ -195,6 +195,8 @@ static void host1x_debugfs_init(struct host1x *host1x)
 
 	/* Store the created entry */
 	host1x->debugfs = de;
+
+	host1x->actmon_debugfs = debugfs_create_dir("actmon", host1x->debugfs);
 
 	debugfs_create_file("status", S_IRUGO, de, host1x, &host1x_debug_fops);
 	debugfs_create_file("status_all", S_IRUGO, de, host1x,

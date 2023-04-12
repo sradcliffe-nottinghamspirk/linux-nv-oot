@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (c) 2009-2013, NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2009-2023, NVIDIA Corporation. All rights reserved.
  */
 
 #ifndef __LINUX_HOST1X_H
@@ -68,6 +68,7 @@ static inline void host1x_bo_cache_destroy(struct host1x_bo_cache *cache)
  * @late_exit: host1x client late tear down code
  * @suspend: host1x client suspend code
  * @resume: host1x client resume code
+ * @get_rate: host1x client get clock rate code
  */
 struct host1x_client_ops {
 	int (*early_init)(struct host1x_client *client);
@@ -76,7 +77,10 @@ struct host1x_client_ops {
 	int (*late_exit)(struct host1x_client *client);
 	int (*suspend)(struct host1x_client *client);
 	int (*resume)(struct host1x_client *client);
+	unsigned long (*get_rate)(struct host1x_client *client);
 };
+
+struct host1x_actmon;
 
 /**
  * struct host1x_client - host1x client structure
@@ -93,6 +97,7 @@ struct host1x_client_ops {
  * @usecount: reference count for this structure
  * @lock: mutex for mutually exclusive concurrency
  * @cache: host1x buffer object cache
+ * @actmon: unit actmon for this client
  */
 struct host1x_client {
 	struct list_head list;
@@ -113,6 +118,8 @@ struct host1x_client {
 	struct mutex lock;
 
 	struct host1x_bo_cache cache;
+
+	struct host1x_actmon *actmon;
 };
 
 /*
@@ -507,5 +514,10 @@ static inline void host1x_memory_context_put(struct host1x_memory_context *cd)
 #endif
 
 int host1x_actmon_read_avg_count(struct host1x_client *client);
+int host1x_actmon_register(struct host1x_client *client);
+int host1x_actmon_unregister(struct host1x_client *client);
+void host1x_actmon_update_client_rate(struct host1x_client *client,
+				      unsigned long rate,
+				      u32 *weight);
 
 #endif

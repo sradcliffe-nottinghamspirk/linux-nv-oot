@@ -83,6 +83,14 @@ struct host1x_intr_ops {
 	int (*free_syncpt_irq)(struct host1x *host);
 };
 
+struct host1x_actmon_entry {
+	int classid;
+	const char *name;
+	unsigned int irq;
+	unsigned int offset;
+	unsigned int num_modules;
+};
+
 struct host1x_sid_entry {
 	unsigned int base;
 	unsigned int offset;
@@ -107,6 +115,8 @@ struct host1x_info {
 	bool has_common; /* has common registers separate from hypervisor */
 	unsigned int num_sid_entries;
 	const struct host1x_sid_entry *sid_table;
+	unsigned int num_actmon_entries;
+	const struct host1x_actmon_entry *actmon_table;
 	struct host1x_table_desc streamid_vm_table;
 	struct host1x_table_desc classid_vm_table;
 	struct host1x_table_desc mmio_vm_table;
@@ -170,6 +180,7 @@ struct host1x {
 	struct host1x_memory_context_list context_list;
 
 	struct dentry *debugfs;
+	struct dentry *actmon_debugfs;
 
 	struct mutex devices_lock;
 	struct list_head devices;
