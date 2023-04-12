@@ -1,10 +1,3 @@
-# Files/directories for the nvmap module
-nvidia/drivers/video/tegra/nvmap drivers/video/tegra
-nvidia/include/linux/nvmap.h include/linux/nvmap.h
-nvidia/include/linux/nvmap_t19x.h include/linux/nvmap_t19x.h
-nvidia/include/trace/events/nvmap.h include/trace/events/nvmap.h
-nvidia/include/uapi/linux/nvmap.h include/uapi/linux/nvmap.h
-
 # Files/directories for cvnas module
 nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
 nvidia/include/linux/cvnas.h include/linux/cvnas.h
@@ -29,9 +22,3 @@ nvidia/include/uapi/linux/tegra-soc-hwpm-uapi.h include/uapi/linux/tegra-soc-hwp
 nvidia/drivers/platform/tegra/dce drivers/platform/tegra
 nvidia/include/linux/platform/tegra/dce/dce-client-ipc.h include/linux/platform/tegra/dce/dce-client-ipc.h
 nvidia/include/trace/events/dce_events.h include/trace/events/dce_events.h
-
-# Files/directory for Maxim DP->GMSL serializer
-nvidia/drivers/video/tegra/dc/bridge/maxim_gmsl_dp_serializer.c drivers/video/tegra/dc/bridge
-
-# Files/directory for TI FPDLink DP serializer
-nvidia/drivers/video/tegra/dc/bridge/ti_fpdlink_dp_serializer.c drivers/video/tegra/dc/bridge
