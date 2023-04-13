@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2015, NVIDIA Corporation.
+ * Copyright (c) 2015-2023, NVIDIA Corporation. All rights reserved.
  */
 
 #ifndef TEGRA_VIC_H
@@ -17,6 +17,8 @@
 #define CG_IDLE_CG_DLY_CNT(val)			((val & 0x3f) << 0)
 #define CG_IDLE_CG_EN				(1 << 6)
 #define CG_WAKEUP_DLY_CNT(val)			((val & 0xf) << 16)
+
+#define NV_PVIC_TFBIF_ACTMON_ACTIVE_WEIGHT	0x00002054
 
 #define VIC_TFBIF_TRANSCFG	0x00002044
 

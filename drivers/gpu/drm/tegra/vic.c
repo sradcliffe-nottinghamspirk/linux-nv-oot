@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015, NVIDIA Corporation.
+ * Copyright (C) 2015-2023 NVIDIA CORPORATION.  All rights reserved.
  */
 
 #include <linux/clk.h>
@@ -101,6 +101,28 @@ static int vic_boot(struct vic *vic)
 	return 0;
 }
 
+static int vic_set_rate(struct vic *vic, unsigned long rate)
+{
+	struct host1x_client *client = &vic->client.base;
+	unsigned long dev_rate;
+	u32 weight;
+	int err;
+
+	err = clk_set_rate(vic->clk, rate);
+	if (err < 0)
+		return err;
+
+	dev_rate = clk_get_rate(vic->clk);
+
+	host1x_actmon_update_client_rate(client, dev_rate, &weight);
+
+	if (weight)
+		vic_writel(vic, weight, NV_PVIC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+
+	return 0;
+}
+
+
 static int vic_init(struct host1x_client *client)
 {
 	struct tegra_drm_client *drm = host1x_to_drm_client(client);
@@ -188,9 +210,18 @@ static int vic_exit(struct host1x_client *client)
 	return 0;
 }
 
+static unsigned long vic_get_rate(struct host1x_client *client)
+{
+	struct platform_device *pdev = to_platform_device(client->dev);
+	struct vic *vic = platform_get_drvdata(pdev);
+
+	return clk_get_rate(vic->clk);
+}
+
 static const struct host1x_client_ops vic_client_ops = {
 	.init = vic_init,
 	.exit = vic_exit,
+	.get_rate = vic_get_rate,
 };
 
 static int vic_load_firmware(struct vic *vic)
@@ -465,12 +496,6 @@ static int vic_probe(struct platform_device *pdev)
 		return PTR_ERR(vic->clk);
 	}
 
-	err = clk_set_rate(vic->clk, ULONG_MAX);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to set clock rate\n");
-		return err;
-	}
-
 	if (!dev->pm_domain) {
 		vic->rst = devm_reset_control_get(dev, "vic");
 		if (IS_ERR(vic->rst)) {
@@ -506,6 +531,17 @@ static int vic_probe(struct platform_device *pdev)
 		goto exit_falcon;
 	}
 
+	err = host1x_actmon_register(&vic->client.base);
+	if (err < 0)
+		dev_info(dev, "failed to register host1x actmon: %d\n", err);
+
+	/* Set default clock rate for vic and update count weight register */
+	err = vic_set_rate(vic, ULONG_MAX);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to set clock rate\n");
+		return err;
+	}
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -524,6 +560,11 @@ static int vic_remove(struct platform_device *pdev)
 	int err;
 
 	pm_runtime_disable(&pdev->dev);
+
+	err = host1x_actmon_unregister(&vic->client.base);
+	if (err < 0)
+		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
+			err);
 
 	err = host1x_client_unregister(&vic->client.base);
 	if (err < 0) {
