@@ -1880,7 +1880,7 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 	struct tegra_nvvse_aes_gmac_init_ctl aes_gmac_init_ctl;
 	struct tegra_nvvse_aes_gmac_sign_verify_ctl aes_gmac_sign_verify_ctl;
 	struct tegra_nvvse_get_ivc_db get_ivc_db;
-	struct tegra_nvvse_tsec_get_keyload_status tsec_keyload_status;
+	struct tegra_nvvse_tsec_get_keyload_status *tsec_keyload_status;
 	int ret = 0;
 
 	/*
@@ -1890,6 +1890,12 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 	if (!ctx) {
 		pr_err("%s(): ctx not allocated\n", __func__);
 		return -EPERM;
+	}
+
+	tsec_keyload_status = kzalloc(sizeof(*tsec_keyload_status), GFP_KERNEL);
+	if (!tsec_keyload_status) {
+		pr_err("%s(): failed to allocate memory\n", __func__);
+		return -ENOMEM;
 	}
 
 	mutex_lock(&ctx->lock);
@@ -2075,14 +2081,14 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 		break;
 
 	case NVVSE_IOCTL_CMDID_TSEC_GET_KEYLOAD_STATUS:
-		ret = tnvvse_crypto_tsec_get_keyload_status(ctx, &tsec_keyload_status);
+		ret = tnvvse_crypto_tsec_get_keyload_status(ctx, tsec_keyload_status);
 		if (ret) {
 			pr_err("%s(): Failed to get keyload status:%d\n", __func__, ret);
 			goto out;
 		}
 
-		ret = copy_to_user((void __user *)arg, &tsec_keyload_status,
-				sizeof(tsec_keyload_status));
+		ret = copy_to_user((void __user *)arg, tsec_keyload_status,
+				sizeof(*tsec_keyload_status));
 		if (ret) {
 			pr_err("%s(): Failed to copy_to_user tsec_keyload_status:%d\n",
 					__func__, ret);
