@@ -3,3 +3,4 @@
 
 obj-m += spi-aurix-tegra.o
 obj-m += spi-tegra210-quad.o
+obj-m += spi-tegra124-slave.o
