@@ -6646,6 +6646,23 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP" "" "types"
         ;;
 
+        tegra_dev_iommu_get_stream_id)
+            #
+            # Determine if the function tegra_dev_iommu_get_stream_id is present.
+            #
+            # tegra_dev_iommu_get_stream_id was added in commit 493c9b68d1d8
+            # ("iommu/tegra: Add tegra_dev_iommu_get_stream_id() helper") in
+            # v6.2 (2022-12-07)
+            #
+            CODE="
+            #include <linux/iommu.h>
+            bool conftest_tegra_dev_iommu_get_stream_id(void) {
+                return tegra_dev_iommu_get_stream_id();
+            }"
+
+            compile_check_conftest "$CODE" "NV_TEGRA_DEV_IOMMU_GET_STREAM_ID_PRESENT" "" "functions"
+        ;;
+
         # When adding a new conftest entry, please use the correct format for
         # specifying the relevant upstream Linux kernel commit.
         #
