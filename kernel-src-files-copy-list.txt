@@ -3,12 +3,6 @@ nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
 nvidia/include/linux/cvnas.h include/linux/cvnas.h
 nvidia/include/soc/tegra/fuse-helper.h include/soc/tegra/fuse-helper.h
 
-# Files/directories for NVDLA
-nvidia/drivers/video/tegra/host/nvdla drivers/video/tegra/host
-nvidia/include/linux/arm64-barrier.h include/linux/arm64-barrier.h
-nvidia/include/uapi/linux/nvhost_nvdla_ioctl.h include/uapi/linux/nvhost_nvdla_ioctl.h
-nvidia/include/uapi/linux/nvhost_ioctl.h include/uapi/linux/nvhost_ioctl.h
-
 # Files/directories for NVPVA
 nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host
 nvidia/include/trace/events/nvhost_pva.h include/trace/events/nvhost_pva.h
@@ -17,8 +11,3 @@ nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
 # Files/directories for NVHWPM
 nvidia/drivers/platform/tegra/hwpm drivers/platform/tegra
 nvidia/include/uapi/linux/tegra-soc-hwpm-uapi.h include/uapi/linux/tegra-soc-hwpm-uapi.h
-
-# Files/directory for DCE-KMD
-nvidia/drivers/platform/tegra/dce drivers/platform/tegra
-nvidia/include/linux/platform/tegra/dce/dce-client-ipc.h include/linux/platform/tegra/dce/dce-client-ipc.h
-nvidia/include/trace/events/dce_events.h include/trace/events/dce_events.h
