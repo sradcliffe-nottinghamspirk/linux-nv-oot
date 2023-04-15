@@ -2104,6 +2104,7 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 
 out:
 	mutex_unlock(&ctx->lock);
+	kfree(tsec_keyload_status);
 
 	return ret;
 }
