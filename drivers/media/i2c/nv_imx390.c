@@ -716,8 +716,13 @@ static int imx390_board_setup(struct imx390 *priv)
 	}
 
 	for (i = 0; i < priv->g_ctx.num_streams; i++) {
-		of_property_read_string_index(gmsl, "streams", i,
-						&str_value1[i]);
+		err = of_property_read_string_index(gmsl, "streams", i,
+							&str_value1[i]);
+		if (err < 0) {
+			dev_err(dev, "Failed to get streams index\n");
+			goto error;
+		}
+
 		if (!str_value1[i]) {
 			dev_err(dev, "invalid stream info\n");
 			err = -EINVAL;

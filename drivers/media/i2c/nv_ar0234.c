@@ -640,6 +640,10 @@ static int ar0234_fill_eeprom(struct tegracam_device *tc_dev,
 
 	switch (ctrl->id) {
 	case TEGRA_CAMERA_CID_STEREO_EEPROM:
+		if (AR0234_EEPROM_SIZE >
+			sizeof(struct LiEeprom_Content_Struct))
+			return -EINVAL;
+
 		tmp = kmalloc(sizeof(struct LiEeprom_Content_Struct),
 				GFP_KERNEL);
 		if (tmp == NULL)
@@ -649,8 +653,7 @@ static int ar0234_fill_eeprom(struct tegracam_device *tc_dev,
 				sizeof(struct NvCamSyncSensorCalibData));
 		memset(ctrl->p_new.p, 0,
 				sizeof(struct NvCamSyncSensorCalibData));
-		memcpy(tmp, priv->eeprom_buf,
-				sizeof(struct LiEeprom_Content_Struct));
+		memcpy(tmp, priv->eeprom_buf, AR0234_EEPROM_SIZE);
 
 		if (priv->sync_sensor_index == 1)
 			priv->EepromCalib.cam_intr = tmp->left_cam_intr;
