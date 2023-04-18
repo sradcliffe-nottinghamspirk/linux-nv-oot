@@ -17,6 +17,10 @@
 #include <pva-bit.h>
 #include <pva-packed.h>
 
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+#include <pva-sys-dma-t264.h>
+#endif
+
 /*** Version number of the current DMA info structure */
 #define PVA_DMA_INFO_VERSION_ID (1U)
 
@@ -45,8 +49,10 @@ struct PVA_PACKED pva_dma_ch_config_s {
 #define PVA_SYS_DMA_NUM_TRIGGERS (9U)
 /** Number of DMA channel configurations in DMA info structure. */
 #define PVA_SYS_DMA_NUM_CHANNELS (15U)
-/** Maximum number of DMA descriptors allowed. */
-#define PVA_SYS_DMA_MAX_DESCRIPTORS (60U)
+/** Maximum number of DMA descriptors allowed in T19x. */
+#define PVA_SYS_DMA_MAX_DESCRIPTORS_T19X (60U)
+/** Maximum number of DMA descriptors allowed in T23x. */
+#define PVA_SYS_DMA_MAX_DESCRIPTORS_T23X (60U)
 
 /** @brief DMA info for a VPU app.
  *

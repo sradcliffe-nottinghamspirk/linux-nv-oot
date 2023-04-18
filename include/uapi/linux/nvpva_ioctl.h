@@ -516,12 +516,31 @@ union nvpva_set_vpu_print_buffer_size_args {
 	struct nvpva_set_vpu_print_buffer_size_in_arg in;
 };
 
-/* There are 64 DMA descriptors in T19x and T23x. But R5 FW reserves
+/**
+ * There are 64 DMA descriptors in T19x. But R5 FW reserves
  * 4 DMA descriptors for internal use.
  */
-#define NVPVA_TASK_MAX_DMA_DESCRIPTORS (60U)
+#define NVPVA_TASK_MAX_DMA_DESCRIPTORS_T19X		(60U)
+/**
+ * There are 64 DMA descriptors in T23x. But R5 FW reserves
+ * 4 DMA descriptors for internal use.
+ */
+#define NVPVA_TASK_MAX_DMA_DESCRIPTORS_T23X		(60U)
+
+/**
+ * Number of DMA descriptors reserved for R5 FW's
+ * internal use
+ */
+#define NVPVA_NUM_RESERVED_DESCRIPTORS			(4U)
+
+/**
+ * Index of the first reserved DMA descriptor
+ */
+#define NVPVA_RESERVED_DESCRIPTORS_START_IDX		(60U)
+
 /*TODO: Remove NVPVA_TASK_MAX_DMA_CHANNELS */
-/*There are 14 DMA channels in T19x and 16 DMA channels in T23X.
+/**
+ * There are 14 DMA channels in T19x and 16 DMA channels in T23X.
  * R5 FW reserves one DMA channel for internal use.
  */
 #define NVPVA_TASK_MAX_DMA_CHANNELS 16U
@@ -597,7 +616,7 @@ union nvpva_set_vpu_print_buffer_size_args {
 		NVPVA_MAX_FENCE_TYPES * sizeof(struct nvpva_fence_action) +  \
 	NVPVA_TASK_MAX_INPUT_STATUS * sizeof(struct nvpva_mem) +             \
 	NVPVA_TASK_MAX_OUTPUT_STATUS * sizeof(struct nvpva_mem) +            \
-	NVPVA_TASK_MAX_DMA_DESCRIPTORS *                                     \
+	NVPVA_TASK_MAX_DMA_DESCRIPTORS_T23X *                                \
 		sizeof(struct nvpva_dma_descriptor) +                        \
 	NVPVA_TASK_MAX_DMA_CHANNELS * sizeof(struct nvpva_dma_channel) +     \
 	sizeof(struct nvpva_hwseq_config) +                                  \

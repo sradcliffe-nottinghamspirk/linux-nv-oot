@@ -14,8 +14,26 @@
 #include "pva-task.h"
 #include "pva_hwseq.h"
 
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+#include <nvpva_ioctl_t264.h>
+#else
+#define NVPVA_TASK_MAX_DMA_DESCRIPTOR_ID_T26X \
+		NVPVA_TASK_MAX_DMA_DESCRIPTORS_T23X
+#define NVPVA_TASK_MAX_DMA_CHANNELS_T26X \
+		NVPVA_TASK_MAX_DMA_CHANNELS_T23X
+#endif
+
 #define task_err(task, fmt, ...) \
 	dev_err(&task->pva->pdev->dev, fmt, ##__VA_ARGS__)
+
+#define MAX_VAL(x, y) (((x) > (y)) ? (x) : (y))
+#define MAX_NUM_DESCS	 MAX_VAL((MAX_VAL(NVPVA_TASK_MAX_DMA_DESCRIPTORS_T19X, \
+					NVPVA_TASK_MAX_DMA_DESCRIPTORS_T23X)), \
+				  NVPVA_TASK_MAX_DMA_DESCRIPTOR_ID_T26X)
+
+#define MAX_NUM_CHANNELS MAX_VAL((MAX_VAL(NVPVA_TASK_MAX_DMA_CHANNELS_T19X, \
+					NVPVA_TASK_MAX_DMA_CHANNELS_T23X)), \
+				  NVPVA_TASK_MAX_DMA_CHANNELS_T26X)
 
 struct dma_buf;
 
@@ -145,9 +163,9 @@ struct pva_submit_task {
 	struct nvpva_mem input_task_status[NVPVA_TASK_MAX_INPUT_STATUS];
 	struct nvpva_mem output_task_status[NVPVA_TASK_MAX_OUTPUT_STATUS];
 	struct nvpva_dma_descriptor
-		dma_descriptors[NVPVA_TASK_MAX_DMA_DESCRIPTORS];
+		dma_descriptors[MAX_NUM_DESCS]; /* max of T19x, T23x & T26x */
 	struct nvpva_dma_channel dma_channels
-		[NVPVA_TASK_MAX_DMA_CHANNELS_T23X]; /* max of T19x & T23x */
+		[MAX_NUM_CHANNELS]; /* max of T19x, T23x & T26x */
 	struct nvpva_dma_misr dma_misr_config;
 	struct nvpva_hwseq_config hwseq_config;
 	struct nvpva_symbol_param symbols[NVPVA_TASK_MAX_SYMBOLS];
@@ -162,11 +180,10 @@ struct pva_submit_task {
 	u64 fence_act_serial_ids[NVPVA_MAX_FENCE_TYPES]
 				[NVPVA_TASK_MAX_FENCEACTIONS];
 	u64 prefences_serial_ids[NVPVA_TASK_MAX_PREFENCES];
-	struct pva_hwseq_priv_s hwseq_info[NVPVA_TASK_MAX_DMA_CHANNELS_T23X];
-	u8 desc_block_height_log2[NVPVA_TASK_MAX_DMA_DESCRIPTORS];
-	struct pva_dma_task_buffer_info_s task_buff_info[NVPVA_TASK_MAX_DMA_DESCRIPTORS];
-	struct pva_dma_hwseq_desc_entry_s desc_entries[NVPVA_TASK_MAX_DMA_CHANNELS_T23X]
-						      [PVA_HWSEQ_DESC_LIMIT];
+	struct pva_hwseq_priv_s hwseq_info[MAX_NUM_CHANNELS];
+	u8 desc_block_height_log2[MAX_NUM_DESCS];
+	struct pva_dma_task_buffer_info_s task_buff_info[MAX_NUM_DESCS];
+	struct pva_dma_hwseq_desc_entry_s desc_entries[MAX_NUM_CHANNELS][PVA_HWSEQ_DESC_LIMIT];
 
 	/** Store Suface base address */
 	u64 src_surf_base_addr;
@@ -285,7 +302,7 @@ struct pva_hw_task {
 	struct pva_task_action_s postactions[PVA_MAX_POSTACTION_LISTS];
 	struct pva_dma_info_and_params_list_s dma_info_and_params_list;
 	struct pva_dma_misr_config_s dma_misr_config;
-	struct pva_dtd_s dma_desc[NVPVA_TASK_MAX_DMA_DESCRIPTORS];
+	struct pva_dtd_s dma_desc[MAX_NUM_DESCS]; /* max of all gens */
 	struct pva_vpu_parameter_info_s param_info;
 	struct pva_task_statistics_s statistics;
 	struct pva_circular_buffer_info_s stdout_cb_info;

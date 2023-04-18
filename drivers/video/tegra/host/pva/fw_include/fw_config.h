@@ -76,7 +76,7 @@
  * @brief The first Reserved DMA descriptor. This is used as a
  *        starting point to iterate over reserved DMA descriptors.
  */
-#define PVA_RESERVED_DESC_START		PVA_NUM_DYNAMIC_DESCS
+#define PVA_RESERVED_DESC_START		(60U)
 
 /**
  * @brief The first Reserved AXI data buffers. This is used as a

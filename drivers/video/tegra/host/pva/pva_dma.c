@@ -23,6 +23,13 @@
 #define LOW_BITS		(0xFFFFFFFFU >> (32U - 4U))
 #define NVPVA_MAX_VALID_BLK_HGT_LG2 5U
 
+static const u8 max_desc_id[4] = {
+	[0] = 0U, // dummy entry to simplify lookup
+	[PVA_HW_GEN1] = NVPVA_TASK_MAX_DMA_DESCRIPTORS_T19X,
+	[PVA_HW_GEN2] = NVPVA_TASK_MAX_DMA_DESCRIPTORS_T23X,
+	[PVA_HW_GEN3] = NVPVA_TASK_MAX_DMA_DESCRIPTOR_ID_T26X
+};
+
 int
 pitch_linear_eq_offset(struct nvpva_dma_descriptor const *dma_desc,
 		       s64 *frame_buf_offset,
@@ -779,6 +786,9 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 	u8 num_dma_descriptors = task->num_dma_descriptors;
 	u8 *num_dma_desc_processed = &task->num_dma_desc_processed;
 	uint16_t exe_id = 0;
+	const uint8_t resv_desc_start_idx = NVPVA_RESERVED_DESCRIPTORS_START_IDX;
+	const uint8_t resv_desc_end_idx = (NVPVA_RESERVED_DESCRIPTORS_START_IDX
+					   + NVPVA_NUM_RESERVED_DESCRIPTORS - 1);
 
 	nvpva_dbg_fn(task->pva, "");
 
@@ -788,8 +798,12 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 		if (task->desc_processed & (1LLU << desc_num))
 			continue;
 
-		task->desc_processed |= (1LLU << desc_num);
-		++(*num_dma_desc_processed);
+		if (desc_num == resv_desc_start_idx) {
+			desc_num = resv_desc_end_idx;
+			i += (resv_desc_end_idx - resv_desc_start_idx + 1);
+			continue;
+		}
+
 		umd_dma_desc = &task->dma_descriptors[desc_num];
 		dma_desc = &hw_task->dma_desc[desc_num];
 		is_misr = !((task->dma_misr_config.descriptor_mask
@@ -865,8 +879,10 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 			    (u8)((task->dst_surf_base_addr & 0x3E00) >> 6U);
 		}
 
-		if (umd_dma_desc->linkDescId > task->num_dma_descriptors) {
-			task_err(task, "invalid link ID");
+		if ((umd_dma_desc->linkDescId > task->num_dma_descriptors)
+		   || ((umd_dma_desc->linkDescId > resv_desc_start_idx)
+		      && (umd_dma_desc->linkDescId <= resv_desc_end_idx + 1))) {
+			task_err(task, "invalid link ID %u", umd_dma_desc->linkDescId);
 			return -EINVAL;
 		}
 
@@ -965,17 +981,20 @@ verify_dma_desc_hwseq(struct pva_submit_task *task,
 	u64 *desc_hwseq_frm = &task->desc_hwseq_frm;
 	struct nvpva_dma_descriptor *desc;
 
-	nvpva_dbg_fn(task->pva, "");
+	const uint8_t resv_desc_start_idx = NVPVA_RESERVED_DESCRIPTORS_START_IDX;
+	const uint8_t resv_desc_end_idx = (NVPVA_RESERVED_DESCRIPTORS_START_IDX
+					   + NVPVA_NUM_RESERVED_DESCRIPTORS - 1);
 
 	if ((did == 0U)
-	|| (did >= NVPVA_TASK_MAX_DMA_DESCRIPTORS)) {
+	|| (did >= max_desc_id[task->pva->version])
+	|| (((did - 1) >= resv_desc_start_idx) && ((did - 1) <= resv_desc_end_idx))) {
 		pr_err("invalid Descritor ID");
 		err = -EINVAL;
 		goto out;
 	}
 
 	did = array_index_nospec((did - 1),
-				 NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+				  max_desc_id[task->pva->version]);
 	desc = &task->dma_descriptors[did];
 
 	/* return flag if block linear format is in use */
@@ -1869,7 +1888,7 @@ verify_hwseq_blob(struct pva_submit_task *task,
 			}
 
 			did = array_index_nospec((blob_desc->did1 - 1U),
-						  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+						  max_desc_id[task->pva->version]);
 			desc_block_height_log2[did] = user_ch->blockHeight;
 			if (!is_desc_mode(blob->f_header.fid)) {
 				desc_entries[k].did = did;
@@ -1899,7 +1918,7 @@ verify_hwseq_blob(struct pva_submit_task *task,
 			}
 
 			did = array_index_nospec((blob_desc->did2 - 1U),
-						  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+						  max_desc_id[task->pva->version]);
 			desc_block_height_log2[did] = user_ch->blockHeight;
 			if (!is_desc_mode(blob->f_header.fid)) {
 				desc_entries[k].did = did;
@@ -1971,12 +1990,16 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 	u32 adb_limit;
 	int err = 0;
 	u8 bl_xfers_in_use = 0;
+	const u8 resv_desc_start = NVPVA_RESERVED_DESCRIPTORS_START_IDX;
+	const u8 resv_desc_end = NVPVA_RESERVED_DESCRIPTORS_START_IDX
+				 + NVPVA_NUM_RESERVED_DESCRIPTORS - 1;
 
 	nvpva_dbg_fn(task->pva, "");
 
-	if (((user_ch->descIndex > PVA_NUM_DYNAMIC_DESCS) ||
-	     ((user_ch->vdbSize + user_ch->vdbOffset) >
-	      PVA_NUM_DYNAMIC_VDB_BUFFS))) {
+	if ((((user_ch->descIndex > resv_desc_start)
+	       && (user_ch->descIndex <= resv_desc_end))
+	     || ((user_ch->vdbSize + user_ch->vdbOffset) >
+		  PVA_NUM_DYNAMIC_VDB_BUFFS))) {
 		pr_err("ERR: Invalid Channel control data");
 		err = -EINVAL;
 		goto out;

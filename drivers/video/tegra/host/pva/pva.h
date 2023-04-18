@@ -336,7 +336,7 @@ struct nvpva_syncpts_desc {
 /**
  * @brief		Driver private data, shared with all applications
  *
- * version		pva version; 1 or 2
+ * version		pva version; 1, 2 or 3
  * pdev			Pointer to the PVA device
  * pool			Pointer to Queue table available for the PVA
  * fw_info		firmware information struct
@@ -368,7 +368,7 @@ struct nvpva_syncpts_desc {
  */
 
 struct pva {
-	int version;
+	u32 version;
 	struct pva_version_config *version_config;
 	struct platform_device *pdev;
 	struct platform_device *aux_pdev;
