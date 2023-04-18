@@ -12,6 +12,7 @@
 #include <linux/platform_device.h>
 #include <linux/reset.h>
 
+#include "actmon.h"
 #include "cdma.h"
 #include "channel.h"
 #include "context.h"
@@ -71,6 +72,12 @@ struct host1x_syncpt_ops {
 	void (*assign_to_channel)(struct host1x_syncpt *syncpt,
 	                          struct host1x_channel *channel);
 	void (*enable_protection)(struct host1x *host);
+};
+
+struct host1x_intr_general_ops {
+	int (*init_host_general)(struct host1x *host);
+	void (*enable_general_intrs)(struct host1x *host);
+	void (*disable_all_general_intrs)(struct host1x *host);
 };
 
 struct host1x_intr_ops {
@@ -142,6 +149,7 @@ struct host1x {
 	void __iomem *common_regs;
 	void __iomem *actmon_regs;
 	int syncpt_irq;
+	int general_irq;
 	struct host1x_syncpt *syncpt;
 	struct host1x_syncpt_base *bases;
 	struct device *dev;
@@ -166,6 +174,7 @@ struct host1x {
 	struct mutex intr_mutex;
 
 	const struct host1x_syncpt_ops *syncpt_op;
+	const struct host1x_intr_general_ops *intr_general_op;
 	const struct host1x_intr_ops *intr_op;
 	const struct host1x_channel_ops *channel_op;
 	const struct host1x_cdma_ops *cdma_op;
@@ -185,6 +194,9 @@ struct host1x {
 	struct mutex devices_lock;
 	struct list_head devices;
 
+	spinlock_t actmons_lock;
+	struct list_head actmons;
+
 	struct list_head list;
 
 	struct device_dma_parameters dma_parms;
@@ -193,6 +205,7 @@ struct host1x {
 };
 
 void host1x_common_writel(struct host1x *host1x, u32 v, u32 r);
+u32 host1x_common_readl(struct host1x *host1x, u32 r);
 void host1x_hypervisor_writel(struct host1x *host1x, u32 r, u32 v);
 u32 host1x_hypervisor_readl(struct host1x *host1x, u32 r);
 void host1x_sync_writel(struct host1x *host1x, u32 r, u32 v);
@@ -240,6 +253,30 @@ static inline void host1x_hw_syncpt_assign_to_channel(
 static inline void host1x_hw_syncpt_enable_protection(struct host1x *host)
 {
 	return host->syncpt_op->enable_protection(host);
+}
+
+static inline int host1x_hw_intr_init_host_general(struct host1x *host)
+{
+	if (!host->intr_general_op)
+		return -EPERM;
+
+	return host->intr_general_op->init_host_general(host);
+}
+
+static inline void host1x_hw_intr_enable_general_intrs(struct host1x *host)
+{
+	if (!host->intr_general_op)
+		return;
+
+	host->intr_general_op->enable_general_intrs(host);
+}
+
+static inline void host1x_hw_intr_disable_all_general_intrs(struct host1x *host)
+{
+	if (!host->intr_general_op)
+		return;
+
+	host->intr_general_op->disable_all_general_intrs(host);
 }
 
 static inline int host1x_hw_intr_init_host_sync(struct host1x *host, u32 cpm)

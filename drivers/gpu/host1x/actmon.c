@@ -249,35 +249,27 @@ static void host1x_actmon_deinit(struct host1x_actmon *actmon)
 
 static void host1x_actmon_module_init(struct host1x_actmon_module *module)
 {
-	struct host1x_actmon *actmon = module->actmon;
-	u32 val;
-
 	/* Local control register */
-	val = 0;
-	val |= HOST1X_ACTMON_MODULE_CTRL_ACTMON_ENB(1);
-	val |= HOST1X_ACTMON_MODULE_CTRL_ENB_PERIODIC(1);
-	val |= HOST1X_ACTMON_MODULE_CTRL_K_VAL(module->k);
-	val |= HOST1X_ACTMON_MODULE_CTRL_CONSEC_UPPER_NUM(module->consec_upper_num);
-	val |= HOST1X_ACTMON_MODULE_CTRL_CONSEC_LOWER_NUM(module->consec_lower_num);
-	actmon_module_writel(module, val, HOST1X_ACTMON_MODULE_CTRL_REG);
+	actmon_module_writel(module,
+		HOST1X_ACTMON_MODULE_CTRL_ACTMON_ENB(1) |
+		HOST1X_ACTMON_MODULE_CTRL_ENB_PERIODIC(1) |
+		HOST1X_ACTMON_MODULE_CTRL_K_VAL(module->k) |
+		HOST1X_ACTMON_MODULE_CTRL_CONSEC_UPPER_NUM(module->consec_upper_num) |
+		HOST1X_ACTMON_MODULE_CTRL_CONSEC_LOWER_NUM(module->consec_lower_num),
+		HOST1X_ACTMON_MODULE_CTRL_REG);
 
-	/* Interrupt enable register */
-	val = 0;
-	val |= HOST1X_ACTMON_MODULE_INTR_AVG_BELOW_WORK_ENB(1);
-	val |= HOST1X_ACTMON_MODULE_INTR_AVG_ABOVE_WORK_ENB(1);
-	val |= HOST1X_ACTMON_MODULE_INTR_CONSEC_BELOW_WORK_ENB(1);
-	val |= HOST1X_ACTMON_MODULE_INTR_CONSEC_ABOVE_WORK_ENB(1);
-	actmon_module_writel(module, val, HOST1X_ACTMON_MODULE_INTR_ENB_REG);
+	/* Interrupt enable register (disable interrupts by default) */
+	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_INTR_ENB_REG);
 
 	/* Interrupt status register */
-	actmon_module_writel(module, 0xffffffff, HOST1X_ACTMON_MODULE_INTR_STATUS_REG);
+	actmon_module_writel(module, ~0, HOST1X_ACTMON_MODULE_INTR_STATUS_REG);
 
 	/* Consecutive watermark registers */
-	actmon_module_writel(module, 0xffffffff, HOST1X_ACTMON_MODULE_UPPER_WMARK_REG);
+	actmon_module_writel(module, ~0, HOST1X_ACTMON_MODULE_UPPER_WMARK_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_LOWER_WMARK_REG);
 
 	/* Moving-average watermark registers */
-	actmon_module_writel(module, 0xffffffff, HOST1X_ACTMON_MODULE_AVG_UPPER_WMARK_REG);
+	actmon_module_writel(module, ~0, HOST1X_ACTMON_MODULE_AVG_UPPER_WMARK_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_AVG_LOWER_WMARK_REG);
 
 	/* Init average value register */
@@ -288,13 +280,47 @@ static void host1x_actmon_module_deinit(struct host1x_actmon_module *module)
 {
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_CTRL_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_INTR_ENB_REG);
-	actmon_module_writel(module, 0xffffffff, HOST1X_ACTMON_MODULE_INTR_STATUS_REG);
+	actmon_module_writel(module, ~0, HOST1X_ACTMON_MODULE_INTR_STATUS_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_UPPER_WMARK_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_LOWER_WMARK_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_AVG_UPPER_WMARK_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_AVG_LOWER_WMARK_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_INIT_AVG_REG);
 	actmon_module_writel(module, 0, HOST1X_ACTMON_MODULE_COUNT_WEIGHT_REG);
+}
+
+void host1x_actmon_handle_interrupt(struct host1x *host, int classid)
+{
+	unsigned long actmon_status, module_status;
+	struct host1x_actmon_module *module;
+	struct host1x_actmon *actmon;
+	struct host1x_client *client;
+
+	list_for_each_entry(actmon, &host->actmons, list) {
+		if (actmon->client->class == classid)
+			break;
+	}
+
+	client = actmon->client;
+	module = &actmon->modules[HOST1X_ACTMON_MODULE_ACTIVE];
+
+	actmon_status = actmon_readl(actmon, HOST1X_ACTMON_INTR_STATUS_REG);
+	module_status = actmon_module_readl(module, HOST1X_ACTMON_MODULE_INTR_STATUS_REG);
+
+	/* Trigger DFS if client supports it */
+	if (!client->ops->actmon_event)
+		;
+	else if (module_status & HOST1X_ACTMON_MODULE_INTR_CONSEC_WMARK_ABOVE)
+		client->ops->actmon_event(client, HOST1X_ACTMON_CONSEC_WMARK_ABOVE);
+	else if (module_status & HOST1X_ACTMON_MODULE_INTR_CONSEC_WMARK_BELOW)
+		client->ops->actmon_event(client, HOST1X_ACTMON_CONSEC_WMARK_BELOW);
+	else if (module_status & HOST1X_ACTMON_MODULE_INTR_AVG_WMARK_ABOVE)
+		client->ops->actmon_event(client, HOST1X_ACTMON_AVG_WMARK_ABOVE);
+	else if (module_status & HOST1X_ACTMON_MODULE_INTR_AVG_WMARK_BELOW)
+		client->ops->actmon_event(client, HOST1X_ACTMON_AVG_WMARK_BELOW);
+
+	actmon_module_writel(module, module_status, HOST1X_ACTMON_MODULE_INTR_STATUS_REG);
+	actmon_writel(actmon, actmon_status, HOST1X_ACTMON_INTR_STATUS_REG);
 }
 
 int host1x_actmon_register(struct host1x_client *client)
@@ -304,6 +330,7 @@ int host1x_actmon_register(struct host1x_client *client)
 	struct host1x_actmon_entry *entry = NULL;
 	struct host1x_actmon_module *module;
 	struct host1x_actmon *actmon;
+	unsigned long flags;
 	int i, err;
 
 	if (!host->actmon_regs || !host->actmon_clk)
@@ -319,6 +346,12 @@ int host1x_actmon_register(struct host1x_client *client)
 	actmon = devm_kzalloc(client->dev, sizeof(*actmon), GFP_KERNEL);
 	if (!actmon)
 		return -ENOMEM;
+
+	INIT_LIST_HEAD(&actmon->list);
+
+	spin_lock_irqsave(&host->actmons_lock, flags);
+	list_add_tail(&actmon->list, &host->actmons);
+	spin_unlock_irqrestore(&host->actmons_lock, flags);
 
 	actmon->client = client;
 	actmon->rate = clk_get_rate(host->actmon_clk);
@@ -361,6 +394,7 @@ int host1x_actmon_unregister(struct host1x_client *client)
 	struct host1x_actmon_module *module;
 	struct host1x *host = dev_get_drvdata(client->host->parent);
 	struct host1x_actmon *actmon = client->actmon;
+	unsigned long flags;
 	int i;
 
 	if (!host->actmon_regs || !host->actmon_clk)
@@ -378,6 +412,10 @@ int host1x_actmon_unregister(struct host1x_client *client)
 	debugfs_remove_recursive(actmon->debugfs);
 
 	host1x_actmon_deinit(actmon);
+
+	spin_lock_irqsave(&host->actmons_lock, flags);
+	list_del(&actmon->list);
+	spin_unlock_irqrestore(&host->actmons_lock, flags);
 
 	return 0;
 }

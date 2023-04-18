@@ -47,6 +47,11 @@ void host1x_common_writel(struct host1x *host1x, u32 v, u32 r)
 	writel(v, host1x->common_regs + r);
 }
 
+u32 host1x_common_readl(struct host1x *host1x, u32 r)
+{
+	return readl(host1x->common_regs + r);
+}
+
 void host1x_hypervisor_writel(struct host1x *host1x, u32 v, u32 r)
 {
 	writel(v, host1x->hv_regs + r);
@@ -832,8 +837,12 @@ static int host1x_probe(struct platform_device *pdev)
 	if (host->syncpt_irq < 0)
 		return host->syncpt_irq;
 
+	host->general_irq = platform_get_irq_byname_optional(pdev, "host1x");
+
 	mutex_init(&host->devices_lock);
 	INIT_LIST_HEAD(&host->devices);
+	spin_lock_init(&host->actmons_lock);
+	INIT_LIST_HEAD(&host->actmons);
 	INIT_LIST_HEAD(&host->list);
 	host->dev = &pdev->dev;
 
@@ -845,6 +854,12 @@ static int host1x_probe(struct platform_device *pdev)
 
 	if (host->info->init) {
 		err = host->info->init(host);
+		if (err)
+			return err;
+	}
+
+	if (host->general_irq > 0 && host->common_regs) {
+		err = host1x_hw_intr_init_host_general(host);
 		if (err)
 			return err;
 	}
@@ -979,6 +994,7 @@ static int __maybe_unused host1x_runtime_suspend(struct device *dev)
 	struct host1x *host = dev_get_drvdata(dev);
 	int err;
 
+	host1x_hw_intr_disable_all_general_intrs(host);
 	host1x_intr_stop(host);
 	host1x_syncpt_save(host);
 
@@ -999,6 +1015,7 @@ static int __maybe_unused host1x_runtime_suspend(struct device *dev)
 resume_host1x:
 	host1x_setup_virtualization_tables(host);
 	host1x_syncpt_restore(host);
+	host1x_hw_intr_enable_general_intrs(host);
 	host1x_intr_start(host);
 
 	return err;
@@ -1035,6 +1052,7 @@ static int __maybe_unused host1x_runtime_resume(struct device *dev)
 
 	host1x_setup_virtualization_tables(host);
 	host1x_syncpt_restore(host);
+	host1x_hw_intr_enable_general_intrs(host);
 	host1x_intr_start(host);
 
 	return 0;

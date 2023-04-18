@@ -40,6 +40,11 @@ struct host1x_actmon {
 	struct host1x_client *client;
 	struct host1x_actmon_module modules[8];
 	struct dentry *debugfs;
+	struct list_head list;
 };
+
+struct host1x;
+
+void host1x_actmon_handle_interrupt(struct host1x *host, int classid);
 
 #endif

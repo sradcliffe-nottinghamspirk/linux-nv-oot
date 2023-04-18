@@ -27,6 +27,13 @@ enum host1x_class {
 	HOST1X_CLASS_NVDEC1 = 0xF5,
 };
 
+enum host1x_actmon_wmark_event {
+	HOST1X_ACTMON_AVG_WMARK_BELOW,
+	HOST1X_ACTMON_AVG_WMARK_ABOVE,
+	HOST1X_ACTMON_CONSEC_WMARK_BELOW,
+	HOST1X_ACTMON_CONSEC_WMARK_ABOVE,
+};
+
 struct host1x;
 struct host1x_client;
 struct iommu_group;
@@ -69,6 +76,7 @@ static inline void host1x_bo_cache_destroy(struct host1x_bo_cache *cache)
  * @suspend: host1x client suspend code
  * @resume: host1x client resume code
  * @get_rate: host1x client get clock rate code
+ * @actmon_event: host1x client actmon event handling code in threaded interrupt context
  */
 struct host1x_client_ops {
 	int (*early_init)(struct host1x_client *client);
@@ -78,6 +86,8 @@ struct host1x_client_ops {
 	int (*suspend)(struct host1x_client *client);
 	int (*resume)(struct host1x_client *client);
 	unsigned long (*get_rate)(struct host1x_client *client);
+	void (*actmon_event)(struct host1x_client *client,
+			       enum host1x_actmon_wmark_event event);
 };
 
 struct host1x_actmon;
