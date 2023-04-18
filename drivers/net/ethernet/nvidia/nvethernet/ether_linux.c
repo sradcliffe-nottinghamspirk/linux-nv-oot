@@ -3688,7 +3688,7 @@ static int ether_handle_priv_rmdio_ioctl(struct ether_priv_data *pdata,
 	if (mdio_phy_id_is_c45(mii_data->phy_id)) {
 		prtad = mdio_phy_id_prtad(mii_data->phy_id);
 		devad = mdio_phy_id_devad(mii_data->phy_id);
-		devad = MII_ADDR_C45 | devad << MII_DEVADDR_C45_SHIFT | mii_data->reg_num;
+		devad = OSI_MII_ADDR_C45 | devad << MII_DEVADDR_C45_SHIFT | mii_data->reg_num;
 	} else {
 		prtad = mii_data->phy_id;
 		devad = mii_data->reg_num;
@@ -3729,7 +3729,7 @@ static int ether_handle_priv_wmdio_ioctl(struct ether_priv_data *pdata,
 	if (mdio_phy_id_is_c45(mii_data->phy_id)) {
 		prtad = mdio_phy_id_prtad(mii_data->phy_id);
 		devad = mdio_phy_id_devad(mii_data->phy_id);
-		devad = MII_ADDR_C45 | devad << MII_DEVADDR_C45_SHIFT | mii_data->reg_num;
+		devad = OSI_MII_ADDR_C45 | devad << MII_DEVADDR_C45_SHIFT | mii_data->reg_num;
 	} else {
 		prtad = mii_data->phy_id;
 		devad = mii_data->reg_num;
