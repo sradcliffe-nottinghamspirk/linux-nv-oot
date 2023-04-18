@@ -201,8 +201,12 @@ static  struct regmap_config max96712_regmap_config = {
 	.cache_type = REGCACHE_RBTREE,
 };
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int max96712_probe(struct i2c_client *client)
+#else
 static int max96712_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
+#endif
 {
 	struct max96712 *priv;
 	int err = 0;

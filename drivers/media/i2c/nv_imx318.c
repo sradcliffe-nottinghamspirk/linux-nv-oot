@@ -695,8 +695,12 @@ static const struct v4l2_subdev_internal_ops imx318_subdev_internal_ops = {
 	.open = imx318_open,
 };
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int imx318_probe(struct i2c_client *client)
+#else
 static int imx318_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
+#endif
 {
 	struct device *dev = &client->dev;
 	struct tegracam_device *tc_dev;
