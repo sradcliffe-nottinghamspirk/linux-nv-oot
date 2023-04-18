@@ -13,14 +13,10 @@ ifeq ($(VERSION),4)
 ccflags-y += -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
 endif
 
-# Set config when build as OOT module.
-ifeq ($(CONFIG_TEGRA_OOT_MODULE),m)
-CONFIG_TEGRA_DCE := m
 ccflags-y += -I$(srctree.nvidia)/include
-endif
 
-obj-$(CONFIG_TEGRA_DCE) += tegra-dce.o
-tegra-dce-$(CONFIG_TEGRA_DCE) += \
+obj-m += tegra-dce.o
+tegra-dce-objs += \
 	dce-ast.o \
 	dce-reset.o \
 	dce-hsp-smb.o \
@@ -39,7 +35,7 @@ tegra-dce-$(CONFIG_TEGRA_DCE) += \
 	dce-util-common.o
 
 ifeq ($(CONFIG_DEBUG_FS),y)
-tegra-dce-$(CONFIG_TEGRA_DCE) += \
+tegra-dce-objs += \
 	dce-debug.o \
 	dce-admin-debug.o \
 	dce-debug-perf.o
