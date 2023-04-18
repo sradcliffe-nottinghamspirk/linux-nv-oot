@@ -21,11 +21,7 @@
 #include <linux/tegra_gr_comm.h>
 #include <linux/module.h>
 
-#ifdef CONFIG_TEGRA_OOT_MODULE
 #include <soc/tegra/virt/hv-ivc.h>
-#else
-#include <linux/tegra-ivc.h>
-#endif
 
 #define NUM_QUEUES   5
 #define NUM_CONTEXTS 1

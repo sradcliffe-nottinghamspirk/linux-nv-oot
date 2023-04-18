@@ -1,6 +1,4 @@
-ifeq ($(CONFIG_TEGRA_OOT_MODULE),m)
-ccflags-y += -DCONFIG_TEGRA_GR_VIRTUALIZATION -DCONFIG_TEGRA_OOT_MODULE
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
+
 obj-m = tegra_gr_comm.o
-else
-obj-$(CONFIG_TEGRA_GR_VIRTUALIZATION) += tegra_gr_comm.o
-endif
