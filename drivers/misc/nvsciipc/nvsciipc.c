@@ -33,9 +33,7 @@
 
 #ifdef CONFIG_TEGRA_VIRTUALIZATION
 #include <soc/tegra/virt/syscalls.h>
-#ifdef CONFIG_TEGRA_OOT_MODULE
 #include <soc/tegra/virt/hv-ivc.h>
-#endif /* CONFIG_TEGRA_OOT_MODULE */
 #include <uapi/linux/tegra-ivc-dev.h>
 #endif /* CONFIG_TEGRA_VIRTUALIZATION */
 
