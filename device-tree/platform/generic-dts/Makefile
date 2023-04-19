@@ -37,13 +37,11 @@ tegra-rel-dtstree := $(rel-top-path)/hardware/nvidia
 
 DTC_INCLUDE :=
 # SOC independent common include
-DTC_INCLUDE += $(tegra-dtstree)/soc/tegra/generic-dts/include
 
 # SOC T23X specific common include
-DTC_INCLUDE += $(tegra-dtstree)/soc/generic-dts/tegra/include/kernel
-DTC_INCLUDE += $(tegra-dtstree)/soc/generic-dts/tegra/include/nvidia-oot
-DTC_INCLUDE += $(tegra-dtstree)/soc/generic-dts/t23x/include
-DTC_INCLUDE += $(tegra-dtstree)/soc/generic-dts/t23x/dts
+DTC_INCLUDE += $(tegra-dtstree)/t23x/nv-public/include/kernel
+DTC_INCLUDE += $(tegra-dtstree)/t23x/nv-public/include/nvidia-oot
+DTC_INCLUDE += $(tegra-dtstree)/t23x/nv-public
 
 dtb-y :=
 dtbo-y :=
@@ -51,7 +49,7 @@ dtbo-y :=
 DTB_LIST := $(dtb-y)
 DTBO_LIST := $(dtbo-y)
 dtb-y :=
-fdts := $(shell find $(tegra-dtstree)/platform -name generic-dts)
+fdts := $(tegra-dtstree)/t23x
 
 # Remove the DTs from protected soc list
 ifneq ($(protected_soc_list),)
