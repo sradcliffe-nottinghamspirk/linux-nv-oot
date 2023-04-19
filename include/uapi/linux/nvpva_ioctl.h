@@ -11,6 +11,10 @@
 #include <linux/ioctl.h>
 #include <linux/types.h>
 
+#ifdef NVPVA_CONFIG_T264
+#include <nvpva_ioctl_t264.h>
+#endif
+
 #define NVPVA_DEVICE_NODE "/dev/nvhost-ctrl-pva"
 /**
  * Maximum length of the name of a symbol in a VPU ELF
@@ -391,6 +395,7 @@ struct nvpva_dma_descriptor {
  *
  * An update in user structure would need corresponding change here
  */
+#ifndef NVPVA_CONFIG_T264
 struct nvpva_dma_channel {
 	uint8_t descIndex;
 	uint8_t blockHeight;
@@ -410,6 +415,9 @@ struct nvpva_dma_channel {
 	uint8_t hwseqTxSelect;
 	uint8_t hwseqTriggerDone;
 };
+#else
+#define nvpva_dma_channel nvpva_dma_channel_ex
+#endif
 
 /**
  *

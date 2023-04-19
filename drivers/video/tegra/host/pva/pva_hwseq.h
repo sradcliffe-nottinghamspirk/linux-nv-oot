@@ -10,6 +10,9 @@
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
 
+#define PVA_HWSEQ_RAM_SIZE_T23X	1024U
+#define PVA_HWSEQ_RAM_ID_MASK_T23X 0xFFU
+
 #define PVA_HWSEQ_FRAME_ADDR	0xC0DE
 #define PVA_HWSEQ_DESC_ADDR	0xDEAD
 #define PVA_HWSEQ_COL_ROW_LIMIT 1

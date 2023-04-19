@@ -16,6 +16,13 @@
 #include "fw_config.h"
 #include "pva_hwseq.h"
 
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+#include <pva_hwseq_t264.h>
+#else
+#define PVA_HWSEQ_RAM_SIZE_T26X		PVA_HWSEQ_RAM_SIZE_T23X
+#define PVA_HWSEQ_RAM_ID_MASK_T26X	PVA_HWSEQ_RAM_ID_MASK_T23X
+#endif
+
 #define BL_GOB_WIDTH_LOG2       6U
 #define BL_GOB_WIDTH_LOG2_ALIGNMASK     (0xFFFFFFFFU >> (32U - BL_GOB_WIDTH_LOG2))
 #define BL_GOB_HEIGHT_LOG2      3U
@@ -1792,6 +1799,14 @@ verify_hwseq_blob(struct pva_submit_task *task,
 	uintptr_t tmp_addr;
 	u32 num_desc_entries;
 	u32 num_descriptors;
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+	bool validation_done = false;
+
+	if (task->pva->version >= PVA_HW_GEN3) {
+		end = nvpva_get_hwseq_end_idx_t26x(user_ch) * 4U;
+		start = nvpva_get_hwseq_start_idx_t26x(user_ch) * 4U;
+	}
+#endif
 
 	nvpva_dbg_fn(task->pva, "");
 
@@ -1820,16 +1835,25 @@ verify_hwseq_blob(struct pva_submit_task *task,
 		goto out;
 	}
 
-	if ((!is_desc_mode(blob->f_header.fid))
-	  && !is_frame_mode(blob->f_header.fid)) {
-		pr_err("invalid addressing mode");
+	if ((is_desc_mode(blob->f_header.fid))
+	  && task->hwseq_config.hwseqTrigMode == NVPVA_HWSEQTM_DMATRIG) {
+		pr_err("dma master not allowed");
 		err = -EINVAL;
 		goto out;
 	}
 
-	if ((is_desc_mode(blob->f_header.fid))
-	  && task->hwseq_config.hwseqTrigMode == NVPVA_HWSEQTM_DMATRIG) {
-		pr_err("dma master not allowed");
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+	if (!hwseq_blob_validate_t26x(blob, task, user_ch, &validation_done)) {
+		pr_err("Invalid HW SEQ blob for T26x");
+		err = -EINVAL;
+	}
+
+	if (validation_done)
+		goto out;
+#endif
+	if ((!is_desc_mode(blob->f_header.fid))
+	  && !is_frame_mode(blob->f_header.fid)) {
+		pr_err("invalid addressing mode");
 		err = -EINVAL;
 		goto out;
 	}
@@ -2007,8 +2031,10 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 
 	if (hwgen == PVA_HW_GEN1)
 		adb_limit = PVA_NUM_DYNAMIC_ADB_BUFFS_T19X;
-	else
+	else if (hwgen == PVA_HW_GEN2)
 		adb_limit = PVA_NUM_DYNAMIC_ADB_BUFFS_T23X;
+	else
+		adb_limit = PVA_NUM_DYNAMIC_ADB_BUFFS_T26X;
 
 	if ((user_ch->adbSize + user_ch->adbOffset) > adb_limit) {
 		pr_err("ERR: Invalid ADB Buff size or offset");
@@ -2064,10 +2090,10 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 	ch->cntl1 |= ((user_ch->chRepFactor & 0x7U) << 8U);
 
 	/* DMA_CHANNEL_HWSEQCNTL_CHHWSEQSTART */
-	ch->hwseqcntl = ((user_ch->hwseqStart & 0xFFU) << 0U);
+	ch->hwseqcntl = ((user_ch->hwseqStart & 0xFF) << 0U);
 
 	/* DMA_CHANNEL_HWSEQCNTL_CHHWSEQEND */
-	ch->hwseqcntl |= ((user_ch->hwseqEnd & 0xFFU) << 12U);
+	ch->hwseqcntl |= ((user_ch->hwseqEnd & 0xFF) << 12U);
 
 	/* DMA_CHANNEL_HWSEQCNTL_CHHWSEQTD */
 	ch->hwseqcntl |= ((user_ch->hwseqTriggerDone & 0x3U) << 24U);
@@ -2080,6 +2106,11 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 
 	/* DMA_CHANNEL_HWSEQCNTL_CHHWSEQEN */
 	ch->hwseqcntl |= ((user_ch->hwseqEnable & 0x1U) << 31U);
+
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+	if (hwgen >= PVA_HW_GEN3)
+		nvpva_task_dma_channel_mapping_t26x(ch, user_ch);
+#endif
 
 	if ((user_ch->hwseqEnable & 0x1U) && hwseq_in_use)
 		err = verify_hwseq_blob(task,
@@ -2112,6 +2143,9 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	u8 did;
 	u8 prev_did;
 	u8 bl_xfers_in_use = 0;
+	u32 hwseq_ram_size = (hwgen == PVA_HW_GEN2)
+				? PVA_HWSEQ_RAM_SIZE_T23X
+				: PVA_HWSEQ_RAM_SIZE_T26X;
 
 	nvpva_dbg_fn(task->pva, "");
 
@@ -2138,8 +2172,9 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 		 * acceptable range, i.e. up to 1KB, as per HW Sequencer RAM
 		 * size from T23x DMA IAS doc.
 		 */
+
 		if ((task->hwseq_config.hwseqBuf.size == 0U) ||
-		    (task->hwseq_config.hwseqBuf.size > 1024U)) {
+		    (task->hwseq_config.hwseqBuf.size > hwseq_ram_size)) {
 			err = -EINVAL;
 			goto out;
 		}
