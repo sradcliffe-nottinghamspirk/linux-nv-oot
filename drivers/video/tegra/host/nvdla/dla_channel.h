@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
+ * Copyright (c) 2022-2023, NVIDIA Corporation.  All rights reserved.
+ *
  * NVDLA channel submission
- *
- * Copyright (c) 2022, NVIDIA Corporation.  All rights reserved.
- *
  */
 
 #ifndef __NVHOST_NVDLA_CHANNEL_H__
