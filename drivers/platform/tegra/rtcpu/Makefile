@@ -11,7 +11,7 @@ endif
 obj-m += ivc-bus.o
 obj-m += camchar.o
 obj-m += camera-diagnostics.o
-obj-m += debug.o
+obj-m += rtcpu-debug.o
 obj-m += clk-group.o
 obj-m += hsp-mailbox-client.o
 obj-m += reset-group.o
