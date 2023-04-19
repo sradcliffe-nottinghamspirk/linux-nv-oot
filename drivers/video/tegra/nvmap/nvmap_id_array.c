@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022 NVIDIA Corporation
+ * Copyright (c) 2011-2023, NVIDIA Corporation. All rights reserved.
  */
 
 #include <linux/xarray.h>

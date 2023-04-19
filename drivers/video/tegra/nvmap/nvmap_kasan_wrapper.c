@@ -1,18 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * drivers/video/tegra/nvmap/nvmap_kasan_wrapper.c
+ * Copyright (c) 2018-2023, NVIDIA CORPORATION. All rights reserved.
  *
  * place to add wrapper function to drop kasan scan
- *
- * Copyright (c) 2018-2022, NVIDIA CORPORATION. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
  */
 #include <linux/export.h>
 #include <linux/types.h>
