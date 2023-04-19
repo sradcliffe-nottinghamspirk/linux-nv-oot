@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 GCOV_PROFILE := y
 ccflags-y += -Werror
 
-obj-m	+= tegra23x-mce.o tegra-mce.o
+tegra-mce-y += tegra23x-mce.o mce.o
+
+obj-m += tegra-mce.o
