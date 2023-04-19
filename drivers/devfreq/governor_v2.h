@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * governor.h - internal header for devfreq governors.
- *
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
  * Copyright (C) 2011 Samsung Electronics
  *	MyungJoo Ham <myungjoo.ham@samsung.com>
  *
+ * governor.h - internal header for devfreq governors.
  * This header is for devfreq governors in drivers/devfreq/
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
