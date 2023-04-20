@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2022-2023, NVIDIA CORPORATION. All rights reserved.
- *
  * PVA carveout handling
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
  */
 
 #include <linux/module.h>
@@ -24,6 +27,16 @@ struct nvpva_carveout_info *pva_fw_co_get_info(struct pva *pva)
 	struct device_node *np;
 	const char *status = NULL;
 	u32 reg[4] = {0};
+
+	if (pva->is_hv_mode) {
+		pva->fw_carveout.base = 0;
+		pva->fw_carveout.size = 0;
+		pva->fw_carveout.base_va = 0;
+		pva->fw_carveout.base_pa = 0;
+		pva->fw_carveout.initialized = true;
+		nvpva_dbg_fn(pva, "HV mode. CO info not available\n");
+		goto out;
+	}
 
 	np = of_find_compatible_node(NULL, NULL, "nvidia,pva-carveout");
 	if (np == NULL) {
@@ -54,6 +67,7 @@ struct nvpva_carveout_info *pva_fw_co_get_info(struct pva *pva)
 
 	nvpva_dbg_fn(pva, "get co success\n");
 
+out:
 	return &pva->fw_carveout;
 err_out:
 	dev_err(&pva->pdev->dev, "get co fail\n");
