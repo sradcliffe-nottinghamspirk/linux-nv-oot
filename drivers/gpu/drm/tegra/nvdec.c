@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015-2022, NVIDIA Corporation.
+ * Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
 #include <linux/clk.h>
@@ -23,10 +23,13 @@
 #include "falcon.h"
 #include "riscv.h"
 #include "util.h"
-#include "vic.h"
 
+#define NVDEC_FW_MTHD_ADDR_ACTMON_WEIGHT	0xC9U
+#define NVDEC_FALCON_UCLASS_METHOD_OFFSET	0x40
+#define NVDEC_FALCON_UCLASS_METHOD_DATA		0x44
 #define NVDEC_FALCON_DEBUGINFO			0x1094
 #define NVDEC_TFBIF_TRANSCFG			0x2c44
+#define NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT	0x2c54
 
 struct nvdec_config {
 	const char *firmware;
@@ -65,6 +68,37 @@ static inline void nvdec_writel(struct nvdec *nvdec, u32 value,
 				unsigned int offset)
 {
 	writel(value, nvdec->regs + offset);
+}
+
+static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
+{
+	struct nvdec_config *config = nvdec->config;
+	struct host1x_client *client = &nvdec->client.base;
+	unsigned long dev_rate;
+	u32 weight;
+	int err;
+
+	err = clk_set_rate(nvdec->clks[0].clk, rate);
+	if (err < 0)
+		return err;
+
+	dev_rate = clk_get_rate(nvdec->clks[0].clk);
+
+	host1x_actmon_update_client_rate(client, dev_rate, &weight);
+
+	if (!weight)
+		return 0;
+
+	if (!config->has_riscv) {
+		nvdec_writel(nvdec, weight, NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+	} else if (config->has_riscv) {
+		nvdec_writel(nvdec,
+			     NVDEC_FW_MTHD_ADDR_ACTMON_WEIGHT,
+			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
+		nvdec_writel(nvdec, weight, NVDEC_FALCON_UCLASS_METHOD_DATA);
+	}
+
+	return 0;
 }
 
 static int nvdec_boot_falcon(struct nvdec *nvdec)
@@ -232,9 +266,18 @@ static int nvdec_exit(struct host1x_client *client)
 	return 0;
 }
 
+static unsigned long nvdec_get_rate(struct host1x_client *client)
+{
+	struct platform_device *pdev = to_platform_device(client->dev);
+	struct nvdec *nvdec = platform_get_drvdata(pdev);
+
+	return clk_get_rate(nvdec->clks[0].clk);
+}
+
 static const struct host1x_client_ops nvdec_client_ops = {
 	.init = nvdec_init,
 	.exit = nvdec_exit,
+	.get_rate = nvdec_get_rate,
 };
 
 static int nvdec_load_falcon_firmware(struct nvdec *nvdec)
@@ -324,6 +367,9 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 		if (err < 0)
 			goto disable;
 	}
+
+	/* Configure proper count weight */
+	nvdec_set_rate(nvdec, clk_get_rate(nvdec->clks[0].clk));
 
 	return 0;
 
@@ -471,12 +517,6 @@ static int nvdec_probe(struct platform_device *pdev)
 		return err;
 	}
 
-	err = clk_set_rate(nvdec->clks[0].clk, ULONG_MAX);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to set clock rate\n");
-		return err;
-	}
-
 	err = of_property_read_u32(dev->of_node, "nvidia,host1x-class", &host_class);
 	if (err < 0)
 		host_class = HOST1X_CLASS_NVDEC;
@@ -541,6 +581,17 @@ static int nvdec_probe(struct platform_device *pdev)
 		goto exit_falcon;
 	}
 
+	err = host1x_actmon_register(&nvdec->client.base);
+	if (err < 0)
+		dev_info(&pdev->dev, "failed to register host1x actmon: %d\n", err);
+
+	/* Set default clock rate for nvdec */
+	err = clk_set_rate(nvdec->clks[0].clk, ULONG_MAX);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to set clock rate: %d\n", err);
+		return err;
+	}
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -559,6 +610,11 @@ static int nvdec_remove(struct platform_device *pdev)
 	int err;
 
 	pm_runtime_disable(&pdev->dev);
+
+	err = host1x_actmon_unregister(&nvdec->client.base);
+	if (err < 0)
+		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
+			err);
 
 	err = host1x_client_unregister(&nvdec->client.base);
 	if (err < 0) {
