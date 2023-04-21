@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022, NVIDIA Corporation.
+ * Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
 #include <linux/clk.h>
@@ -20,9 +20,9 @@
 #include "drm.h"
 #include "falcon.h"
 #include "util.h"
-#include "vic.h"
 
-#define NVENC_TFBIF_TRANSCFG		0x1844
+#define NVENC_TFBIF_TRANSCFG			0x1844
+#define NVENC_TFBIF_ACTMON_ACTIVE_WEIGHT	0x1854
 
 struct nvenc_config {
 	const char *firmware;
@@ -53,6 +53,27 @@ static inline struct nvenc *to_nvenc(struct tegra_drm_client *client)
 static inline void nvenc_writel(struct nvenc *nvenc, u32 value, unsigned int offset)
 {
 	writel(value, nvenc->regs + offset);
+}
+
+static int nvenc_set_rate(struct nvenc *nvenc, unsigned long rate)
+{
+	struct host1x_client *client = &nvenc->client.base;
+	unsigned long dev_rate;
+	u32 weight;
+	int err;
+
+	err = clk_set_rate(nvenc->clk, rate);
+	if (err < 0)
+		return err;
+
+	dev_rate = clk_get_rate(nvenc->clk);
+
+	host1x_actmon_update_client_rate(client, dev_rate, &weight);
+
+	if (weight)
+		nvenc_writel(nvenc, weight, NVENC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+
+	return 0;
 }
 
 static int nvenc_boot(struct nvenc *nvenc)
@@ -162,9 +183,18 @@ static int nvenc_exit(struct host1x_client *client)
 	return 0;
 }
 
+static unsigned long nvenc_get_rate(struct host1x_client *client)
+{
+	struct platform_device *pdev = to_platform_device(client->dev);
+	struct nvenc *nvenc = platform_get_drvdata(pdev);
+
+	return clk_get_rate(nvenc->clk);
+}
+
 static const struct host1x_client_ops nvenc_client_ops = {
 	.init = nvenc_init,
 	.exit = nvenc_exit,
+	.get_rate = nvenc_get_rate,
 };
 
 static int nvenc_load_firmware(struct nvenc *nvenc)
@@ -404,12 +434,6 @@ static int nvenc_probe(struct platform_device *pdev)
 		return PTR_ERR(nvenc->clk);
 	}
 
-	err = clk_set_rate(nvenc->clk, ULONG_MAX);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to set clock rate\n");
-		return err;
-	}
-
 	err = of_property_read_u32(dev->of_node, "nvidia,host1x-class",
 				   &host_class);
 	if (err < 0)
@@ -442,6 +466,17 @@ static int nvenc_probe(struct platform_device *pdev)
 		goto exit_falcon;
 	}
 
+	err = host1x_actmon_register(&nvenc->client.base);
+	if (err < 0)
+		dev_info(&pdev->dev, "failed to register host1x actmon: %d\n", err);
+
+	/* Set default clock rate for nvenc and update count weight register */
+	err = nvenc_set_rate(nvenc, ULONG_MAX);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to set clock rate\n");
+		return err;
+	}
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -460,6 +495,11 @@ static int nvenc_remove(struct platform_device *pdev)
 	int err;
 
 	pm_runtime_disable(&pdev->dev);
+
+	err = host1x_actmon_unregister(&nvenc->client.base);
+	if (err < 0)
+		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
+			err);
 
 	err = host1x_client_unregister(&nvenc->client.base);
 	if (err < 0) {
