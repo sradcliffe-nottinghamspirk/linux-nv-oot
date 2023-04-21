@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022, NVIDIA Corporation.
+ * Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
 #include <linux/clk.h>
@@ -20,9 +20,9 @@
 #include "drm.h"
 #include "falcon.h"
 #include "util.h"
-#include "vic.h"
 
-#define NVJPG_TFBIF_TRANSCFG		0x1444
+#define NVJPG_TFBIF_TRANSCFG			0x1444
+#define NVJPG_TFBIF_ACTMON_ACTIVE_WEIGHT	0x1454
 
 struct nvjpg_config {
 	const char *firmware;
@@ -52,6 +52,27 @@ static inline struct nvjpg *to_nvjpg(struct tegra_drm_client *client)
 static inline void nvjpg_writel(struct nvjpg *nvjpg, u32 value, unsigned int offset)
 {
 	writel(value, nvjpg->regs + offset);
+}
+
+static int nvjpg_set_rate(struct nvjpg *nvjpg, unsigned long rate)
+{
+	struct host1x_client *client = &nvjpg->client.base;
+	unsigned long dev_rate;
+	u32 weight;
+	int err;
+
+	err = clk_set_rate(nvjpg->clk, rate);
+	if (err < 0)
+		return err;
+
+	dev_rate = clk_get_rate(nvjpg->clk);
+
+	host1x_actmon_update_client_rate(client, dev_rate, &weight);
+
+	if (weight)
+		nvjpg_writel(nvjpg, weight, NVJPG_TFBIF_ACTMON_ACTIVE_WEIGHT);
+
+	return 0;
 }
 
 static int nvjpg_boot(struct nvjpg *nvjpg)
@@ -161,9 +182,18 @@ static int nvjpg_exit(struct host1x_client *client)
 	return 0;
 }
 
+static unsigned long nvjpg_get_rate(struct host1x_client *client)
+{
+	struct platform_device *pdev = to_platform_device(client->dev);
+	struct nvjpg *nvjpg = platform_get_drvdata(pdev);
+
+	return clk_get_rate(nvjpg->clk);
+}
+
 static const struct host1x_client_ops nvjpg_client_ops = {
 	.init = nvjpg_init,
 	.exit = nvjpg_exit,
+	.get_rate = nvjpg_get_rate,
 };
 
 static int nvjpg_load_firmware(struct nvjpg *nvjpg)
@@ -391,12 +421,6 @@ static int nvjpg_probe(struct platform_device *pdev)
 		return PTR_ERR(nvjpg->clk);
 	}
 
-	err = clk_set_rate(nvjpg->clk, ULONG_MAX);
-	if (err < 0) {
-		dev_err(&pdev->dev, "failed to set clock rate\n");
-		return err;
-	}
-
 	err = of_property_read_u32(dev->of_node, "nvidia,host1x-class",
 				   &host_class);
 	if (err < 0)
@@ -429,6 +453,17 @@ static int nvjpg_probe(struct platform_device *pdev)
 		goto exit_falcon;
 	}
 
+	err = host1x_actmon_register(&nvjpg->client.base);
+	if (err < 0)
+		dev_info(&pdev->dev, "failed to register host1x actmon: %d\n", err);
+
+	/* Set default clock rate for nvjpg and update count weight register */
+	err = nvjpg_set_rate(nvjpg, ULONG_MAX);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to set clock rate\n");
+		return err;
+	}
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -447,6 +482,11 @@ static int nvjpg_remove(struct platform_device *pdev)
 	int err;
 
 	pm_runtime_disable(&pdev->dev);
+
+	err = host1x_actmon_unregister(&nvjpg->client.base);
+	if (err < 0)
+		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
+			err);
 
 	err = host1x_client_unregister(&nvjpg->client.base);
 	if (err < 0) {
