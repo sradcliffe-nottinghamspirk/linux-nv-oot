@@ -530,5 +530,6 @@ int host1x_actmon_unregister(struct host1x_client *client);
 void host1x_actmon_update_client_rate(struct host1x_client *client,
 				      unsigned long rate,
 				      u32 *weight);
+void host1x_actmon_read_active_norm(struct host1x_client *client, unsigned long *usage);
 
 #endif

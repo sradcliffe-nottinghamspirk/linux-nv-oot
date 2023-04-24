@@ -446,6 +446,24 @@ void host1x_actmon_update_client_rate(struct host1x_client *client,
 }
 EXPORT_SYMBOL(host1x_actmon_update_client_rate);
 
+void host1x_actmon_read_active_norm(struct host1x_client *client, unsigned long *usage)
+{
+	struct host1x_actmon *actmon = client->actmon;
+	struct host1x_actmon_module *module;
+	u64 val;
+
+	if (!actmon || !actmon->num_modules) {
+		*usage = 0;
+		return;
+	}
+
+	module = &actmon->modules[HOST1X_ACTMON_MODULE_ACTIVE];
+	host1x_actmon_module_avg_norm_get(module, &val);
+
+	*usage = (unsigned long)val;
+}
+EXPORT_SYMBOL(host1x_actmon_read_active_norm);
+
 int host1x_actmon_read_avg_count(struct host1x_client *client)
 {
 	struct host1x *host = dev_get_drvdata(client->host->parent);
