@@ -5,6 +5,7 @@
 
 #include <linux/clk.h>
 #include <linux/delay.h>
+#include <linux/devfreq.h>
 #include <linux/dma-mapping.h>
 #include <linux/host1x-next.h>
 #include <linux/iommu.h>
@@ -13,6 +14,7 @@
 #include <linux/of_device.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_opp.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
 #include <linux/version.h>
@@ -40,6 +42,8 @@ struct vic {
 	struct device *dev;
 	struct clk *clk;
 	struct reset_control *rst;
+	struct devfreq *devfreq;
+	struct devfreq_dev_profile *devfreq_profile;
 
 	bool can_use_context;
 
@@ -123,6 +127,90 @@ static int vic_set_rate(struct vic *vic, unsigned long rate)
 	return 0;
 }
 
+static int vic_devfreq_target(struct device *dev, unsigned long *freq, u32 flags)
+{
+	struct vic *vic = dev_get_drvdata(dev);
+	int err;
+
+	err = vic_set_rate(vic, *freq);
+	if (err < 0) {
+		dev_err(dev, "failed to set clock rate\n");
+		return err;
+	}
+
+	*freq = clk_get_rate(vic->clk);
+
+	return 0;
+}
+
+static int vic_devfreq_get_dev_status(struct device *dev, struct devfreq_dev_status *stat)
+{
+	struct vic *vic = dev_get_drvdata(dev);
+	struct host1x_client *client = &vic->client.base;
+	unsigned long usage;
+
+	/* Update load information */
+	host1x_actmon_read_active_norm(client, &usage);
+	stat->total_time = 1;
+	stat->busy_time = usage;
+
+	/* Update device frequency */
+	stat->current_frequency = clk_get_rate(vic->clk);
+
+	return 0;
+}
+
+static int vic_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
+{
+	struct vic *vic = dev_get_drvdata(dev);
+
+	*freq = clk_get_rate(vic->clk);
+
+	return 0;
+}
+
+static struct devfreq_dev_profile vic_devfreq_profile = {
+	.target = vic_devfreq_target,
+	.get_dev_status = vic_devfreq_get_dev_status,
+	.get_cur_freq = vic_devfreq_get_cur_freq,
+	.polling_ms = 100,
+};
+
+static int vic_devfreq_init(struct vic *vic)
+{
+	unsigned long max_rate = clk_round_rate(vic->clk, ULONG_MAX);
+	unsigned long min_rate = clk_round_rate(vic->clk, 0);
+	unsigned long margin = clk_round_rate(vic->clk, min_rate + 1) - min_rate;
+	unsigned long rate = min_rate;
+	struct devfreq *devfreq;
+
+	while (rate <= max_rate) {
+		dev_pm_opp_add(vic->dev, rate, 0);
+		rate += margin;
+	}
+
+	devfreq = devm_devfreq_add_device(vic->dev,
+					  &vic_devfreq_profile,
+					  DEVFREQ_GOV_USERSPACE,
+					  NULL);
+	if (IS_ERR(devfreq))
+		return PTR_ERR(devfreq);
+
+	devfreq->suspend_freq = min_rate;
+	devfreq->resume_freq = min_rate;
+	vic->devfreq = devfreq;
+
+	return 0;
+}
+
+static void vic_devfreq_deinit(struct vic *vic)
+{
+	if (!vic->devfreq)
+		return;
+
+	devm_devfreq_remove_device(vic->dev, vic->devfreq);
+	vic->devfreq = NULL;
+}
 
 static int vic_init(struct host1x_client *client)
 {
@@ -346,11 +434,14 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto assert;
 
+	devfreq_resume_device(vic->devfreq);
+
 	return 0;
 
 assert:
 	reset_control_assert(vic->rst);
 disable:
+	devfreq_suspend_device(vic->devfreq);
 	clk_disable_unprepare(vic->clk);
 	return err;
 }
@@ -359,6 +450,8 @@ static int __maybe_unused vic_runtime_suspend(struct device *dev)
 {
 	struct vic *vic = dev_get_drvdata(dev);
 	int err;
+
+	devfreq_suspend_device(vic->devfreq);
 
 	host1x_channel_stop(vic->channel);
 
@@ -551,7 +644,13 @@ static int vic_probe(struct platform_device *pdev)
 	/* Set default clock rate for vic and update count weight register */
 	err = vic_set_rate(vic, ULONG_MAX);
 	if (err < 0) {
-		dev_err(&pdev->dev, "failed to set clock rate\n");
+		dev_err(&pdev->dev, "failed to set clock rate: %d\n", err);
+		return err;
+	}
+
+	err = vic_devfreq_init(vic);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
 		return err;
 	}
 
@@ -573,6 +672,8 @@ static int vic_remove(struct platform_device *pdev)
 	int err;
 
 	pm_runtime_disable(&pdev->dev);
+
+	vic_devfreq_deinit(vic);
 
 	err = host1x_actmon_unregister(&vic->client.base);
 	if (err < 0)
