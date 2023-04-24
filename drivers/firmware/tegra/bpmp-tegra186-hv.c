@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -448,7 +448,9 @@ static int tegra_bpmp_ping(struct tegra_bpmp *bpmp)
 	struct mrq_ping_response response;
 	struct mrq_ping_request request;
 	struct tegra_bpmp_message msg;
+#if (!IS_ENABLED(CONFIG_PREEMPT_RT))
 	unsigned long flags;
+#endif
 	ktime_t start, end;
 	int err;
 
@@ -464,11 +466,17 @@ static int tegra_bpmp_ping(struct tegra_bpmp *bpmp)
 	msg.rx.data = &response;
 	msg.rx.size = sizeof(response);
 
+#if (!IS_ENABLED(CONFIG_PREEMPT_RT))
 	local_irq_save(flags);
 	start = ktime_get();
 	err = tegra_bpmp_transfer_atomic(bpmp, &msg);
 	end = ktime_get();
 	local_irq_restore(flags);
+#else
+	start = ktime_get();
+	err = tegra_bpmp_transfer(bpmp, &msg);
+	end = ktime_get();
+#endif
 
 	if (!err)
 		dev_dbg(bpmp->dev,
