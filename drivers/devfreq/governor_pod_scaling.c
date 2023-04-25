@@ -13,22 +13,21 @@
  *
  */
 
-#include <linux/devfreq.h>
-#include <linux/debugfs.h>
-#include <linux/types.h>
 #include <linux/clk.h>
-#include <linux/export.h>
-#include <linux/slab.h>
 #include <linux/clk/tegra.h>
+#include <linux/debugfs.h>
+#include <linux/devfreq.h>
+#include <linux/export.h>
 #include <linux/module.h>
-
+#include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
+#include <linux/slab.h>
+#include <linux/types.h>
+#include <linux/version.h>
 #define CREATE_TRACE_POINTS
 #include <trace/events/nvhost_podgov.h>
 
-#include "governor.h"
-
-#include <linux/platform_device.h>
-#include <linux/pm_runtime.h>
+#include <drivers-private/devfreq/governor.h>
 
 #define GET_TARGET_FREQ_DONTSCALE	1
 
@@ -108,6 +107,45 @@ enum podgov_adjustment_type {
 	ADJUSTMENT_DEVICE_REQ = 1
 };
 
+#define HZ_PER_KHZ	1000
+
+static void get_freq_range(struct devfreq *devfreq,
+				unsigned long *min_freq,
+				unsigned long *max_freq)
+{
+	unsigned long *freq_table = devfreq->profile->freq_table;
+
+	lockdep_assert_held(&devfreq->lock);
+
+	if (freq_table[0] < freq_table[devfreq->profile->max_state - 1]) {
+		*min_freq = freq_table[0];
+		*max_freq = freq_table[devfreq->profile->max_state - 1];
+	} else {
+		*min_freq = freq_table[devfreq->profile->max_state - 1];
+		*max_freq = freq_table[0];
+	}
+
+	/* Apply constraints from OPP interface */
+	*min_freq = max(*min_freq, devfreq->scaling_min_freq);
+	*max_freq = min(*max_freq, devfreq->scaling_max_freq);
+
+	if (*min_freq > *max_freq)
+		*min_freq = *max_freq;
+}
+
+static void get_min_freq_limit(struct devfreq *df, unsigned long *min_freq_hz)
+{
+	unsigned long max_freq_hz;
+
+	get_freq_range(df, min_freq_hz, &max_freq_hz);
+}
+
+static void get_max_freq_limit(struct devfreq *df, unsigned long *max_freq_hz)
+{
+	unsigned long min_freq_hz;
+
+	get_freq_range(df, &min_freq_hz, max_freq_hz);
+}
 
 /*******************************************************************************
  * scaling_limit(df, freq)
@@ -117,10 +155,16 @@ enum podgov_adjustment_type {
 
 static void scaling_limit(struct devfreq *df, unsigned long *freq)
 {
-	if (*freq < df->min_freq)
-		*freq = df->min_freq;
-	else if (*freq > df->max_freq)
-		*freq = df->max_freq;
+	unsigned long min_freq_hz = 0;
+	unsigned long max_freq_hz = 0;
+
+	get_min_freq_limit(df, &min_freq_hz);
+	get_max_freq_limit(df, &max_freq_hz);
+
+	if (*freq < min_freq_hz)
+		*freq = min_freq_hz;
+	else if (*freq > max_freq_hz)
+		*freq = max_freq_hz;
 }
 
 /*******************************************************************************
@@ -145,14 +189,6 @@ static void podgov_enable(struct devfreq *df, int enable)
 
 	trace_podgov_enabled(df->dev.parent, enable);
 
-	/* bad configuration. quit. */
-	if (df->min_freq == df->max_freq) {
-		mutex_unlock(&df->lock);
-		mutex_unlock(&podgov->lock);
-		pm_runtime_put(dev);
-		return;
-	}
-
 	/* store the enable information */
 	podgov->enable = enable;
 
@@ -160,7 +196,7 @@ static void podgov_enable(struct devfreq *df, int enable)
 	 * suspended */
 	if (!enable && pm_runtime_active(dev)) {
 		/* full speed */
-		podgov->adjustment_frequency = df->max_freq;
+		get_max_freq_limit(df, &podgov->adjustment_frequency);
 		podgov->adjustment_type = ADJUSTMENT_LOCAL;
 		update_devfreq(df);
 	}
@@ -284,6 +320,7 @@ static unsigned long scaling_state_check(struct devfreq *df, ktime_t time)
 	struct devfreq_dev_status *ds = &df->last_status;
 	unsigned long dt, busyness, rt_load = pg->rt_load;
 	long max_boost, damp, freq, boost, res;
+	unsigned long max_freq_hz = 0;
 
 	dt = (unsigned long) ktime_us_delta(time, pg->last_scale);
 	if (dt < pg->p_block_window || df->previous_freq == 0)
@@ -291,7 +328,8 @@ static unsigned long scaling_state_check(struct devfreq *df, ktime_t time)
 
 	/* convert to mhz to avoid overflow */
 	freq = df->previous_freq / 1000000;
-	max_boost = (df->max_freq/3) / 1000000;
+	get_max_freq_limit(df, &max_freq_hz);
+	max_boost = ((max_freq_hz / 3) / 1000000);
 
 	/* calculate and trace load */
 	busyness = 1000ULL * pg->cycles_avg / ds->current_frequency;
@@ -366,11 +404,12 @@ static int freqlist_up(struct podgov_info_rec *podgov, unsigned long target,
 static void nvhost_scale_emc_debug_init(struct devfreq *df)
 {
 	struct podgov_info_rec *podgov = df->data;
-	struct dentry *f;
 	char dirname[128];
+	int err;
 
-	snprintf(dirname, sizeof(dirname), "%s_scaling",
+	err = snprintf(dirname, sizeof(dirname), "%s_scaling",
 		to_platform_device(df->dev.parent)->name);
+	WARN_ON(err < 0);
 
 	if (!podgov)
 		return;
@@ -383,12 +422,8 @@ static void nvhost_scale_emc_debug_init(struct devfreq *df)
 
 #define CREATE_PODGOV_FILE(fname) \
 	do {\
-		f = debugfs_create_u32(#fname, S_IRUGO | S_IWUSR, \
+		debugfs_create_u32(#fname, S_IRUGO | S_IWUSR, \
 			podgov->debugdir, &podgov->p_##fname); \
-		if (NULL == f) { \
-			pr_err("podgov: can\'t create file " #fname "\n"); \
-			return; \
-		} \
 	} while (0)
 
 	CREATE_PODGOV_FILE(block_window);
@@ -433,6 +468,7 @@ static ssize_t enable_3d_scaling_show(struct kobject *kobj,
 	ssize_t res;
 
 	res = snprintf(buf, PAGE_SIZE, "%d\n", podgov->enable);
+	WARN_ON(res < 0);
 
 	return res;
 }
@@ -469,6 +505,7 @@ static ssize_t user_show(struct kobject *kobj,
 	ssize_t res;
 
 	res = snprintf(buf, PAGE_SIZE, "%d\n", podgov->p_user);
+	WARN_ON(res < 0);
 
 	return res;
 }
@@ -498,6 +535,7 @@ static ssize_t freq_request_show(struct kobject *kobj,
 	ssize_t res;
 
 	res = snprintf(buf, PAGE_SIZE, "%d\n", podgov->p_freq_request);
+	WARN_ON(res < 0);
 
 	return res;
 }
@@ -549,7 +587,7 @@ static int nvhost_pod_estimate_freq(struct devfreq *df,
 	 * min freq.
 	 */
 	if (pg->suspended) {
-		*freq = df->min_freq;
+		*freq = DEVFREQ_MIN_FREQ;
 		pg->last_scale = ktime_get();
 		i = 0;
 		for (; i < MAX_HISTORY_BUF_SIZE; i++)
@@ -563,7 +601,7 @@ static int nvhost_pod_estimate_freq(struct devfreq *df,
 
 	/* Ensure maximal clock when scaling is disabled */
 	if (!pg->enable) {
-		*freq = df->max_freq;
+		*freq = DEVFREQ_MAX_FREQ;
 		if (*freq == df->previous_freq)
 			return GET_TARGET_FREQ_DONTSCALE;
 		else
@@ -735,9 +773,7 @@ static int nvhost_pod_init(struct devfreq *df)
 		goto err_get_freqs;
 
 	/* store the limits */
-	df->min_freq = podgov->freqlist[0];
-	df->max_freq = podgov->freqlist[podgov->freq_count - 1];
-	podgov->p_freq_request = df->max_freq;
+	podgov->p_freq_request = podgov->freqlist[podgov->freq_count - 1];
 
 	podgov->freq_avg = 0;
 
@@ -803,10 +839,9 @@ static void nvhost_pod_suspend(struct devfreq *df)
 
 	// Update frequency for the final time before going into suspension.
 	mutex_lock(&df->lock);
-	df->suspended = false;
 	update_devfreq(df);
-	df->suspended = true;
 	mutex_unlock(&df->lock);
+
 	devfreq_monitor_suspend(df);
 }
 
@@ -839,8 +874,8 @@ static int nvhost_pod_event_handler(struct devfreq *df,
 	case DEVFREQ_GOV_STOP:
 		nvhost_pod_exit(df);
 		break;
-	case DEVFREQ_GOV_INTERVAL:
-		devfreq_interval_update(df, (unsigned int *)data);
+	case DEVFREQ_GOV_UPDATE_INTERVAL:
+		devfreq_update_interval(df, (unsigned int *)data);
 		break;
 	case DEVFREQ_GOV_SUSPEND:
 		nvhost_pod_suspend(df);
