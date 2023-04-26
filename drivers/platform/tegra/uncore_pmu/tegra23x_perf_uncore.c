@@ -17,7 +17,7 @@
 #include <asm/sysreg.h>
 #include <soc/tegra/fuse.h>
 #include <linux/platform/tegra/tegra-mce.h>
-#include <dmce_perfmon.h>
+#include "dmce_perfmon.h"
 
 /* NV_PMSELR group and unit selection register */
 #define PMSELR_GROUP_SCF	0x0
