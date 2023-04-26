@@ -1,10 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
+
 GCOV_PROFILE := y
 
 subdir-ccflags-y := -Werror
 
-include $(srctree.nvidia)/drivers/video/tegra/nvmap/Makefile.memory.configs
-
-ccflags-y += -I$(srctree.nvidia)/include/
+include $(srctree.nvidia-oot)/drivers/video/tegra/nvmap/Makefile.memory.configs
 
 ifeq ($(NVMAP_CONFIG), y)
 # Build NvMap only when NVMAP_CONFIG is set to y
