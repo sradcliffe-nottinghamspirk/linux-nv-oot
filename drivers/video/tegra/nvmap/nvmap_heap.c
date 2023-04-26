@@ -663,8 +663,6 @@ int nvmap_flush_heap_block(struct nvmap_client *client,
 		ret = nvmap_cache_maint_phys_range(NVMAP_CACHE_OP_WB_INV, phys, end,
 				true, prot != NVMAP_HANDLE_INNER_CACHEABLE);
 
-	if (ret)
-		goto out;
 out:
 	wmb();
 	return ret;
