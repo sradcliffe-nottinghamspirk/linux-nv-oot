@@ -6,7 +6,3 @@ nvidia/include/linux/cvnas.h include/linux/cvnas.h
 nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host
 nvidia/include/trace/events/nvhost_pva.h include/trace/events/nvhost_pva.h
 nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
-
-# Files/directories for NVHWPM
-nvidia/drivers/platform/tegra/hwpm drivers/platform/tegra
-nvidia/include/uapi/linux/tegra-soc-hwpm-uapi.h include/uapi/linux/tegra-soc-hwpm-uapi.h

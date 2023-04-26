@@ -19,7 +19,6 @@ obj-m += tegra-camera-rtcpu.o
 ifdef CONFIG_TEGRA_HOST1X
 obj-m += cvnas/
 endif
-obj-m += hwpm/
 obj-m += mce/
 ifdef CONFIG_PERF_EVENTS
 obj-m += uncore_pmu/
