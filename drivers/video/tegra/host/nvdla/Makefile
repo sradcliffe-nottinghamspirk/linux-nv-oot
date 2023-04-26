@@ -4,19 +4,10 @@
 GCOV_PROFILE := y
 
 ifdef CONFIG_TEGRA_GRHOST
-ccflags-y += -I$(srctree.nvidia)/drivers/video/tegra/host
 ccflags-y += -DCONFIG_TEGRA_NVDLA_CHANNEL
 endif
 
-ccflags-y += -I$(srctree.nvidia)/include
-ccflags-y += -I$(srctree.nvidia)/include/uapi/linux
-ccflags-y += -I$(srctree.nvidia)/drivers/video/tegra/host/nvdla
 ccflags-y += -Werror
-
-# When using the upstream host1x driver, the Makefile must define the
-# srctree.host1x path in order to find the necessary header files for
-# the upstream host1x driver.
-ccflags-y += -I$(srctree.host1x)/include
 ccflags-y += -DCONFIG_TEGRA_HOST1X
 ccflags-y += -DCONFIG_TEGRA_FUSE_UPSTREAM
 
