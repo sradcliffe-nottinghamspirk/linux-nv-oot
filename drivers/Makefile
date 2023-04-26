@@ -1,7 +1,10 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
+LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/gpu/host1x/hw/
+LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/video/tegra/host/
+LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/gpu/host1x/include
 
 obj-m += block/tegra_virt_storage/
 ifdef CONFIG_PSTORE
