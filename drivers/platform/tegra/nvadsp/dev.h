@@ -121,6 +121,14 @@ struct nvadsp_hwmb {
 	u32 empty_int_ie;
 };
 
+/* Max no. of entries in "nvidia,cluster_mem" */
+#define MAX_CLUSTER_MEM    3
+
+struct nvadsp_cluster_mem {
+	u64 ccplex_addr;
+	u64 dsp_addr;
+	u64 size;
+};
 
 typedef int (*acast_init) (struct platform_device *pdev);
 typedef int (*reset_init) (struct platform_device *pdev);
@@ -148,6 +156,9 @@ struct nvadsp_chipdata {
 
 	bool			amc_err_war;
 	bool			chipid_ext;
+
+	u32			adsp_prid;
+	char			*adsp_elf;
 };
 
 struct nvadsp_drv_data {
@@ -184,6 +195,8 @@ struct nvadsp_drv_data {
 	int (*deassert_adsp)(struct nvadsp_drv_data *drv_data);
 	struct reset_control *adspall_rst;
 	struct reset_control *ape_tke_rst;
+	int (*set_boot_vec)(struct nvadsp_drv_data *drv_data);
+	int (*set_boot_freqs)(struct nvadsp_drv_data *drv_data);
 
 	struct nvadsp_pm_state state;
 	bool adsp_os_running;
@@ -238,6 +251,9 @@ struct nvadsp_drv_data {
 
 	/* "nvidia,adsp_elf" (FW for backdoor boot) */
 	char adsp_elf[MAX_FW_STR];
+
+	/* "nvidia,cluster_mem" */
+	struct nvadsp_cluster_mem cluster_mem[MAX_CLUSTER_MEM];
 };
 
 #define ADSP_CONFIG	0x04

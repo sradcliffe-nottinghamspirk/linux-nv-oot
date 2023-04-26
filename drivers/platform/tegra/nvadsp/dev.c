@@ -254,8 +254,28 @@ static int __init nvadsp_parse_dt(struct platform_device *pdev)
 		if (of_property_read_u32_index(dev->of_node,
 			"nvidia,adsp-evp-base",
 			iter, &drv_data->evp_base[iter])) {
-			dev_err(dev, "adsp memory dt %d not found\n", iter);
-			return -EINVAL;
+			break;
+		}
+	}
+
+	for (iter = 0; iter < MAX_CLUSTER_MEM; iter++) {
+		if (of_property_read_u64_index(dev->of_node,
+			"nvidia,cluster_mem", (iter * MAX_CLUSTER_MEM),
+			&drv_data->cluster_mem[iter].ccplex_addr))
+			break;
+
+		if (of_property_read_u64_index(dev->of_node,
+			"nvidia,cluster_mem", (iter * MAX_CLUSTER_MEM) + 1,
+			&drv_data->cluster_mem[iter].dsp_addr)) {
+			dev_err(dev, "no DSP cluster mem found\n");
+			return -ENODEV;
+		}
+
+		if (of_property_read_u64_index(dev->of_node,
+			"nvidia,cluster_mem", (iter * MAX_CLUSTER_MEM) + 2,
+			&drv_data->cluster_mem[iter].size)) {
+			dev_err(dev, "DSP cluster mem size not specified\n");
+			return -ENODEV;
 		}
 	}
 
@@ -265,6 +285,14 @@ static int __init nvadsp_parse_dt(struct platform_device *pdev)
 			strcpy(drv_data->adsp_elf, adsp_elf);
 		else {
 			dev_err(dev, "invalid string in nvidia,adsp_elf\n");
+			return -EINVAL;
+		}
+	} else if (drv_data->chip_data->adsp_elf) {
+		if (strlen(drv_data->chip_data->adsp_elf) < MAX_FW_STR)
+			strcpy(drv_data->adsp_elf,
+				drv_data->chip_data->adsp_elf);
+		else {
+			dev_err(dev, "invalid adsp_elf string in chip data");
 			return -EINVAL;
 		}
 	} else
@@ -459,9 +487,11 @@ static int __init nvadsp_probe(struct platform_device *pdev)
 
 	aram_addr = drv_data->adsp_mem[ARAM_ALIAS_0_ADDR];
 	aram_size = drv_data->adsp_mem[ARAM_ALIAS_0_SIZE];
-	ret = nvadsp_aram_init(aram_addr, aram_size);
-	if (ret)
-		dev_err(dev, "Failed to init aram\n");
+	if (aram_size) {
+		ret = nvadsp_aram_init(aram_addr, aram_size);
+		if (ret)
+			dev_err(dev, "Failed to init aram\n");
+	}
 
 	nvadsp_bw_register(drv_data);
 

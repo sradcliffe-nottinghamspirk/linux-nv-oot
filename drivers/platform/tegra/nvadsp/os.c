@@ -314,6 +314,27 @@ bool is_adsp_dram_addr(u64 addr)
 	return false;
 }
 
+int is_cluster_mem_addr(u64 addr)
+{
+	int clust_id;
+	struct nvadsp_drv_data *drv_data = platform_get_drvdata(priv.pdev);
+
+	for (clust_id = 0; clust_id < MAX_CLUSTER_MEM; clust_id++) {
+		struct nvadsp_cluster_mem *cluster_mem;
+
+		cluster_mem = &drv_data->cluster_mem[clust_id];
+
+		if (cluster_mem->size == 0)
+			break;
+
+		if ((addr >= cluster_mem->dsp_addr) &&
+			(addr < (cluster_mem->dsp_addr + cluster_mem->size)))
+			return clust_id;
+	}
+
+	return -1;
+}
+
 int nvadsp_add_load_mappings(phys_addr_t pa, void *mapping, int len)
 {
 	if (map_idx < 0 || map_idx >= NM_LOAD_MAPPINGS)
@@ -542,8 +563,47 @@ static int nvadsp_os_elf_load(const struct firmware *fw)
 	struct nvadsp_drv_data *drv_data = platform_get_drvdata(priv.pdev);
 	struct elf32_hdr *ehdr;
 	struct elf32_phdr *phdr;
-	int i, ret = 0;
+	int i, ret = 0, clust_id;
 	const u8 *elf_data = fw->data;
+	void *cluster_mem_va[MAX_CLUSTER_MEM] = {NULL};
+	void *shadow_buf[MAX_CLUSTER_MEM] = {NULL};
+	bool cluster_mem_active[MAX_CLUSTER_MEM] = {false};
+
+	/*
+	 * For RAMs inside the cluster, direct copy of ELF segments
+	 * is not feasible due to device type memory expecting aligned
+	 * accesses. Therefore, temporary shadow buffers are allocated
+	 * for each such memory and ELF segments will be copied into
+	 * those. Finally the shadow buffer will be copied in one shot
+	 * into its respective cluster memory.
+	 */
+	for (i = 0; i < MAX_CLUSTER_MEM; i++) {
+		struct nvadsp_cluster_mem *cluster_mem;
+
+		cluster_mem = &drv_data->cluster_mem[i];
+
+		if (cluster_mem->size == 0)
+			break;
+
+		cluster_mem_va[i] = devm_memremap(dev, cluster_mem->ccplex_addr,
+						cluster_mem->size, MEMREMAP_WT);
+		if (IS_ERR(cluster_mem_va[i])) {
+			dev_err(dev, "unable to map cluster mem: %llx\n",
+				cluster_mem->ccplex_addr);
+			ret = -ENOMEM;
+			goto end;
+		}
+
+		shadow_buf[i] = devm_kzalloc(dev, cluster_mem->size, GFP_KERNEL);
+		if (!shadow_buf[i]) {
+			dev_err(dev, "alloc for cluster mem failed\n");
+			ret = -ENOMEM;
+			goto end;
+		}
+
+		nvadsp_add_load_mappings((phys_addr_t)cluster_mem->dsp_addr,
+					shadow_buf[i], (int)cluster_mem->size);
+	}
 
 	ehdr = (struct elf32_hdr *)elf_data;
 	phdr = (struct elf32_phdr *)(elf_data + ehdr->e_phoff);
@@ -586,9 +646,13 @@ static int nvadsp_os_elf_load(const struct firmware *fw)
 
 		/* put the segment where the remote processor expects it */
 		if (filesz) {
-			if (is_adsp_dram_addr(da))
+			clust_id = is_cluster_mem_addr(da);
+			if (clust_id != -1) {
+				cluster_mem_active[clust_id] = true;
 				memcpy(va, elf_data + offset, filesz);
-			else if ((da == drv_data->evp_base[ADSP_EVP_BASE]) &&
+			} else if (is_adsp_dram_addr(da)) {
+				memcpy(va, elf_data + offset, filesz);
+			} else if ((da == drv_data->evp_base[ADSP_EVP_BASE]) &&
 				(filesz == drv_data->evp_base[ADSP_EVP_SIZE])) {
 
 				drv_data->state.evp_ptr = va;
@@ -601,6 +665,29 @@ static int nvadsp_os_elf_load(const struct firmware *fw)
 				break;
 			}
 		}
+	}
+
+	/* Copying from shadow buffers into cluster memories */
+	for (i = 0; i < MAX_CLUSTER_MEM; i++) {
+		struct nvadsp_cluster_mem *cluster_mem;
+
+		cluster_mem = &drv_data->cluster_mem[i];
+
+		if (cluster_mem->size == 0)
+			break;
+
+		if (cluster_mem_active[i])
+			memcpy(cluster_mem_va[i],
+				shadow_buf[i],
+				cluster_mem->size);
+	}
+
+end:
+	for (i = 0; i < MAX_CLUSTER_MEM; i++) {
+		if (!IS_ERR_OR_NULL(cluster_mem_va[i]))
+			devm_memunmap(dev, cluster_mem_va[i]);
+		if (shadow_buf[i])
+			devm_kfree(dev, shadow_buf[i]);
 	}
 
 	return ret;
@@ -721,6 +808,9 @@ static int allocate_memory_for_adsp_os(void)
 	addr = priv.adsp_os_addr;
 	size = priv.adsp_os_size;
 
+	if (size == 0)
+		return 0;
+
 	if (co_mem->start) {
 		dram_va = devm_memremap(dev, co_mem->start,
 					size, MEMREMAP_WT);
@@ -760,9 +850,13 @@ static void deallocate_memory_for_adsp_os(void)
 	struct platform_device *pdev = priv.pdev;
 	struct nvadsp_drv_data *drv_data = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
+	size_t size = priv.adsp_os_size;
+	void *va;
 
-	void *va = nvadsp_da_to_va_mappings(priv.adsp_os_addr,
-			priv.adsp_os_size);
+	if (size == 0)
+		return;
+
+	va = nvadsp_da_to_va_mappings(priv.adsp_os_addr, size);
 
 	if (drv_data->co_mem.start) {
 		devm_memunmap(dev, va);
@@ -817,6 +911,11 @@ static int __nvadsp_os_secload(struct platform_device *pdev)
 	size_t size = drv_data->adsp_mem[ACSR_SIZE];
 	struct device *dev = &pdev->dev;
 	void *dram_va;
+
+	if (size == 0) {
+		dev_warn(dev, "no shared mem requested\n");
+		return 0;
+	}
 
 	if (drv_data->chip_data->adsp_shared_mem_hwmbox != 0) {
 		dram_va = nvadsp_alloc_coherent(size, &addr, GFP_KERNEL);
@@ -883,32 +982,34 @@ static int nvadsp_firmware_load(struct platform_device *pdev)
 	}
 
 	shared_mem = get_mailbox_shared_region(fw);
-	if (IS_ERR_OR_NULL(shared_mem)) {
-		if (drv_data->chip_data->adsp_shared_mem_hwmbox != 0) {
-			/*
-			 * If FW is not explicitly defining a shared memory
-			 * region then assume it to be placed at the start
-			 * of OS memory and communicate the same via MBX
-			 */
-			drv_data->shared_adsp_os_data_iova = priv.adsp_os_addr;
-			shared_mem = nvadsp_da_to_va_mappings(
-					priv.adsp_os_addr, priv.adsp_os_size);
-			if (!shared_mem) {
-				dev_err(dev, "Failed to get VA for ADSP OS\n");
-				goto deallocate_os_memory;
-			}
-		} else {
-			dev_err(dev, "failed to locate shared memory\n");
+	if (IS_ERR_OR_NULL(shared_mem) && drv_data->adsp_mem[ACSR_SIZE]) {
+		/*
+		 * If FW is not explicitly defining a shared memory
+		 * region then assume it to be placed at the start
+		 * of OS memory and communicate the same via MBX
+		 */
+		drv_data->shared_adsp_os_data_iova = priv.adsp_os_addr;
+		shared_mem = nvadsp_da_to_va_mappings(
+				priv.adsp_os_addr, priv.adsp_os_size);
+		if (!shared_mem) {
+			dev_err(dev, "Failed to get VA for ADSP OS\n");
+			ret = -ENOMEM;
 			goto deallocate_os_memory;
 		}
 	}
-	nvadsp_set_shared_mem(pdev, shared_mem, 1);
+	if (!IS_ERR_OR_NULL(shared_mem))
+		nvadsp_set_shared_mem(pdev, shared_mem, 1);
+	else
+		dev_warn(dev, "no shared mem requested\n");
 
-	ret = dram_app_mem_init(priv.app_alloc_addr, priv.app_size);
-	if (ret) {
-		dev_err(dev, "Memory allocation dynamic apps failed\n");
-		goto deallocate_os_memory;
+	if (priv.app_size) {
+		ret = dram_app_mem_init(priv.app_alloc_addr, priv.app_size);
+		if (ret) {
+			dev_err(dev, "Memory allocation dynamic apps failed\n");
+			goto deallocate_os_memory;
+		}
 	}
+
 	priv.os_firmware = fw;
 
 	return 0;
@@ -1359,11 +1460,31 @@ static int nvadsp_assert_adsp(struct nvadsp_drv_data *drv_data)
 	return ret;
 }
 
+static int nvadsp_set_boot_vec(struct nvadsp_drv_data *drv_data)
+{
+	struct platform_device *pdev = drv_data->pdev;
+	struct device *dev = &pdev->dev;
+
+	if (drv_data->set_boot_vec)
+		return drv_data->set_boot_vec(drv_data);
+	else {
+		dev_dbg(dev, "Copying EVP...\n");
+		copy_io_in_l(drv_data->state.evp_ptr,
+				drv_data->state.evp,
+				AMC_EVP_SIZE);
+	}
+
+	return 0;
+}
+
 static int nvadsp_set_boot_freqs(struct nvadsp_drv_data *drv_data)
 {
 	struct device *dev = &priv.pdev->dev;
 	struct device_node *node = dev->of_node;
 	int ret = 0;
+
+	if (drv_data->set_boot_freqs)
+		return drv_data->set_boot_freqs(drv_data);
 
 	/* on Unit-FPGA do not set clocks, return success */
 	if (drv_data->adsp_unit_fpga)
@@ -1451,10 +1572,11 @@ static int __nvadsp_os_start(void)
 	nvadsp_assert_adsp(drv_data);
 
 	if (!drv_data->adsp_os_secload) {
-		dev_dbg(dev, "Copying EVP...\n");
-		copy_io_in_l(drv_data->state.evp_ptr,
-			     drv_data->state.evp,
-			     AMC_EVP_SIZE);
+		ret = nvadsp_set_boot_vec(drv_data);
+		if (ret) {
+			dev_err(dev, "failed to set boot vector\n");
+			goto end;
+		}
 	}
 
 	dev_dbg(dev, "Setting freqs\n");
