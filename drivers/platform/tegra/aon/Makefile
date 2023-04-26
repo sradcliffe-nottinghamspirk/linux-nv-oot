@@ -1,12 +1,10 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Always On Sensor Processing Engine code.
 #
 GCOV_PROFILE := y
 
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
-LINUXINCLUDE += -I$(srctree)/include
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/platform/tegra/aon/include
 
 ccflags-y += -Werror
