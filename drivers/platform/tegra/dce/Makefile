@@ -1,19 +1,17 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Display Controller Engine code.
 #
 GCOV_PROFILE := y
 
-ccflags-y += -I$(srctree.nvidia)/drivers/platform/tegra/dce/include
+ccflags-y += -I$(srctree.nvidia-oot)/drivers/platform/tegra/dce/include
 ccflags-y += -Wno-multichar
 ccflags-y += -Werror
 ccflags-y += -Wno-error=cpp
 ifeq ($(VERSION),4)
 ccflags-y += -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
 endif
-
-ccflags-y += -I$(srctree.nvidia)/include
 
 obj-m += tegra-dce.o
 tegra-dce-objs += \
