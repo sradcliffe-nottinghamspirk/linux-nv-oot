@@ -1,9 +1,6 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/video/tegra/host
-LINUXINCLUDE += -I$(srctree)/drivers/video/tegra/host
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/video/tegra/camera
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/media/platform/tegra
 LINUXINCLUDE += -DCONFIG_TEGRA_HOST1X
