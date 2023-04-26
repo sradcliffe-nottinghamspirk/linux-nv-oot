@@ -1,13 +1,5 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-
-LINUXINCLUDE += -I$(srctree.nvidia)/drivers/gpu/host1x/hw/
-LINUXINCLUDE += -I$(srctree.nvidia)/drivers/gpu/host1x/include
-LINUXINCLUDE += -I$(srctree.nvidia)/include
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
-LINUXINCLUDE += -I$(srctree)/include
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/platform/tegra/rtcpu
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/drivers/platform/tegra
 
 LINUX_VERSION := $(shell expr $(VERSION) \* 256 + $(PATCHLEVEL))
 LINUX_VERSION_6_2 := $(shell expr 6 \* 256 + 2)
