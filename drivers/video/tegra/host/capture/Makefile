@@ -1,9 +1,5 @@
-# SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
-
-LINUXINCLUDE += -I$(srctree.nvidia)/drivers/gpu/host1x/hw/
-LINUXINCLUDE += -I$(srctree.nvidia)/drivers/gpu/host1x/include
-LINUXINCLUDE += -I$(srctree.nvidia)/include
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 nvhost-capture-objs = capture-support.o
 
