@@ -1,6 +1,5 @@
-# SPDX-License-Identifier: GPL-2.0
-
-LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
 
 snd-soc-tegra-utils-oot-objs		:= tegra_asoc_utils.o tegra_asoc_machine.o \
 					   tegra_isomgr_bw.o tegra_codecs.o

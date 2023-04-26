@@ -1,12 +1,12 @@
-# SPDX-License-Identifier: GPL-2.0
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 GCOV_PROFILE := y
 
 subdir-ccflags-y := -Werror
 ccflags-y += -I$(overlay)/$(src)/../tegra-virt-alt/include/
 ccflags-y += -I$(overlay)/$(src)/../codecs
-ccflags-y += -I$(srctree.nvidia)/sound/soc/tegra-virt-alt/nvaudio_ivc/
+ccflags-y += -I$(srctree.nvidia-oot)/sound/soc/tegra-virt-alt/nvaudio_ivc/
 
 # Tegra platform Support
 
