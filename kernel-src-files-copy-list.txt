@@ -1,7 +1,6 @@
 # Files/directories for cvnas module
 nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
 nvidia/include/linux/cvnas.h include/linux/cvnas.h
-nvidia/include/soc/tegra/fuse-helper.h include/soc/tegra/fuse-helper.h
 
 # Files/directories for NVPVA
 nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host
