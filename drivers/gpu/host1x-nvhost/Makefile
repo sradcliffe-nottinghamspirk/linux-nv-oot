@@ -1,13 +1,8 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 #
 # Tegra Host1x-Nvhost Driver.
-#
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
-#
 
-ccflags-y += -I$(srctree.nvidia)/include
-ccflags-y += -I$(srctree.nvidia)/include/uapi/linux
-ccflags-y += -I$(srctree.nvidia)/drivers/gpu/host1x/include
 ccflags-y += -DCONFIG_TEGRA_HOST1X
 ccflags-y += -Werror
 

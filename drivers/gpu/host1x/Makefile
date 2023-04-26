@@ -1,8 +1,5 @@
-# SPDX-License-Identifier: GPL-2.0
-
-srctree.host1x := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-
-ccflags-y := -I$(srctree.host1x)/include
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 host1x-next-y = \
 	bus.o \
