@@ -1,11 +1,8 @@
-# SPDX-License-Identifier: GPL-2.0
-
-srctree.tegra-drm := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-srctree.host1x := $(abspath $(srctree.tegra-drm)/../../host1x)
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 ccflags-$(CONFIG_DRM_TEGRA_DEBUG) += -DDEBUG
-ccflags-y += -I$(srctree.tegra-drm)/include
-ccflags-y += -I$(srctree.host1x)/include
+ccflags-y += -I$(srctree.nvidia-oot)/drivers/gpu/drm/tegra/include
 
 tegra-drm-next-y := \
 	drm.o \
