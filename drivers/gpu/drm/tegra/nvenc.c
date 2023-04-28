@@ -5,6 +5,7 @@
 
 #include <linux/clk.h>
 #include <linux/delay.h>
+#include <linux/devfreq.h>
 #include <linux/host1x-next.h>
 #include <linux/iommu.h>
 #include <linux/module.h>
@@ -12,6 +13,7 @@
 #include <linux/of_device.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_opp.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
 
@@ -40,6 +42,8 @@ struct nvenc {
 	struct host1x_channel *channel;
 	struct device *dev;
 	struct clk *clk;
+	struct devfreq *devfreq;
+	struct devfreq_dev_profile *devfreq_profile;
 
 	/* Platform configuration */
 	const struct nvenc_config *config;
@@ -94,6 +98,91 @@ static int nvenc_boot(struct nvenc *nvenc)
 	}
 
 	return 0;
+}
+
+static int nvenc_devfreq_target(struct device *dev, unsigned long *freq, u32 flags)
+{
+	struct nvenc *nvenc = dev_get_drvdata(dev);
+	int err;
+
+	err = nvenc_set_rate(nvenc, *freq);
+	if (err < 0) {
+		dev_err(dev, "failed to set clock rate\n");
+		return err;
+	}
+
+	*freq = clk_get_rate(nvenc->clk);
+
+	return 0;
+}
+
+static int nvenc_devfreq_get_dev_status(struct device *dev, struct devfreq_dev_status *stat)
+{
+	struct nvenc *nvenc = dev_get_drvdata(dev);
+	struct host1x_client *client = &nvenc->client.base;
+	unsigned long usage;
+
+	/* Update load information */
+	host1x_actmon_read_active_norm(client, &usage);
+	stat->total_time = 1;
+	stat->busy_time = usage;
+
+	/* Update device frequency */
+	stat->current_frequency = clk_get_rate(nvenc->clk);
+
+	return 0;
+}
+
+static int nvenc_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
+{
+	struct nvenc *nvenc = dev_get_drvdata(dev);
+
+	*freq = clk_get_rate(nvenc->clk);
+
+	return 0;
+}
+
+static struct devfreq_dev_profile nvenc_devfreq_profile = {
+	.target = nvenc_devfreq_target,
+	.get_dev_status = nvenc_devfreq_get_dev_status,
+	.get_cur_freq = nvenc_devfreq_get_cur_freq,
+	.polling_ms = 100,
+};
+
+static int nvenc_devfreq_init(struct nvenc *nvenc)
+{
+	unsigned long max_rate = clk_round_rate(nvenc->clk, ULONG_MAX);
+	unsigned long min_rate = clk_round_rate(nvenc->clk, 0);
+	unsigned long margin = clk_round_rate(nvenc->clk, min_rate + 1) - min_rate;
+	unsigned long rate = min_rate;
+	struct devfreq *devfreq;
+
+	while (rate <= max_rate) {
+		dev_pm_opp_add(nvenc->dev, rate, 0);
+		rate += margin;
+	}
+
+	devfreq = devm_devfreq_add_device(nvenc->dev,
+					  &nvenc_devfreq_profile,
+					  DEVFREQ_GOV_USERSPACE,
+					  NULL);
+	if (IS_ERR(devfreq))
+		return PTR_ERR(devfreq);
+
+	devfreq->suspend_freq = min_rate;
+	devfreq->resume_freq = min_rate;
+	nvenc->devfreq = devfreq;
+
+	return 0;
+}
+
+static void nvenc_devfreq_deinit(struct nvenc *nvenc)
+{
+	if (!nvenc->devfreq)
+		return;
+
+	devm_devfreq_remove_device(nvenc->dev, nvenc->devfreq);
+	nvenc->devfreq = NULL;
 }
 
 static int nvenc_init(struct host1x_client *client)
@@ -280,6 +369,8 @@ static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
+	devfreq_resume_device(nvenc->devfreq);
+
 	return 0;
 
 disable:
@@ -290,6 +381,8 @@ disable:
 static __maybe_unused int nvenc_runtime_suspend(struct device *dev)
 {
 	struct nvenc *nvenc = dev_get_drvdata(dev);
+
+	devfreq_suspend_device(nvenc->devfreq);
 
 	host1x_channel_stop(nvenc->channel);
 
@@ -477,6 +570,12 @@ static int nvenc_probe(struct platform_device *pdev)
 		return err;
 	}
 
+	err = nvenc_devfreq_init(nvenc);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
+		return err;
+	}
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -495,6 +594,8 @@ static int nvenc_remove(struct platform_device *pdev)
 	int err;
 
 	pm_runtime_disable(&pdev->dev);
+
+	nvenc_devfreq_deinit(nvenc);
 
 	err = host1x_actmon_unregister(&nvenc->client.base);
 	if (err < 0)
