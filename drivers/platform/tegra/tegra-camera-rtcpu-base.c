@@ -24,7 +24,6 @@
 #include <linux/sched.h>
 #include <linux/seq_buf.h>
 #include <linux/slab.h>
-#include <linux/tegra-firmwares.h>
 #include <linux/tegra-ivc-bus.h>
 #include <linux/pm_domain.h>
 #include <soc/tegra/fuse.h>
@@ -821,17 +820,14 @@ static int tegra_cam_rtcpu_probe(struct platform_device *pdev)
 
 	ret = camrtc_hsp_get_fw_hash(rtcpu->hsp,
 			rtcpu->fw_hash, sizeof(rtcpu->fw_hash));
-	if (ret == 0)
-		devm_tegrafw_register(dev,
-			name != pdata->name ? name :  "camrtc",
-			TFW_NORMAL, tegra_camrtc_print_version, NULL);
+	if (ret)
+		dev_err(dev, "failed to get firmware hash!\n");
+	else
+		tegra_camrtc_log_fw_version(dev);
 
 	tegra_camrtc_set_online(dev, true);
 
 	pm_runtime_put(dev);
-
-	/* Print firmware version */
-	tegra_camrtc_log_fw_version(dev);
 
 	s_dev = dev;
 
