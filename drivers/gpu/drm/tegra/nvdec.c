@@ -5,6 +5,7 @@
 
 #include <linux/clk.h>
 #include <linux/delay.h>
+#include <linux/devfreq.h>
 #include <linux/dma-mapping.h>
 #include <linux/host1x-next.h>
 #include <linux/iommu.h>
@@ -14,6 +15,7 @@
 #include <linux/of_device.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_opp.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
 
@@ -50,6 +52,8 @@ struct nvdec {
 	struct clk_bulk_data clks[3];
 	unsigned int num_clks;
 	struct reset_control *reset;
+	struct devfreq *devfreq;
+	struct devfreq_dev_profile *devfreq_profile;
 
 	/* Platform configuration */
 	const struct nvdec_config *config;
@@ -91,7 +95,7 @@ static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 
 	if (!config->has_riscv) {
 		nvdec_writel(nvdec, weight, NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT);
-	} else if (config->has_riscv) {
+	} else {
 		nvdec_writel(nvdec,
 			     NVDEC_FW_MTHD_ADDR_ACTMON_WEIGHT,
 			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
@@ -177,6 +181,92 @@ release_reset:
 	reset_control_release(nvdec->reset);
 
 	return err;
+}
+
+static int nvdec_devfreq_target(struct device *dev, unsigned long *freq, u32 flags)
+{
+	struct nvdec *nvdec = dev_get_drvdata(dev);
+	int err;
+
+	err = nvdec_set_rate(nvdec, *freq);
+	if (err < 0) {
+		dev_err(dev, "failed to set clock rate\n");
+		return err;
+	}
+
+	*freq = clk_get_rate(nvdec->clks[0].clk);
+
+	return 0;
+}
+
+static int nvdec_devfreq_get_dev_status(struct device *dev, struct devfreq_dev_status *stat)
+{
+	struct nvdec *nvdec = dev_get_drvdata(dev);
+	struct host1x_client *client = &nvdec->client.base;
+	unsigned long usage;
+
+	/* Update load information */
+	host1x_actmon_read_active_norm(client, &usage);
+	stat->total_time = 1;
+	stat->busy_time = usage;
+
+	/* Update device frequency */
+	stat->current_frequency = clk_get_rate(nvdec->clks[0].clk);
+
+	return 0;
+}
+
+static int nvdec_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
+{
+	struct nvdec *nvdec = dev_get_drvdata(dev);
+
+	*freq = clk_get_rate(nvdec->clks[0].clk);
+
+	return 0;
+}
+
+static struct devfreq_dev_profile nvdec_devfreq_profile = {
+	.target = nvdec_devfreq_target,
+	.get_dev_status = nvdec_devfreq_get_dev_status,
+	.get_cur_freq = nvdec_devfreq_get_cur_freq,
+	.polling_ms = 100,
+};
+
+static int nvdec_devfreq_init(struct nvdec *nvdec)
+{
+	struct clk *clk = nvdec->clks[0].clk;
+	unsigned long max_rate = clk_round_rate(clk, ULONG_MAX);
+	unsigned long min_rate = clk_round_rate(clk, 0);
+	unsigned long margin = clk_round_rate(clk, min_rate + 1) - min_rate;
+	unsigned long rate = min_rate;
+	struct devfreq *devfreq;
+
+	while (rate <= max_rate) {
+		dev_pm_opp_add(nvdec->dev, rate, 0);
+		rate += margin;
+	}
+
+	devfreq = devm_devfreq_add_device(nvdec->dev,
+					  &nvdec_devfreq_profile,
+					  DEVFREQ_GOV_USERSPACE,
+					  NULL);
+	if (IS_ERR(devfreq))
+		return PTR_ERR(devfreq);
+
+	devfreq->suspend_freq = min_rate;
+	devfreq->resume_freq = min_rate;
+	nvdec->devfreq = devfreq;
+
+	return 0;
+}
+
+static void nvdec_devfreq_deinit(struct nvdec *nvdec)
+{
+	if (!nvdec->devfreq)
+		return;
+
+	devm_devfreq_remove_device(nvdec->dev, nvdec->devfreq);
+	nvdec->devfreq = NULL;
 }
 
 static int nvdec_init(struct host1x_client *client)
@@ -368,8 +458,7 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 			goto disable;
 	}
 
-	/* Configure proper count weight */
-	nvdec_set_rate(nvdec, clk_get_rate(nvdec->clks[0].clk));
+	devfreq_resume_device(nvdec->devfreq);
 
 	return 0;
 
@@ -381,6 +470,8 @@ disable:
 static __maybe_unused int nvdec_runtime_suspend(struct device *dev)
 {
 	struct nvdec *nvdec = dev_get_drvdata(dev);
+
+	devfreq_suspend_device(nvdec->devfreq);
 
 	host1x_channel_stop(nvdec->channel);
 
@@ -592,6 +683,12 @@ static int nvdec_probe(struct platform_device *pdev)
 		return err;
 	}
 
+	err = nvdec_devfreq_init(nvdec);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
+		return err;
+	}
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -610,6 +707,8 @@ static int nvdec_remove(struct platform_device *pdev)
 	int err;
 
 	pm_runtime_disable(&pdev->dev);
+
+	nvdec_devfreq_deinit(nvdec);
 
 	err = host1x_actmon_unregister(&nvdec->client.base);
 	if (err < 0)
