@@ -53,6 +53,8 @@ static struct task_struct *task;
 
 static struct fsi_hsp *fsi_hsp_v;
 
+static bool enable_deinit_notify;
+
 static int fsicom_fsi_pm_notify(u32 state)
 {
 	uint32_t pdata[4] = {0};
@@ -284,18 +286,24 @@ MODULE_DEVICE_TABLE(of, fsicom_client_dt_match);
 static int fsicom_client_probe(struct platform_device *pdev)
 {
 	int ret = 0;
+	struct device *dev = &pdev->dev;
+	const struct device_node *np = dev->of_node;
 
 	fsicom_register_device();
 	ret = tegra_hsp_mb_init(&pdev->dev);
 	pdev_local = pdev;
+
+	if (of_property_read_bool(np, "enable-deinit-notify"))
+		enable_deinit_notify = true;
 
 	return ret;
 }
 
 static void fsicom_client_shutdown(struct platform_device *pdev)
 {
-	if (fsicom_fsi_pm_notify(PM_SHUTDOWN) < 0)
-		pr_err("Unable to send notification to fsi\n");
+	if (enable_deinit_notify)
+		if (fsicom_fsi_pm_notify(PM_SHUTDOWN) < 0)
+			pr_err("Unable to send notification to fsi\n");
 
 	fsicom_unregister_device();
 }
@@ -308,8 +316,12 @@ static int fsicom_client_remove(struct platform_device *pdev)
 
 static int __maybe_unused fsicom_client_suspend(struct device *dev)
 {
+	int ret = 0;
+
 	dev_dbg(dev, "suspend called\n");
-	return fsicom_fsi_pm_notify(PM_SUSPEND);
+	if (enable_deinit_notify)
+		ret = fsicom_fsi_pm_notify(PM_SUSPEND);
+	return ret;
 }
 
 static int __maybe_unused fsicom_client_resume(struct device *dev)
