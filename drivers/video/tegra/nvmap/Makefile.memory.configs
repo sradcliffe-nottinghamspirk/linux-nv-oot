@@ -30,10 +30,8 @@ endif
 
 # Check if CONFIG_ARCH_HAS_PMEM_API enabled for OOT/Kstable kernel
 # CONFIG_ARCH_HAS_PMEM_API is needed for arch_invalidate_pmem
-ifeq ($(CONFIG_TEGRA_OOT_MODULE),m)
 ifneq ($(CONFIG_ARCH_HAS_PMEM_API),y)
 $(error CONFIG_ARCH_HAS_PMEM_API is not set)
-endif
 endif
 ################################################################################
 # Section 2
@@ -138,10 +136,8 @@ NVMAP_CONFIG_FD_START := 0x0
 endif
 NVMAP_CONFIG_SCIIPC := y
 # For OOT build
-ifeq ($(CONFIG_TEGRA_OOT_MODULE),m)
 NVMAP_CONFIG_UPSTREAM_KERNEL := y
 NVMAP_CONFIG_COLOR_PAGES := n
-endif
 endif
 ################################################################################
 # Section 4
