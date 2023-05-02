@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (C) 2022 NVIDIA CORPORATION. All rights reserved.
+// Copyright (C) 2023 NVIDIA CORPORATION. All rights reserved.
 
 #include <linux/debugfs.h>
 #include <linux/fs.h>
@@ -41,9 +41,6 @@
  * Must be greater than MIN_TMR_PTV and lower than MAX_TMR_PTV*active_count.
  */
 #define HEARTBEAT		120
-
-/* Watchdog configured to this time before reset during shutdown */
-#define SHUTDOWN_TIMEOUT	150
 
 /* Bit numbers for status flags */
 #define WDT_ENABLED		0
@@ -440,6 +437,7 @@ static int tegra_wdt_t18x_probe(struct platform_device *pdev)
 	int timer_id, wdt_id;
 	int skip_count = 0;
 	u32 pval = 0;
+	u32 error_threshold;
 	int ret;
 
 	twdt_t18x = devm_kzalloc(&pdev->dev, sizeof(*twdt_t18x), GFP_KERNEL);
@@ -447,9 +445,17 @@ static int tegra_wdt_t18x_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	ret = of_property_read_u32(np, "nvidia,shutdown-timeout", &pval);
-	twdt_t18x->shutdown_timeout = (ret) ? SHUTDOWN_TIMEOUT : pval;
+	if (ret)
+		dev_info(&pdev->dev, "shutdown timeout disabled\n");
+	else
+		twdt_t18x->shutdown_timeout = pval;
 
 	twdt_t18x->soc = of_device_get_match_data(&pdev->dev);
+	if (!twdt_t18x->soc) {
+		dev_err(&pdev->dev, "Unable to find soc data\n");
+		return -EINVAL;
+	}
+
 	twdt_t18x->dev = &pdev->dev;
 	twdt_t18x->wdt.info = &tegra_wdt_t18x_info;
 	twdt_t18x->wdt.ops = &tegra_wdt_t18x_ops;
@@ -604,10 +610,23 @@ static int tegra_wdt_t18x_probe(struct platform_device *pdev)
 		/*
 		 * 'ErrorThreshold' field @ TKE_TOP_WDT1_WDTCR_0 decides the
 		 * indication to HSM. The WDT logic asserts an error signal to
-		 * HSM when ExpirationLevel >= ErrorThreshold. Retain the POR
-		 * value to avoid nuisance trigger to HSM.
+		 * HSM when ExpirationLevel >= ErrorThreshold. Update the error
+		 * threshold value, if provided in the device tree.
+		 *
+		 * Else retain the POR value to avoid nuisance trigger to HSM.
 		 */
-		twdt_t18x->config |= WDT_CFG_ERR_THRESHOLD;
+		ret = of_property_read_u32(np, "nvidia,wdt-error-threshold",
+				&error_threshold);
+		if (!ret) {
+			if (error_threshold > 7) {
+				dev_warn(&pdev->dev, "Invalid error threshold value\n");
+				twdt_t18x->config |= WDT_CFG_ERR_THRESHOLD;
+			} else {
+				twdt_t18x->config |= (error_threshold << 20);
+			}
+		} else {
+			twdt_t18x->config |= WDT_CFG_ERR_THRESHOLD;
+		}
 
 		/* Enable local FIQ and remote interrupt for debug dump */
 		twdt_t18x->config |= WDT_CFG_FINT_EN;
@@ -648,17 +667,18 @@ static int tegra_wdt_t18x_probe(struct platform_device *pdev)
 	tegra_wdt_t18x_disable(&twdt_t18x->wdt);
 	writel(TOP_TKE_TMR_PCR_INTR, twdt_t18x->wdt_timer + TOP_TKE_TMR_PCR);
 
-	ret = devm_request_threaded_irq(&pdev->dev, twdt_t18x->irq,
-					NULL, tegra_wdt_t18x_isr,
-					IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
-					dev_name(&pdev->dev), twdt_t18x);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "Failed to register irq %d err %d\n",
-			twdt_t18x->irq, ret);
-		return ret;
-	}
-
 	if (twdt_t18x->enable_on_init) {
+		/* Register interrupt handler only when WDT is configured to enable on boot */
+		ret = devm_request_threaded_irq(&pdev->dev, twdt_t18x->irq,
+						NULL, tegra_wdt_t18x_isr,
+						IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
+						dev_name(&pdev->dev), twdt_t18x);
+		if (ret < 0) {
+			dev_err(&pdev->dev, "Failed to register irq %d err %d\n",
+				twdt_t18x->irq, ret);
+			return ret;
+		}
+
 		tegra_wdt_t18x_enable(&twdt_t18x->wdt);
 		set_bit(WDOG_ACTIVE, &twdt_t18x->wdt.status);
 		set_bit(WDT_ENABLED_ON_INIT, &twdt_t18x->status);
@@ -697,6 +717,9 @@ static void tegra_wdt_t18x_shutdown(struct platform_device *pdev)
 	struct tegra_wdt_t18x *twdt_t18x = platform_get_drvdata(pdev);
 
 	if (twdt_t18x->shutdown_timeout) {
+		dev_dbg(twdt_t18x->dev,
+			"Watchdog%d: setting shutdown timeout as %d seconds",
+			twdt_t18x->wdt.id, twdt_t18x->shutdown_timeout);
 		twdt_t18x->wdt.timeout = twdt_t18x->shutdown_timeout;
 		__tegra_wdt_t18x_ping(twdt_t18x);
 		return;
