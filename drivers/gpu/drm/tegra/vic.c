@@ -9,6 +9,7 @@
 #include <linux/devfreq/tegra_wmark.h>
 #include <linux/dma-mapping.h>
 #include <linux/host1x-next.h>
+#include <linux/interconnect.h>
 #include <linux/iommu.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -45,6 +46,7 @@ struct vic {
 	struct reset_control *rst;
 	struct devfreq *devfreq;
 	struct devfreq_dev_profile *devfreq_profile;
+	struct icc_path *icc_write;
 
 	bool can_use_context;
 
@@ -111,7 +113,7 @@ static int vic_set_rate(struct vic *vic, unsigned long rate)
 {
 	struct host1x_client *client = &vic->client.base;
 	unsigned long dev_rate;
-	u32 weight;
+	u32 weight, emc_kbps;
 	int err;
 
 	err = clk_set_rate(vic->clk, rate);
@@ -124,6 +126,13 @@ static int vic_set_rate(struct vic *vic, unsigned long rate)
 
 	if (weight)
 		vic_writel(vic, weight, NV_PVIC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+
+	if (vic->icc_write) {
+		emc_kbps = dev_rate * VIC_AXI_RW_BANDWIDTH / 1024;
+		err = icc_set_bw(vic->icc_write, kbps_to_icc(emc_kbps), 0);
+		if (err)
+			dev_warn(vic->dev, "failed to set icc bw: %d\n", err);
+	}
 
 	return 0;
 }
@@ -527,6 +536,12 @@ static int __maybe_unused vic_runtime_suspend(struct device *dev)
 
 	clk_disable_unprepare(vic->clk);
 
+	if (vic->icc_write) {
+		err = icc_set_bw(vic->icc_write, 0, 0);
+		if (err)
+			dev_warn(vic->dev, "failed to set icc bw: %d\n", err);
+	}
+
 	return 0;
 }
 
@@ -666,6 +681,17 @@ static int vic_probe(struct platform_device *pdev)
 		return PTR_ERR(vic->clk);
 	}
 
+	vic->icc_write = devm_of_icc_get(dev, "write");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+	if (IS_ERR(vic->icc_write)) {
+		dev_err(&pdev->dev, "failed to get icc write handle\n");
+		return PTR_ERR(vic->icc_write);
+	}
+#else
+	if (IS_ERR(vic->icc_write))
+		vic->icc_write = NULL;
+#endif
+
 	if (!dev->pm_domain) {
 		vic->rst = devm_reset_control_get(dev, "vic");
 		if (IS_ERR(vic->rst)) {
@@ -709,13 +735,13 @@ static int vic_probe(struct platform_device *pdev)
 	err = vic_set_rate(vic, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate: %d\n", err);
-		return err;
+		goto exit_falcon;
 	}
 
 	err = vic_devfreq_init(vic);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
-		return err;
+		goto exit_falcon;
 	}
 
 	pm_runtime_enable(dev);
@@ -726,6 +752,7 @@ static int vic_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&vic->falcon);
+	icc_put(vic->icc_write);
 
 	return err;
 }
@@ -752,6 +779,8 @@ static int vic_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&vic->falcon);
+
+	icc_put(vic->icc_write);
 
 	return 0;
 }

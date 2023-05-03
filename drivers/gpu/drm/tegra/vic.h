@@ -28,4 +28,10 @@
 #define VIC_UCODE_FCE_DATA_OFFSET		(7*4)
 #define FCE_UCODE_SIZE_OFFSET			(2*4)
 
+/*
+ * VIC AXI read bus is 256-bits width
+ * VIC AXI write bus is 256-bits width
+ */
+#define VIC_AXI_RW_BANDWIDTH			512
+
 #endif /* TEGRA_VIC_H */
