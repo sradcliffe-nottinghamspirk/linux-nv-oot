@@ -4751,12 +4751,12 @@ static int ether_get_mac_address(struct ether_priv_data *pdata)
 		eth_mac_addr = addr;
 	}
 
+	/* Found a valid mac address */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
         dev_addr_mod(ndev, 0, eth_mac_addr, ETH_ALEN);
-#endif
-
-	/* Found a valid mac address */
+#else
 	memcpy(ndev->dev_addr, eth_mac_addr, ETH_ALEN);
+#endif
 	memcpy(osi_core->mac_addr, eth_mac_addr, ETH_ALEN);
 
 	dev_info(dev, "Ethernet MAC address: %pM\n", ndev->dev_addr);
