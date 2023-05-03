@@ -10,7 +10,11 @@
  */
 struct ether_packet_ctxt {
 	/** Destination MAC address in Ethernet header */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
+	const unsigned char *dst;
+#else
 	unsigned char *dst;
+#endif
 };
 
 /**
@@ -150,7 +154,11 @@ static int ether_test_loopback_validate(struct sk_buff *skb,
 					struct net_device *orig_ndev)
 {
 	struct ether_test_priv_data *tpdata = pt->af_packet_priv;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
+	const unsigned char *dst = tpdata->ctxt->dst;
+#else
 	unsigned char *dst = tpdata->ctxt->dst;
+#endif
 	struct ether_testhdr *thdr;
 	struct ethhdr *ehdr;
 	struct udphdr *uhdr;
