@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: comm-channel: " fmt
 
 #include <linux/atomic.h>
 #include <linux/dma-fence.h>
-#include <linux/dma-iommu.h>
 #include <linux/errno.h>
 #include <linux/host1x-next.h>
+#include <linux/iommu.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/platform_device.h>

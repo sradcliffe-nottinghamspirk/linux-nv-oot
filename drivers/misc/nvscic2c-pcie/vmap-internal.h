@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
+/* Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
 
 #ifndef __VMAP_INTERNAL_H__
 #define __VMAP_INTERNAL_H__
 
-#include <linux/dma-iommu.h>
 #include <linux/dma-buf.h>
 #include <linux/pci.h>
 

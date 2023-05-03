@@ -6,9 +6,9 @@
 #include <linux/atomic.h>
 #include <linux/cdev.h>
 #include <linux/dma-fence.h>
-#include <linux/dma-iommu.h>
 #include <linux/errno.h>
 #include <linux/host1x-next.h>
+#include <linux/iommu.h>
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/poll.h>

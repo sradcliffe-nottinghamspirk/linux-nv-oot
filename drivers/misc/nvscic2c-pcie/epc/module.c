@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: epc: " fmt
 
-#include <linux/dma-iommu.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>

@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: vmap-pin: " fmt
 
 #include <linux/device.h>
-#include <linux/dma-iommu.h>
 #include <linux/dma-buf.h>
 #include <linux/errno.h>
 #include <linux/host1x-next.h>
+#include <linux/iommu.h>
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/platform_device.h>
 #include <linux/printk.h>
 #include <linux/types.h>
+#include <linux/version.h>
 #include <drm/tegra_drm-next.h>
 
 #include "common.h"
@@ -378,3 +380,7 @@ err:
 
 	return ret;
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+MODULE_IMPORT_NS(DMA_BUF);
+#endif
