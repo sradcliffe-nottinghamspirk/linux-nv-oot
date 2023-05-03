@@ -531,5 +531,12 @@ void host1x_actmon_update_client_rate(struct host1x_client *client,
 				      unsigned long rate,
 				      u32 *weight);
 void host1x_actmon_read_active_norm(struct host1x_client *client, unsigned long *usage);
+void host1x_actmon_update_active_wmark(struct host1x_client *client,
+				       u32 avg_upper_wmark,
+				       u32 avg_lower_wmark,
+				       u32 consec_upper_wmark,
+				       u32 consec_lower_wmark,
+				       bool upper_wmark_enabled,
+				       bool lower_wmark_enabled);
 
 #endif

@@ -491,3 +491,43 @@ int host1x_actmon_read_avg_count(struct host1x_client *client)
 	return readl(host->actmon_regs + offset + 0xa4);
 }
 EXPORT_SYMBOL(host1x_actmon_read_avg_count);
+
+void host1x_actmon_update_active_wmark(struct host1x_client *client,
+				       u32 avg_upper_wmark,
+				       u32 avg_lower_wmark,
+				       u32 consec_upper_wmark,
+				       u32 consec_lower_wmark,
+				       bool upper_wmark_enabled,
+				       bool lower_wmark_enabled)
+{
+	struct host1x_actmon *actmon = client->actmon;
+	struct host1x_actmon_module *module;
+	u32 val = 0;
+
+	if (!actmon || !actmon->num_modules)
+		return;
+
+	module = &actmon->modules[HOST1X_ACTMON_MODULE_ACTIVE];
+
+	/* Update watermark thresholds */
+	actmon_module_writel(module,
+			     avg_upper_wmark / 1000 * actmon->usecs_per_sample / 1000,
+			     HOST1X_ACTMON_MODULE_AVG_UPPER_WMARK_REG);
+	actmon_module_writel(module,
+			     avg_lower_wmark / 1000 * actmon->usecs_per_sample / 1000,
+			     HOST1X_ACTMON_MODULE_AVG_LOWER_WMARK_REG);
+	actmon_module_writel(module,
+			     consec_upper_wmark / 1000 * actmon->usecs_per_sample / 1000,
+			     HOST1X_ACTMON_MODULE_UPPER_WMARK_REG);
+	actmon_module_writel(module,
+			     consec_lower_wmark / 1000 * actmon->usecs_per_sample / 1000,
+			     HOST1X_ACTMON_MODULE_LOWER_WMARK_REG);
+
+	/* Update watermark interrupt enable bits */
+	val |= HOST1X_ACTMON_MODULE_INTR_AVG_WMARK_ABOVE_ENB(upper_wmark_enabled);
+	val |= HOST1X_ACTMON_MODULE_INTR_AVG_WMARK_BELOW_ENB(lower_wmark_enabled);
+	val |= HOST1X_ACTMON_MODULE_INTR_CONSEC_WMARK_ABOVE_ENB(upper_wmark_enabled);
+	val |= HOST1X_ACTMON_MODULE_INTR_CONSEC_WMARK_BELOW_ENB(lower_wmark_enabled);
+	actmon_module_writel(module, val, HOST1X_ACTMON_MODULE_INTR_ENB_REG);
+}
+EXPORT_SYMBOL(host1x_actmon_update_active_wmark);
