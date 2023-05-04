@@ -11,4 +11,3 @@ obj-m	+= cdi_mgr.o
 endif
 obj-m	+= cdi_dev.o
 obj-m	+= cdi_pwm.o
-obj-m 	+= cdi_tsc.o

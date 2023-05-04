@@ -5,3 +5,4 @@ obj-m += cdi/
 obj-m += isc/
 obj-m += camera/
 obj-m += tpg/
+obj-m += cam_fsync/
