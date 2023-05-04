@@ -32,9 +32,9 @@
 #include <linux/version.h>
 #include <linux/wait.h>
 
-#include "rtcpu/clk-group.h"
-#include "rtcpu/device-group.h"
-#include "rtcpu/reset-group.h"
+#include "clk-group.h"
+#include "device-group.h"
+#include "reset-group.h"
 #include "linux/tegra-hsp-combo.h"
 
 #include "soc/tegra/camrtc-commands.h"

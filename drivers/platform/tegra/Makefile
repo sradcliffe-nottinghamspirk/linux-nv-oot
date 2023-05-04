@@ -10,9 +10,6 @@ tegra-cactmon-objs += actmon_common.o
 obj-m += tegra-cactmon.o
 obj-m += tegra-fsicom.o
 
-tegra-camera-rtcpu-objs :=  tegra-camera-rtcpu-base.o rtcpu/tegra-rtcpu-trace.o rtcpu/rtcpu-monitor.o
-obj-m += tegra-camera-rtcpu.o
-
 obj-m += mce/
 ifdef CONFIG_PERF_EVENTS
 obj-m += uncore_pmu/

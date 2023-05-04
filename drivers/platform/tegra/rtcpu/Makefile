@@ -16,3 +16,6 @@ obj-m += clk-group.o
 obj-m += hsp-mailbox-client.o
 obj-m += reset-group.o
 obj-m += device-group.o
+
+tegra-camera-rtcpu-objs :=  tegra-camera-rtcpu-base.o tegra-rtcpu-trace.o rtcpu-monitor.o
+obj-m += tegra-camera-rtcpu.o
