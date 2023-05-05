@@ -28,6 +28,12 @@
 #include <linux/tegra-hsierrrptinj.h>
 #endif /* CONFIG_TEGRA_HSIERRRPTINJ */
 
+#if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
+#include <linux/clk.h>
+#include <linux/clkdev.h>
+#include <linux/clk-provider.h>
+#endif
+
 #include "nvdla.h"
 #include "nvdla_hw_flcn.h"
 #include "nvdla_t194.h"
@@ -884,6 +890,69 @@ out:
 }
 #endif
 
+#if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
+static ssize_t clk_cap_store(struct kobject *kobj,
+	struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	struct nvhost_device_data *pdata =
+		container_of(kobj, struct nvhost_device_data, clk_cap_kobj);
+	/* i is indeed 'index' here after type conversion */
+	int ret, i = attr - pdata->clk_cap_attrs;
+	struct clk_bulk_data *clks = &pdata->clks[i];
+	struct clk *clk = clks->clk;
+	unsigned long freq_cap;
+	long freq_cap_signed;
+
+	ret = kstrtoul(buf, 0, &freq_cap);
+	if (ret)
+		return -EINVAL;
+	/* Remove previous freq cap to get correct rounted rate for new cap */
+	ret = clk_set_max_rate(clk, UINT_MAX);
+	if (ret < 0)
+		return ret;
+
+	freq_cap_signed = clk_round_rate(clk, freq_cap);
+	if (freq_cap_signed < 0)
+		return -EINVAL;
+
+	freq_cap = (unsigned long)freq_cap_signed;
+	/* Apply new freq cap */
+	ret = clk_set_max_rate(clk, freq_cap);
+	if (ret < 0)
+		return ret;
+
+	/* Update the clock rate */
+	clk_set_rate(clks->clk, freq_cap);
+	if (ret < 0)
+		return ret;
+
+	return count;
+}
+
+static ssize_t clk_cap_show(struct kobject *kobj,
+	struct kobj_attribute *attr, char *buf)
+{
+	struct nvhost_device_data *pdata =
+		container_of(kobj, struct nvhost_device_data, clk_cap_kobj);
+	/* i is indeed 'index' here after type conversion */
+	int i = attr - pdata->clk_cap_attrs;
+	struct clk_bulk_data *clks = &pdata->clks[i];
+	struct clk *clk = clks->clk;
+	long max_rate;
+
+	max_rate = clk_round_rate(clk, UINT_MAX);
+	if (max_rate < 0)
+		return max_rate;
+
+	return snprintf(buf, PAGE_SIZE, "%ld\n", max_rate);
+}
+
+static struct kobj_type nvdla_kobj_ktype = {
+	.sysfs_ops  = &kobj_sysfs_ops,
+};
+
+#endif
+
 /* driver probe and init */
 static struct of_device_id tegra_nvdla_of_match[] = {
 	{
@@ -915,6 +984,13 @@ static int nvdla_probe(struct platform_device *pdev)
 	uint32_t soft_fuse_ret = 0U;
 #ifdef CONFIG_TEGRA_SOC_HWPM
 	struct tegra_soc_hwpm_ip_ops hwpm_ip_ops;
+#endif
+
+#if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
+	struct kobj_attribute *attr = NULL;
+	int i = 0;
+	struct clk_bulk_data *clks;
+	struct clk *c;
 #endif
 
 	if (pdev->dev.of_node) {
@@ -1062,7 +1138,6 @@ static int nvdla_probe(struct platform_device *pdev)
 	tegra_soc_hwpm_ip_register(&hwpm_ip_ops);
 #endif
 
-
 #if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
 	err = nvdla_error_inj_handler_init(nvdla_dev);
 	if (err) {
@@ -1071,10 +1146,53 @@ static int nvdla_probe(struct platform_device *pdev)
 	}
 #endif /* CONFIG_TEGRA_HSIERRRPTINJ */
 
+#if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
+	if (pdata->num_clks > 0) {
+		err = kobject_init_and_add(&pdata->clk_cap_kobj, &nvdla_kobj_ktype,
+				&pdev->dev.kobj, "%s", "clk_cap");
+		if (err) {
+			dev_err(dev, "Could not add dir 'clk_cap'\n");
+				goto err_clk_cap_fail;
+		}
+
+		pdata->clk_cap_attrs = devm_kcalloc(dev, pdata->num_clks,
+			sizeof(*attr), GFP_KERNEL);
+		if (!pdata->clk_cap_attrs)
+			goto err_cleanup_sysfs;
+
+		for (i = 0; i < pdata->num_clks; ++i) {
+			clks = &pdata->clks[i];
+			c = clks->clk;
+			if (!c)
+				continue;
+
+			attr = &pdata->clk_cap_attrs[i];
+			attr->attr.name = __clk_get_name(c);
+			/* octal permission is preferred nowadays */
+			attr->attr.mode = 0644;
+			attr->show = clk_cap_show;
+			attr->store = clk_cap_store;
+			sysfs_attr_init(&attr->attr);
+			if (sysfs_create_file(&pdata->clk_cap_kobj, &attr->attr)) {
+				dev_err(dev, "Could not create sysfs attribute %s\n",
+					__clk_get_name(c));
+				err = -EIO;
+				goto err_cleanup_sysfs;
+			}
+		}
+	}
+#endif
+
 	nvdla_dbg_info(pdev, "pdata:%p initialized\n", pdata);
 
 	return 0;
 
+#if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
+err_cleanup_sysfs:
+	/* kobj of nvdla_kobj_ktype cleans up sysfs entries automatically */
+	kobject_put(&pdata->clk_cap_kobj);
+err_clk_cap_fail:
+#endif
 #if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
 err_inj_handler_init:
 #ifdef CONFIG_TEGRA_SOC_HWPM
@@ -1109,6 +1227,20 @@ static int __exit nvdla_remove(struct platform_device *pdev)
 {
 	struct nvhost_device_data *pdata = platform_get_drvdata(pdev);
 	struct nvdla_device *nvdla_dev = pdata->private_data;
+
+#if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
+	int i;
+	struct kobj_attribute *attr = NULL;
+
+	if (&pdata->clk_cap_kobj) {
+		for (i = 0; i < pdata->num_clks; i++) {
+			attr = &pdata->clk_cap_attrs[i];
+			sysfs_remove_file(&pdata->clk_cap_kobj, &attr->attr);
+		}
+
+		kobject_put(&pdata->clk_cap_kobj);
+	}
+#endif
 
 #ifdef CONFIG_TEGRA_SOC_HWPM
 	struct tegra_soc_hwpm_ip_ops hwpm_ip_ops;
