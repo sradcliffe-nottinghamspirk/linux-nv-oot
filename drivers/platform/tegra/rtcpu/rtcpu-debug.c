@@ -85,7 +85,7 @@ struct camrtc_debug {
 	} parameters;
 	struct camrtc_falcon_coverage vi_falc_coverage;
 	struct camrtc_falcon_coverage isp_falc_coverage;
-
+	struct icc_path *icc_path;
 	struct camrtc_test_mem mem[CAMRTC_DBG_NUM_MEM_TEST_MEM];
 	struct device *mem_devices[CAMRTC_TEST_CAM_DEVICES];
 	struct ast_regset {
@@ -908,46 +908,18 @@ done:
 	return ret;
 }
 
-struct camrtc_run_membw {
-	struct device *dev;
-#if IS_ENABLED(CONFIG_INTERCONNECT)
-	struct icc_path *icc_path;
-#endif
-};
-
-static void camrtc_membw_set(struct camrtc_run_membw *membw, u32 bw)
+static void camrtc_membw_set(struct camrtc_debug *crd, u32 bw)
 {
-	struct device *dev = membw->dev;
+	int ret;
 
-	if (bw == 0) {
-		;
-	} else {
-#if IS_ENABLED(CONFIG_INTERCONNECT)
-		struct icc_path *icc_path;
-		int ret;
-
-		icc_path = icc_get(dev, TEGRA_ICC_RCE, TEGRA_ICC_PRIMARY);
-
-		if (!IS_ERR_OR_NULL(icc_path)) {
-			ret = icc_set_bw(icc_path, 0, bw);
-
-			if (ret)
-				dev_err(dev, "set icc bw [%u] failed: %d\n", bw, ret);
-			else
-				dev_dbg(dev, "requested icc bw %u\n", bw);
-
-			membw->icc_path = icc_path;
-		}
-#endif
+	if (crd->icc_path) {
+		ret = icc_set_bw(crd->icc_path, 0, bw);
+		if (ret)
+			dev_err(crd->mem_devices[0],
+				"set icc bw [%u] failed: %d\n", bw, ret);
+		else
+			dev_dbg(crd->mem_devices[0], "requested icc bw %u\n", bw);
 	}
-}
-
-static void camrtc_membw_reset(struct camrtc_run_membw *membw)
-{
-#if IS_ENABLED(CONFIG_INTERCONNECT)
-	if (membw->icc_path)
-		icc_put(membw->icc_path);
-#endif
 }
 
 static int camrtc_run_mem_test(struct seq_file *file,
@@ -956,7 +928,6 @@ static int camrtc_run_mem_test(struct seq_file *file,
 {
 	struct tegra_ivc_channel *ch = file->private;
 	struct camrtc_debug *crd = tegra_ivc_channel_get_drvdata(ch);
-	struct camrtc_run_membw membw = { .dev = crd->mem_devices[0], };
 	struct camrtc_dbg_test_mem *testmem;
 	size_t i;
 	int ret = 0;
@@ -1032,7 +1003,7 @@ static int camrtc_run_mem_test(struct seq_file *file,
 		mem0->used = size;
 	}
 
-	camrtc_membw_set(&membw, crd->parameters.test_bw);
+	camrtc_membw_set(crd, crd->parameters.test_bw);
 
 	for (i = 0; i < ARRAY_SIZE(crd->mem); i++) {
 		struct camrtc_test_mem *mem = &crd->mem[i];
@@ -1097,7 +1068,7 @@ static int camrtc_run_mem_test(struct seq_file *file,
 	}
 
 unmap:
-	camrtc_membw_reset(&membw);
+	camrtc_membw_set(crd, 0);
 
 	for (i = 0; i < ARRAY_SIZE(vi_sgt); i++) {
 		if (rce_sgt[i].sgl) {
@@ -1908,6 +1879,13 @@ static int camrtc_debug_probe(struct tegra_ivc_channel *ch)
 	if (crd->mem_devices[0] == NULL) {
 		dev_dbg(dev, "missing %s\n", NV(mem-map));
 		crd->mem_devices[0] = get_device(camrtc_get_device(ch));
+	}
+
+	crd->icc_path = devm_of_icc_get(crd->mem_devices[0], "write");
+	if (IS_ERR(crd->icc_path)) {
+		dev_err(dev, "failed to get icc path for rtcpu, err: %ld\n",
+				PTR_ERR(crd->icc_path));
+		crd->icc_path = NULL;
 	}
 
 	if (camrtc_debug_populate(ch))
