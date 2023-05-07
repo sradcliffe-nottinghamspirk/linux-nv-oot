@@ -31,7 +31,7 @@ static struct cpumask cpumask;
 static bool s2idle_sc7_state;
 static DEFINE_PER_CPU(struct cpuidle_driver *, tegra_auto_cpuidle_drivers);
 
-bool tegra_auto_cpuidle_s2idle_exit(int cpu_number)
+static bool tegra_auto_cpuidle_s2idle_exit(int cpu_number)
 {
 	return (!cpumask_test_cpu(cpu_number, (const struct cpumask *)&cpumask));
 }
