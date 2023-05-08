@@ -6,6 +6,7 @@
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/devfreq.h>
+#include <linux/devfreq/tegra_wmark.h>
 #include <linux/host1x-next.h>
 #include <linux/iommu.h>
 #include <linux/module.h>
@@ -99,6 +100,21 @@ static int nvjpg_boot(struct nvjpg *nvjpg)
 	return 0;
 }
 
+static void nvjpg_devfreq_update_wmark_threshold(struct devfreq *devfreq,
+						 struct devfreq_tegra_wmark_config *cfg)
+{
+	struct nvjpg *nvjpg = dev_get_drvdata(devfreq->dev.parent);
+	struct host1x_client *client = &nvjpg->client.base;
+
+	host1x_actmon_update_active_wmark(client,
+					  cfg->avg_upper_wmark,
+					  cfg->avg_lower_wmark,
+					  cfg->consec_upper_wmark,
+					  cfg->consec_lower_wmark,
+					  cfg->upper_wmark_enabled,
+					  cfg->lower_wmark_enabled);
+}
+
 static int nvjpg_devfreq_target(struct device *dev, unsigned long *freq, u32 flags)
 {
 	struct nvjpg *nvjpg = dev_get_drvdata(dev);
@@ -141,19 +157,14 @@ static int nvjpg_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
 	return 0;
 }
 
-static struct devfreq_dev_profile nvjpg_devfreq_profile = {
-	.target = nvjpg_devfreq_target,
-	.get_dev_status = nvjpg_devfreq_get_dev_status,
-	.get_cur_freq = nvjpg_devfreq_get_cur_freq,
-	.polling_ms = 100,
-};
-
 static int nvjpg_devfreq_init(struct nvjpg *nvjpg)
 {
 	unsigned long max_rate = clk_round_rate(nvjpg->clk, ULONG_MAX);
 	unsigned long min_rate = clk_round_rate(nvjpg->clk, 0);
 	unsigned long margin = clk_round_rate(nvjpg->clk, min_rate + 1) - min_rate;
 	unsigned long rate = min_rate;
+	struct devfreq_tegra_wmark_data *data;
+	struct devfreq_dev_profile *devfreq_profile;
 	struct devfreq *devfreq;
 
 	while (rate <= max_rate) {
@@ -161,15 +172,32 @@ static int nvjpg_devfreq_init(struct nvjpg *nvjpg)
 		rate += margin;
 	}
 
+	data = devm_kzalloc(nvjpg->dev, sizeof(*data), GFP_KERNEL);
+	if (!data)
+		return -ENOMEM;
+
+	data->event = DEVFREQ_TEGRA_AVG_WMARK_BELOW;
+	data->update_wmark_threshold = nvjpg_devfreq_update_wmark_threshold;
+
+	devfreq_profile = devm_kzalloc(nvjpg->dev, sizeof(*devfreq_profile), GFP_KERNEL);
+	if (!devfreq_profile)
+		return -ENOMEM;
+
+	devfreq_profile->target = nvjpg_devfreq_target;
+	devfreq_profile->get_dev_status = nvjpg_devfreq_get_dev_status;
+	devfreq_profile->get_cur_freq = nvjpg_devfreq_get_cur_freq;
+	devfreq_profile->initial_freq = max_rate;
+	devfreq_profile->polling_ms = 100;
+
 	devfreq = devm_devfreq_add_device(nvjpg->dev,
-					  &nvjpg_devfreq_profile,
+					  devfreq_profile,
 					  DEVFREQ_GOV_USERSPACE,
-					  NULL);
+					  data);
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
 	devfreq->suspend_freq = min_rate;
-	devfreq->resume_freq = min_rate;
+	devfreq->resume_freq = max_rate;
 	nvjpg->devfreq = devfreq;
 
 	return 0;
@@ -279,10 +307,46 @@ static unsigned long nvjpg_get_rate(struct host1x_client *client)
 	return clk_get_rate(nvjpg->clk);
 }
 
+static void nvjpg_actmon_event(struct host1x_client *client,
+			     enum host1x_actmon_wmark_event event)
+{
+	struct platform_device *pdev = to_platform_device(client->dev);
+	struct nvjpg *nvjpg = platform_get_drvdata(pdev);
+	struct devfreq *df = nvjpg->devfreq;
+	struct devfreq_tegra_wmark_data *data;
+
+	if (!df)
+		return;
+
+	data = df->data;
+
+	switch (event) {
+	case HOST1X_ACTMON_AVG_WMARK_BELOW:
+		data->event = DEVFREQ_TEGRA_AVG_WMARK_BELOW;
+		break;
+	case HOST1X_ACTMON_AVG_WMARK_ABOVE:
+		data->event = DEVFREQ_TEGRA_AVG_WMARK_ABOVE;
+		break;
+	case HOST1X_ACTMON_CONSEC_WMARK_BELOW:
+		data->event = DEVFREQ_TEGRA_CONSEC_WMARK_BELOW;
+		break;
+	case HOST1X_ACTMON_CONSEC_WMARK_ABOVE:
+		data->event = DEVFREQ_TEGRA_CONSEC_WMARK_ABOVE;
+		break;
+	default:
+		return;
+	}
+
+	mutex_lock(&df->lock);
+	update_devfreq(df);
+	mutex_unlock(&df->lock);
+}
+
 static const struct host1x_client_ops nvjpg_client_ops = {
 	.init = nvjpg_init,
 	.exit = nvjpg_exit,
 	.get_rate = nvjpg_get_rate,
+	.actmon_event = nvjpg_actmon_event,
 };
 
 static int nvjpg_load_firmware(struct nvjpg *nvjpg)
