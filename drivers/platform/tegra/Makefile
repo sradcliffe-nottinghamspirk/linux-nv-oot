@@ -18,6 +18,8 @@ obj-m += mc-hwpm.o
 obj-m += mc-utils/
 obj-m += dce/
 obj-m += psc/
+ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
 obj-m += rtcpu/
+endif
 obj-m += aon/
 obj-m += tegra-uss-io-proxy.o
