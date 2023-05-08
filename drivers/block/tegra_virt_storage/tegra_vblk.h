@@ -57,6 +57,9 @@ struct vsc_request {
 	/* Scatter list for maping IOVA address */
 	struct scatterlist *sg_lst;
 	int sg_num_ents;
+	/* Timer to track bio request completion*/
+	struct timer_list timer;
+	uint64_t time;
 };
 
 enum vblk_queue_state {

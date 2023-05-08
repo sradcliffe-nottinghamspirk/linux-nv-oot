@@ -48,6 +48,15 @@ static uint32_t total_instance_id;
 
 static int vblk_major;
 
+static inline uint64_t _arch_counter_get_cntvct(void)
+{
+	uint64_t cval;
+
+	asm volatile("mrs %0, cntvct_el0" : "=r" (cval));
+
+	return cval;
+}
+
 /**
  * vblk_get_req: Get a handle to free vsc request.
  */
@@ -65,6 +74,7 @@ static struct vsc_request *vblk_get_req(struct vblk_dev *vblkdev)
 		req->vs_req.req_id = bit;
 		set_bit(bit, vblkdev->pending_reqs);
 		vblkdev->inflight_reqs++;
+		mod_timer(&req->timer, jiffies + 30*HZ);
 	}
 
 exit:
@@ -133,6 +143,7 @@ static void vblk_put_req(struct vsc_request *req)
 			(vblkdev->queue_state == VBLK_QUEUE_SUSPENDED)) {
 			complete(&vblkdev->req_queue_empty);
 		}
+		del_timer(&req->timer);
 	}
 }
 
@@ -608,6 +619,7 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 		}
 	}
 
+	vsc_req->time = _arch_counter_get_cntvct();
 	if (!tegra_hv_ivc_write(vblkdev->ivck, vs_req,
 				sizeof(struct vs_request))) {
 		dev_err(vblkdev->device,
@@ -1247,6 +1259,24 @@ static irqreturn_t ivc_irq_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static void bio_request_timeout_callback(struct timer_list *timer)
+{
+	struct vsc_request *req = from_timer(req, timer, timer);
+
+	dev_err(req->vblkdev->device, "Request id %d timed out. curr ctr: %llu sched ctr: %llu\n",
+						req->id, _arch_counter_get_cntvct(), req->time);
+
+}
+
+static void tegra_create_timers(struct vblk_dev *vblkdev)
+{
+	uint32_t i;
+
+	for (i = 0; i < MAX_VSC_REQS; i++)
+		timer_setup(&vblkdev->reqs[i].timer, bio_request_timeout_callback, 0);
+
+}
+
 static int tegra_hv_vblk_probe(struct platform_device *pdev)
 {
 	static struct device_node *vblk_node;
@@ -1344,6 +1374,10 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 		goto free_wq;
 	}
 	mutex_unlock(&vblkdev->ivc_lock);
+
+	/* Create timers for each request going to storage server*/
+	tegra_create_timers(vblkdev);
+
 	return 0;
 
 free_wq:
