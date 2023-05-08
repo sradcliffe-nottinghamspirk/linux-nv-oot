@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2012 Avionic Design GmbH
- * Copyright (C) 2012-2016 NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (C) 2012-2023 NVIDIA CORPORATION.  All rights reserved.
  */
 
 #include <linux/bitops.h>
@@ -1508,6 +1508,7 @@ static void __exit host1x_drm_exit(void)
 }
 module_exit(host1x_drm_exit);
 
+MODULE_SOFTDEP("pre: tegra_wmark");
 MODULE_AUTHOR("Thierry Reding <thierry.reding@avionic-design.de>");
 MODULE_DESCRIPTION("NVIDIA Tegra DRM driver");
 MODULE_LICENSE("GPL v2");
