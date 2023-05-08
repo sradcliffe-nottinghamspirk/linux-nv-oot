@@ -255,7 +255,8 @@ int macsec_open(struct macsec_priv_data *macsec_pdata,
 	macsec_pdata->is_irq_allocated |= OSI_BIT(1);
 
 	/* Invoke OSI HW initialization, initialize standard BYP entries */
-	ret = osi_macsec_init(pdata->osi_core, pdata->osi_core->mtu, pdata->ndev->dev_addr);
+	ret = osi_macsec_init(pdata->osi_core, pdata->osi_core->mtu,
+			      (nveu8_t * const)pdata->ndev->dev_addr);
 	if (ret < 0) {
 		dev_err(dev, "osi_macsec_init failed, %d\n", ret);
 		goto err_osi_init;
