@@ -23,6 +23,7 @@
 #include <linux/of_device.h>
 #include <linux/spi/spi.h>
 #include <linux/clk/tegra.h>
+#include <linux/version.h>
 
 #define SPI_COMMAND1				0x000
 #define SPI_BIT_LENGTH(x)			(((x) & 0x1f) << 0)
@@ -255,7 +256,11 @@ struct tegra_spi_platform_data {
 	u8 def_chip_select;
 	int rx_trig_words;
 	int ls_bit;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	int gpio_slave_ready;
+#else
+	struct gpio_desc *gpio_slave_ready;
+#endif
 	bool slave_ready_active_high;
 	int max_dma_buffer_size;
 	const char *clk_pin;
@@ -1877,7 +1882,9 @@ static struct tegra_spi_platform_data
 	struct tegra_spi_platform_data *pdata;
 	const __be32 *prop;
 	struct device_node *np = pdev->dev.of_node;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	enum of_gpio_flags gpio_flags;
+#endif
 
 	pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
@@ -1894,6 +1901,15 @@ static struct tegra_spi_platform_data
 	if (of_find_property(np, "nvidia,clock-always-on", NULL))
 		pdata->is_clkon_always = true;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	pdata->gpio_slave_ready =
+		devm_gpiod_get_optional(&pdev->dev, "nvidia,slave-ready-gpio", 0);
+
+	if (gpiod_is_active_low(pdata->gpio_slave_ready))
+		pdata->slave_ready_active_high = false;
+	else
+		pdata->slave_ready_active_high = true;
+#else
 	pdata->gpio_slave_ready =
 		of_get_named_gpio_flags(np, "nvidia,slave-ready-gpio", 0,
 				&gpio_flags);
@@ -1902,7 +1918,7 @@ static struct tegra_spi_platform_data
 		pdata->slave_ready_active_high = false;
 	else
 		pdata->slave_ready_active_high = true;
-
+#endif
 	return pdata;
 }
 
