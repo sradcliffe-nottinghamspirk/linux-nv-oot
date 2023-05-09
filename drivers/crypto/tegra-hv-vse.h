@@ -20,6 +20,12 @@ enum tegra_gcm_dec_supported {
 	GCM_DEC_OP_SUPPORTED,
 };
 
+enum ivc_irq_state {
+	NO_INTERRUPT = 0U,
+	FIRST_REQ_INTERRUPT = 1U,
+	INTERMEDIATE_REQ_INTERRUPT = 2u,
+};
+
 struct crypto_dev_to_ivc_map {
 	uint32_t ivc_id;
 	uint32_t se_engine;
@@ -34,6 +40,12 @@ struct crypto_dev_to_ivc_map {
 	struct task_struct *tegra_vse_task;
 	bool vse_thread_start;
 	struct mutex se_ivc_lock;
+	/*Wait for interrupt
+	 * 0: No need to wait for interrupt
+	 * 1: First request, wait for interrupt
+	 * 2: awaiting actual message, wait for interrupt
+	 */
+	enum ivc_irq_state wait_interrupt;
 };
 
 struct tegra_virtual_se_dev {

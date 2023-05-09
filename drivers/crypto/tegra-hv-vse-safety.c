@@ -593,6 +593,160 @@ struct crypto_dev_to_ivc_map *tegra_hv_vse_get_db(void)
 }
 EXPORT_SYMBOL(tegra_hv_vse_get_db);
 
+static int32_t validate_header(
+	struct tegra_virtual_se_dev *se_dev,
+	struct tegra_virtual_se_ivc_hdr_t *pivc_hdr,
+	bool *is_dummy)
+{
+	int32_t ret = -EIO;
+
+	if ((pivc_hdr->header_magic[0] == (uint8_t)'N') &&
+			(pivc_hdr->header_magic[1] == (uint8_t)'V') &&
+			(pivc_hdr->header_magic[2] == (uint8_t)'D') &&
+			(pivc_hdr->header_magic[3] == (uint8_t)'A')) {
+		pr_debug("Message header\n");
+		*is_dummy = false;
+		ret = 0;
+	} else if ((pivc_hdr->header_magic[0] == (uint8_t)'D') &&
+			(pivc_hdr->header_magic[1] == (uint8_t)'I') &&
+			(pivc_hdr->header_magic[2] == (uint8_t)'S') &&
+			(pivc_hdr->header_magic[3] == (uint8_t)'C')) {
+		pr_debug("Filler\n");
+		*is_dummy = true;
+		ret = 0;
+	} else {
+		dev_err(se_dev->dev, "Invalid message header value.\n");
+	}
+
+	return ret;
+}
+
+static int read_and_validate_dummy_msg(
+	struct tegra_virtual_se_dev *se_dev,
+	struct tegra_hv_ivc_cookie *pivck,
+	uint32_t node_id, bool *is_dummy)
+{
+	int err = 0, read_size = -1;
+	struct tegra_virtual_se_ivc_msg_t *ivc_msg;
+	struct tegra_virtual_se_ivc_hdr_t *ivc_hdr;
+	size_t size_ivc_msg = sizeof(struct tegra_virtual_se_ivc_msg_t);
+
+	ivc_msg = devm_kzalloc(se_dev->dev, size_ivc_msg, GFP_KERNEL);
+	if (!ivc_msg)
+		return -ENOMEM;
+
+	read_size = tegra_hv_ivc_read(pivck, ivc_msg, size_ivc_msg);
+	if (read_size > 0 && read_size < size_ivc_msg) {
+		dev_err(se_dev->dev, "Wrong read msg len %d\n", read_size);
+		return -EINVAL;
+	}
+	ivc_hdr = &(ivc_msg->ivc_hdr);
+
+	err = validate_header(se_dev, ivc_hdr, is_dummy);
+
+	devm_kfree(se_dev->dev, ivc_msg);
+	return err;
+}
+
+static int read_and_validate_valid_msg(
+	struct tegra_virtual_se_dev *se_dev,
+	struct tegra_hv_ivc_cookie *pivck,
+	uint32_t node_id, bool *is_dummy, bool waited)
+{
+	struct tegra_vse_tag *p_dat;
+	struct tegra_vse_priv_data *priv;
+	struct tegra_virtual_se_ivc_msg_t *ivc_msg;
+	struct tegra_virtual_se_ivc_hdr_t *ivc_hdr;
+	struct tegra_virtual_se_aes_req_context *req_ctx;
+	struct tegra_virtual_se_ivc_resp_msg_t *ivc_rx;
+	enum ivc_irq_state *irq_state;
+
+	int read_size = -1, err = 0;
+	size_t size_ivc_msg = sizeof(struct tegra_virtual_se_ivc_msg_t);
+
+	irq_state = &(se_dev->crypto_to_ivc_map[node_id].wait_interrupt);
+	if (!tegra_hv_ivc_can_read(pivck)) {
+		*irq_state = INTERMEDIATE_REQ_INTERRUPT;
+		dev_err(se_dev->dev, "%s(): no valid message, await interrupt.\n", __func__);
+		return -EAGAIN;
+	}
+
+	ivc_msg = devm_kzalloc(se_dev->dev, size_ivc_msg, GFP_KERNEL);
+	if (!ivc_msg)
+		return -ENOMEM;
+
+	read_size = tegra_hv_ivc_read(pivck, ivc_msg, size_ivc_msg);
+	if (read_size > 0 && read_size < size_ivc_msg) {
+		dev_err(se_dev->dev, "Wrong read msg len %d\n", read_size);
+		return -EINVAL;
+	}
+	ivc_hdr = &(ivc_msg->ivc_hdr);
+	err = validate_header(se_dev, ivc_hdr, is_dummy);
+	if (err != 0)
+		goto deinit;
+	if (*is_dummy) {
+		dev_err(se_dev->dev, "%s(): Wrong response sequence\n", __func__);
+		goto deinit;
+	}
+	p_dat = (struct tegra_vse_tag *)ivc_msg->ivc_hdr.tag;
+	priv = (struct tegra_vse_priv_data *)p_dat->priv_data;
+	if (!priv) {
+		pr_err("%s no call back info\n", __func__);
+		goto deinit;
+	}
+	priv->syncpt_id = ivc_msg->rx[0].syncpt_id;
+	priv->syncpt_threshold = ivc_msg->rx[0].syncpt_threshold;
+	priv->syncpt_id_valid = ivc_msg->rx[0].syncpt_id_valid;
+
+	switch (priv->cmd) {
+	case VIRTUAL_SE_AES_CRYPTO:
+		priv->rx_status = ivc_msg->rx[0].status;
+		req_ctx = skcipher_request_ctx(priv->req);
+		if ((!priv->rx_status) && (req_ctx->encrypt == true) &&
+				((req_ctx->op_mode == AES_CTR) ||
+				(req_ctx->op_mode == AES_CBC))) {
+			memcpy(priv->iv, ivc_msg->rx[0].iv,
+					TEGRA_VIRTUAL_SE_AES_IV_SIZE);
+		}
+		break;
+	case VIRTUAL_SE_KEY_SLOT:
+		ivc_rx = &ivc_msg->rx[0];
+		priv->slot_num = ivc_rx->keyslot;
+		break;
+	case VIRTUAL_SE_PROCESS:
+		ivc_rx = &ivc_msg->rx[0];
+		priv->rx_status = ivc_rx->status;
+		break;
+	case VIRTUAL_CMAC_PROCESS:
+		ivc_rx = &ivc_msg->rx[0];
+		priv->rx_status = ivc_rx->status;
+		priv->cmac.status = ivc_rx->status;
+		if (!ivc_rx->status) {
+			memcpy(priv->cmac.data, ivc_rx->cmac_result,
+				TEGRA_VIRTUAL_SE_AES_CMAC_DIGEST_SIZE);
+		}
+		break;
+	case VIRTUAL_SE_AES_GCM_ENC_PROCESS:
+		ivc_rx = &ivc_msg->rx[0];
+		priv->rx_status = ivc_rx->status;
+		if (!ivc_rx->status)
+			memcpy(priv->iv, ivc_rx->iv,
+					TEGRA_VIRTUAL_SE_AES_GCM_IV_SIZE);
+
+		break;
+	default:
+		dev_err(se_dev->dev, "Unknown command\n");
+		waited = false;
+	}
+	if (waited)
+		complete(&priv->alg_complete);
+
+deinit:
+	devm_kfree(se_dev->dev, ivc_msg);
+	return err;
+
+}
+
 static int tegra_hv_vse_safety_send_ivc(
 	struct tegra_virtual_se_dev *se_dev,
 	struct tegra_hv_ivc_cookie *pivck,
@@ -644,8 +798,10 @@ static int tegra_hv_vse_safety_send_ivc_wait(
 {
 	struct host1x_syncpt *sp;
 	struct host1x *host1x;
-	u64 time_left;
 	int err;
+	bool is_dummy = false;
+	u64 time_left;
+	enum ivc_irq_state *irq_state;
 
 	mutex_lock(&g_crypto_to_ivc_map[node_id].se_ivc_lock);
 
@@ -674,12 +830,44 @@ static int tegra_hv_vse_safety_send_ivc_wait(
 		goto exit;
 	}
 
-	time_left = wait_for_completion_timeout(&priv->alg_complete,
-			TEGRA_HV_VSE_TIMEOUT);
-	if (time_left == 0) {
-		dev_err(se_dev->dev, "%s timeout\n", __func__);
-		err = -ETIMEDOUT;
-		goto exit;
+	irq_state = &(se_dev->crypto_to_ivc_map[node_id].wait_interrupt);
+	if (*irq_state == NO_INTERRUPT) {
+		err = read_and_validate_dummy_msg(se_dev, pivck, node_id, &is_dummy);
+		if (err != 0) {
+			dev_err(se_dev->dev, "Failed to read and validate dummy message.\n");
+			goto exit;
+		}
+		if (is_dummy) {
+			err = read_and_validate_valid_msg(se_dev, pivck, node_id, &is_dummy, false);
+			if (err != 0 && err != -EAGAIN) {
+				dev_err(se_dev->dev, "Failed to read & validate valid message.\n");
+				goto exit;
+			}
+			if (*irq_state == INTERMEDIATE_REQ_INTERRUPT) {
+				err = 0;
+				pr_debug("%s(): wait_interrupt = %u", __func__, *irq_state);
+				time_left = wait_for_completion_timeout(&priv->alg_complete,
+						TEGRA_HV_VSE_TIMEOUT);
+				if (time_left == 0) {
+					dev_err(se_dev->dev, "%s timeout\n", __func__);
+					err = -ETIMEDOUT;
+					goto exit;
+				}
+			}
+			pr_debug("%s(): wait_interrupt = %u", __func__, *irq_state);
+		} else {
+			dev_err(se_dev->dev,
+				"%s(): Invalid resonse sequence, expected dummy message.\n",
+				__func__);
+			goto exit;
+		}
+	} else {
+		time_left = wait_for_completion_timeout(&priv->alg_complete, TEGRA_HV_VSE_TIMEOUT);
+		if (time_left == 0) {
+			dev_err(se_dev->dev, "%s timeout\n", __func__);
+			err = -ETIMEDOUT;
+			goto exit;
+		}
 	}
 
 	/* If this is not last request then wait using nvhost API*/
@@ -4432,21 +4620,21 @@ static irqreturn_t tegra_vse_irq_handler(int irq, void *data)
 
 static int tegra_vse_kthread(void *data)
 {
-	struct tegra_virtual_se_dev *se_dev = NULL;
 	uint32_t node_id = *((uint32_t *)data);
+	struct tegra_virtual_se_dev *se_dev = NULL;
 	struct tegra_hv_ivc_cookie *pivck = g_crypto_to_ivc_map[node_id].ivck;
 	struct tegra_virtual_se_ivc_msg_t *ivc_msg;
-	struct tegra_virtual_se_aes_req_context *req_ctx;
 	int err = 0;
-	struct tegra_vse_tag *p_dat;
-	struct tegra_vse_priv_data *priv;
 	int timeout;
-	struct tegra_virtual_se_ivc_resp_msg_t *ivc_rx;
 	int ret;
-	int read_size = 0;
+	bool is_dummy = false;
+	size_t size_ivc_msg = sizeof(struct tegra_virtual_se_ivc_msg_t);
+	enum ivc_irq_state *irq_state;
 
-	ivc_msg =
-		kmalloc(sizeof(struct tegra_virtual_se_ivc_msg_t), GFP_KERNEL);
+	se_dev = g_virtual_se_dev[g_crypto_to_ivc_map[node_id].se_engine];
+	irq_state = &(se_dev->crypto_to_ivc_map[node_id].wait_interrupt);
+
+	ivc_msg = devm_kzalloc(se_dev->dev, size_ivc_msg, GFP_KERNEL);
 	if (!ivc_msg)
 		return -ENOMEM;
 
@@ -4484,74 +4672,42 @@ static int tegra_vse_kthread(void *data)
 		}
 
 		while (tegra_hv_ivc_can_read(pivck)) {
-			read_size = tegra_hv_ivc_read(pivck,
-					ivc_msg,
-					sizeof(struct tegra_virtual_se_ivc_msg_t));
-			if (read_size > 0 &&
-					read_size < sizeof(struct tegra_virtual_se_ivc_msg_t)) {
-				pr_err("Wrong read msg len %d\n", read_size);
-				continue;
-			}
-			p_dat =
-				(struct tegra_vse_tag *)ivc_msg->ivc_hdr.tag;
-			priv = (struct tegra_vse_priv_data *)p_dat->priv_data;
-			if (!priv) {
-				pr_err("%s no call back info\n", __func__);
-				continue;
-			}
-			se_dev = priv->se_dev;
-			priv->syncpt_id = ivc_msg->rx[0].syncpt_id;
-			priv->syncpt_threshold = ivc_msg->rx[0].syncpt_threshold;
-			priv->syncpt_id_valid = ivc_msg->rx[0].syncpt_id_valid;
-
-			switch (priv->cmd) {
-			case VIRTUAL_SE_AES_CRYPTO:
-				priv->rx_status = ivc_msg->rx[0].status;
-				req_ctx = skcipher_request_ctx(priv->req);
-				if ((!priv->rx_status) && (req_ctx->encrypt == true) &&
-						((req_ctx->op_mode == AES_CTR) ||
-						(req_ctx->op_mode == AES_CBC))) {
-					memcpy(priv->iv, ivc_msg->rx[0].iv,
-							TEGRA_VIRTUAL_SE_AES_IV_SIZE);
+			pr_debug("%s(): wait_interrupt = %u", __func__, *irq_state);
+			if (*irq_state == INTERMEDIATE_REQ_INTERRUPT) {
+				err = read_and_validate_valid_msg(se_dev, pivck, node_id,
+					&is_dummy, true);
+				if (err != 0) {
+					dev_err(se_dev->dev,
+						"%s(): Unable to read validate message",
+						__func__);
 				}
-				complete(&priv->alg_complete);
+				*irq_state = NO_INTERRUPT;
+				pr_debug("%s():%d wait_interrupt = %u\n",
+						__func__, __LINE__, *irq_state);
 				break;
-			case VIRTUAL_SE_KEY_SLOT:
-				ivc_rx = &ivc_msg->rx[0];
-				priv->slot_num = ivc_rx->keyslot;
-				complete(&priv->alg_complete);
-				break;
-			case VIRTUAL_SE_PROCESS:
-				ivc_rx = &ivc_msg->rx[0];
-				priv->rx_status = ivc_rx->status;
-				complete(&priv->alg_complete);
-				break;
-			case VIRTUAL_CMAC_PROCESS:
-				ivc_rx = &ivc_msg->rx[0];
-				priv->rx_status = ivc_rx->status;
-				priv->cmac.status = ivc_rx->status;
-				if (!ivc_rx->status) {
-					memcpy(priv->cmac.data, ivc_rx->cmac_result, \
-							TEGRA_VIRTUAL_SE_AES_CMAC_DIGEST_SIZE);
+			} else if (*irq_state == FIRST_REQ_INTERRUPT) {
+				err = read_and_validate_dummy_msg(se_dev, pivck, node_id,
+					&is_dummy);
+				if (err != 0) {
+					dev_err(se_dev->dev, "%s:%d Invalid response header\n",
+						__func__, __LINE__);
+					err = 0;
+					continue;
 				}
-				complete(&priv->alg_complete);
-				break;
-			case VIRTUAL_SE_AES_GCM_ENC_PROCESS:
-				ivc_rx = &ivc_msg->rx[0];
-				priv->rx_status = ivc_rx->status;
-				if (!ivc_rx->status)
-					memcpy(priv->iv, ivc_rx->iv,
-							TEGRA_VIRTUAL_SE_AES_GCM_IV_SIZE);
-
-				complete(&priv->alg_complete);
-				break;
-			default:
-				dev_err(se_dev->dev, "Unknown command\n");
+				if (is_dummy == true) {
+					*irq_state = INTERMEDIATE_REQ_INTERRUPT;
+					pr_debug("%s():%d Dummy message read. Read valid message.",
+						__func__, __LINE__);
+					continue;
+				} else {
+					dev_err(se_dev->dev, "Invalid response sequence");
+					break;
+				}
 			}
 		}
 	}
 
-	kfree(ivc_msg);
+	devm_kfree(se_dev->dev, ivc_msg);
 	return 0;
 }
 
@@ -4720,6 +4876,8 @@ static int tegra_hv_vse_safety_probe(struct platform_device *pdev)
 		goto exit;
 	}
 
+	g_virtual_se_dev[engine_id] = se_dev;
+
 	/* read ivccfg from dts */
 	err = of_property_read_u32_index(np, "nvidia,ivccfg_cnt", 0, &ivc_cnt);
 	if (err) {
@@ -4847,6 +5005,7 @@ static int tegra_hv_vse_safety_probe(struct platform_device *pdev)
 			err = -EINVAL;
 			goto exit;
 		}
+		crypto_dev->wait_interrupt = FIRST_REQ_INTERRUPT;
 	}
 
 	if (pdev->dev.of_node) {
@@ -4863,8 +5022,6 @@ static int tegra_hv_vse_safety_probe(struct platform_device *pdev)
 	}
 
 	se_dev->chipdata = pdata;
-
-	g_virtual_se_dev[engine_id] = se_dev;
 
 	if (engine_id == VIRTUAL_SE_AES0) {
 		err = crypto_register_ahash(&cmac_alg);
