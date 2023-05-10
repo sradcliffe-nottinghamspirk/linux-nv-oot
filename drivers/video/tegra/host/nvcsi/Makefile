@@ -10,4 +10,6 @@ nvhost-nvcsi-objs  = \
 obj-m += nvhost-nvcsi.o
 
 nvhost-nvcsi-t194-objs = nvcsi-t194.o
+ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
 obj-m += nvhost-nvcsi-t194.o
+endif
