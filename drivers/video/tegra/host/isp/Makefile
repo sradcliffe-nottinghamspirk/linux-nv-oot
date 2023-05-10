@@ -4,4 +4,6 @@
 LINUXINCLUDE += -DCONFIG_TEGRA_HOST1X
 
 nvhost-isp5-objs = isp5.o
+ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
 obj-m += nvhost-isp5.o
+endif
