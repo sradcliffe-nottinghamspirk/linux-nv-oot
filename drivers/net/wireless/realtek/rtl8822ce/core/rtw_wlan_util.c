@@ -26,6 +26,10 @@
 	#define IPv6_PROTOCOL_OFFSET	20
 #endif
 
+#ifdef NV_BUILD_KERNEL_ACK
+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+#endif
+
 unsigned char ARTHEROS_OUI1[] = {0x00, 0x03, 0x7f};
 unsigned char ARTHEROS_OUI2[] = {0x00, 0x13, 0x74};
 

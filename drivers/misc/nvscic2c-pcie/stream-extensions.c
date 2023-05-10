@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: stream-ext: " fmt
 
@@ -25,6 +25,10 @@
 #include "pci-client.h"
 #include "stream-extensions.h"
 #include "vmap.h"
+
+#ifdef NV_BUILD_KERNEL_ACK
+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+#endif
 
 /* forward declaration.*/
 struct stream_ext_ctx_t;
