@@ -1231,6 +1231,8 @@ static int ether_phy_init(struct net_device *dev)
 		return -ENODEV;
 	}
 
+	/* Skip the device resume via mdio bus */
+	phydev->mac_managed_pm = true;
 	pdata->phydev = phydev;
 
 	return 0;
