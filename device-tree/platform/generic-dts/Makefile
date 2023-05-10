@@ -15,12 +15,20 @@ DTC_CPP_FLAGS += $(EXTRA_CPP_FLAGS)
 
 DTC_CPP_FLAGS += -DLINUX_VERSION=600 -DTEGRA_HOST1X_DT_VERSION=2
 
+ifneq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
+ifneq ($(TOP),)
+SOURCE_TOP := $(TOP)
+else
+$(error TOP is not defined)
+endif
+else
 ifneq ($(TEGRA_TOP),)
 SOURCE_TOP := $(TEGRA_TOP)
 else ifneq ($(TOP),)
 SOURCE_TOP := $(TOP)
 else
 $(error TEGRA_TOP or TOP is not defined)
+endif
 endif
 
 tegra-dtstree := $(SOURCE_TOP)/hardware/nvidia
