@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -397,7 +397,7 @@ static ssize_t vmid_show(struct class *class,
 }
 static CLASS_ATTR_RO(vmid);
 
-static int __init tegra_hv_setup(struct tegra_hv_data *hvd)
+static int tegra_hv_setup(struct tegra_hv_data *hvd)
 {
 	const int intr_property_size = 3;
 	uint64_t info_page;
