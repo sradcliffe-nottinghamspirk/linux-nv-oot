@@ -4,7 +4,9 @@
 LINUX_VERSION := $(shell expr $(VERSION) \* 256 + $(PATCHLEVEL))
 LINUX_VERSION_6_3 := $(shell expr 6 \* 256 + 3)
 
+ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
 obj-m += mods/
+endif
 obj-m += nvsciipc/
 ifdef CONFIG_PCI
 obj-m += tegra-pcie-dma-test.o
