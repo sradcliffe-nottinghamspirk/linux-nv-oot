@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef INCLUDE_CAMRTC_DBG_MESSAGES_H
@@ -183,7 +183,7 @@ struct camrtc_dbg_run_test_data {
 };
 
 /* Number of memory areas */
-#define CAMRTC_DBG_NUM_MEM_TEST_MEM MK_U32(8)
+#define CAMRTC_DBG_NUM_MEM_TEST_MEM MK_U32(4)
 
 #define CAMRTC_DBG_MAX_MEM_TEST_DATA (\
 	CAMRTC_DBG_MAX_DATA \
