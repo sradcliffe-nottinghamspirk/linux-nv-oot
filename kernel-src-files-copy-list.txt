@@ -2,7 +2,3 @@
 nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
 nvidia/include/linux/cvnas.h include/linux/cvnas.h
 
-# Files/directories for NVPVA
-nvidia/drivers/video/tegra/host/pva drivers/video/tegra/host
-nvidia/include/trace/events/nvhost_pva.h include/trace/events/nvhost_pva.h
-nvidia/include/uapi/linux/nvpva_ioctl.h include/uapi/linux/nvpva_ioctl.h
