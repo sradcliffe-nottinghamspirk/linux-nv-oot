@@ -4,5 +4,4 @@
 KDIR ?= /lib/modules/$(shell uname -r)/build
 
 %:
-	$(MAKE) -C $(KDIR) M=$$PWD/drivers/ srctree.nvidia-oot=$$PWD \
-                                srctree.nvidia=$$PWD CONFIG_TEGRA_OOT_MODULE=m $@
+	$(MAKE) -C $(KDIR) M=$$PWD/drivers/ srctree.nvidia-oot=$$PWD CONFIG_TEGRA_OOT_MODULE=m $@
