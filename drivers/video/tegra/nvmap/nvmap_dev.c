@@ -32,11 +32,6 @@
 #include <linux/iommu.h>
 #include <linux/version.h>
 
-#ifdef CVNAS_BUILTIN
-#include <linux/cvnas.h>
-#include <linux/nvmap_t19x.h>
-#endif /* CVNAS_BUILTIN */
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 #include <soc/tegra/chip-id.h>
 #else
@@ -1491,21 +1486,6 @@ int __init nvmap_probe(struct platform_device *pdev)
 	e = nvmap_sci_ipc_init();
 	if (e)
 		goto fail_heaps;
-
-#ifdef CVNAS_BUILTIN
-	if (tegra_get_chip_id() == TEGRA194) {
-		phys_addr_t cvs_base = nvcvnas_get_cvsram_base();
-		size_t cvs_size = nvcvnas_get_cvsram_size();
-
-		e = nvmap_register_cvsram_carveout(NULL,
-			cvs_base, cvs_size,
-			nvcvnas_busy, nvcvnas_idle);
-		if (e) {
-			dev_err(&pdev->dev, "failed to register cvsram carveout\n");
-			goto fail_sci_ipc;
-		}
-	}
-#endif /* CVNAS_BUILTIN */
 
 	e = misc_register(&dev->dev_user);
 	if (e) {

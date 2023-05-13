@@ -13,7 +13,6 @@
 
 enum nvpva_buffers_heap {
 	NVPVA_BUFFERS_HEAP_DRAM = 0,
-	NVPVA_BUFFERS_HEAP_CVNAS
 };
 
 /**

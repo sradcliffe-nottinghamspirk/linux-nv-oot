@@ -13,9 +13,6 @@ obj-m += tegra-fsicom.o
 tegra-camera-rtcpu-objs :=  tegra-camera-rtcpu-base.o rtcpu/tegra-rtcpu-trace.o rtcpu/rtcpu-monitor.o
 obj-m += tegra-camera-rtcpu.o
 
-ifdef CONFIG_TEGRA_HOST1X
-obj-m += cvnas/
-endif
 obj-m += mce/
 ifdef CONFIG_PERF_EVENTS
 obj-m += uncore_pmu/

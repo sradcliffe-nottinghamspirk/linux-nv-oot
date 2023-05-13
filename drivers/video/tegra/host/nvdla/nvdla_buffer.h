@@ -13,7 +13,6 @@
 
 enum nvdla_buffers_heap {
 	NVDLA_BUFFERS_HEAP_DRAM = 0,
-	NVDLA_BUFFERS_HEAP_CVNAS
 };
 
 /**
