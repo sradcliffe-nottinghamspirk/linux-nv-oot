@@ -1,25 +1,14 @@
-ifeq ($(CONFIG_TEGRA_OOT_MODULE),m)
-NVPVA_OOT = y
-NVPVA_OBJ = m
-else
-NVPVA_OBJ = $(CONFIG_TEGRA_GRHOST_PVA)
-endif
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
 
 GCOV_PROFILE := y
-ccflags-y += -I$(srctree.nvidia)/drivers/video/tegra/host/pva
-ccflags-y += -I$(srctree.nvidia)/drivers/video/tegra/host/pva/fw_include
-ccflags-y += -I$(srctree.nvidia)/include
-ccflags-y += -I$(srctree.nvidia)/include/linux
+ccflags-y += -I$(srctree.nvidia-oot)/drivers/video/tegra/host/pva
+ccflags-y += -I$(srctree.nvidia-oot)/drivers/video/tegra/host/pva/fw_include
 ccflags-y += -Werror
 
-# When using the upstream host1x driver, the Makefile must define the
-# srctree.host1x path in order to find the necessary header files for
-# the upstream host1x driver.
-ccflags-$(NVPVA_OOT) += -I$(srctree.host1x)/include
-ccflags-$(NVPVA_OOT) += -DCONFIG_TEGRA_HOST1X
-ccflags-$(NVPVA_OOT) += -DCONFIG_TEGRA_FUSE_UPSTREAM
-ccflags-$(NVPVA_OOT) += -DTEGRA_OOT_MODULE
-
+ccflags-y += -DCONFIG_TEGRA_HOST1X
+ccflags-y += -DCONFIG_TEGRA_FUSE_UPSTREAM
+ccflags-y += -DTEGRA_OOT_MODULE
 
 nvhost-pva-objs  = \
 		pva.o \
@@ -54,5 +43,5 @@ nvhost-pva-objs  = \
 		pva_ccq_t23x.o \
 		pva_sec_ec.o
 
-obj-$(NVPVA_OBJ) += nvhost-pva.o
+obj-m += nvhost-pva.o
 

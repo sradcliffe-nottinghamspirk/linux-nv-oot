@@ -245,10 +245,4 @@ TRACE_EVENT(nvhost_pva_task_timestamp,
 #endif /*  _TRACE_NVHOST_PVA_H */
 
 /* This part must be outside protection */
-#undef TRACE_INCLUDE_PATH
-#undef TRACE_INCLUDE_FILE
-#define TRACE_INCLUDE_PATH ../../include/trace/events
-
-#define TRACE_INCLUDE_FILE nvhost_pva
-/* This part must be outside protection */
 #include <trace/define_trace.h>
