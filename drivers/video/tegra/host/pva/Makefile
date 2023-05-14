@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
 
+# Enable UPSTREAM FUSE Driver always
+CONFIG_TEGRA_FUSE_UPSTREAM := y
+
 GCOV_PROFILE := y
 ccflags-y += -I$(srctree.nvidia-oot)/drivers/video/tegra/host/pva
 ccflags-y += -I$(srctree.nvidia-oot)/drivers/video/tegra/host/pva/fw_include
