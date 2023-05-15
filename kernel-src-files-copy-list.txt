@@ -1,4 +1,1 @@
-# Files/directories for cvnas module
-nvidia/drivers/platform/tegra/cvnas drivers/platform/tegra
-nvidia/include/linux/cvnas.h include/linux/cvnas.h
-
+# Files/directories to be added for the run time copy
