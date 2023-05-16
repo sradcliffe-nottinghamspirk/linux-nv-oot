@@ -2542,7 +2542,6 @@ static ssize_t ether_nvgro_dump_show(struct device *dev,
 static DEVICE_ATTR(nvgro_dump, 0644,
 		   ether_nvgro_dump_show, NULL);
 #endif
-#endif /* OSI_STRIPPED_LIB */
 
 #ifdef HSI_SUPPORT
 #if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
@@ -2685,6 +2684,7 @@ static DEVICE_ATTR(hsi_enable, 0644,
 		   hsi_enable_show,
 		   hsi_enable_store);
 #endif
+#endif /* OSI_STRIPPED_LIB */
 
 /**
  * @brief Attributes for nvethernet sysfs
@@ -2728,10 +2728,10 @@ static struct attribute *ether_sysfs_attrs[] = {
 	&dev_attr_nvgro_stats.attr,
 	&dev_attr_nvgro_dump.attr,
 #endif
-#endif /* OSI_STRIPPED_LIB */
 #ifdef HSI_SUPPORT
 	&dev_attr_hsi_enable.attr,
 #endif
+#endif /* OSI_STRIPPED_LIB */
 	NULL
 };
 
