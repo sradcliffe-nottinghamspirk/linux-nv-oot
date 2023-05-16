@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
-obj-m += firmwares-class.o
-obj-m += firmwares-inventory.o
-
 tegra-bootloader-debug-objs := tegra_bootloader_debug.o
 tegra-bootloader-debug-objs += tegra_bootloader_debug_init.o
 obj-m += tegra-bootloader-debug.o
