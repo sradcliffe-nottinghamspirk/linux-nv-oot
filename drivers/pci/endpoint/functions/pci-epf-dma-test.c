@@ -2,7 +2,7 @@
 /*
  * PCIe DMA EPF test framework for Tegra PCIe
  *
- * Copyright (C) 2021-2022 NVIDIA Corporation. All rights reserved.
+ * Copyright (C) 2021-2023 NVIDIA Corporation. All rights reserved.
  */
 
 #include <linux/crc32.h>
@@ -1348,11 +1348,11 @@ wr2_task:
 wr1_task:
 	kthread_stop(epfnv->wr0_task);
 wr0_task:
-#endif
 	epfnv->async_dma = false;
 	epfnv->task_done = 0;
 
 	return 0;
+#endif
 }
 
 static void init_debugfs(struct pcie_epf_dma *epfnv)
@@ -1699,9 +1699,6 @@ static int pcie_dma_epf_probe(struct pci_epf *epf)
 
 	epfnv->edma.ll_desc = devm_kzalloc(dev, sizeof(*epfnv->ll_desc) * NUM_EDMA_DESC,
 					   GFP_KERNEL);
-	if (!epfnv)
-		return -ENOMEM;
-
 	gepfnv = epfnv;
 	epf_set_drvdata(epf, epfnv);
 
