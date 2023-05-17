@@ -17,7 +17,6 @@
 #include <linux/completion.h>
 #include <linux/jiffies.h>
 #include <linux/firmware.h>
-#include <linux/tegra-firmwares.h>
 
 #include <aon.h>
 
@@ -417,23 +416,6 @@ static int aon_tag_show(struct seq_file *file, void *param)
 
 	return ret;
 }
-
-static ssize_t aon_version_show(struct device *dev, char *buf, size_t size)
-{
-	char *data;
-	int ret = 0;
-
-	mutex_lock(&aon_mutex);
-	ret = aon_get_fwtag(AON_QUERY_TAG, &data);
-	if (ret < 0)
-		ret = snprintf(buf, size, "error retrieving version: %d", ret);
-	else
-		ret = snprintf(buf, size, "%s", data ? data : "unavailable");
-	mutex_unlock(&aon_mutex);
-
-	return ret;
-}
-
 
 static int aon_tag_open(struct inode *inode, struct file *file)
 {
@@ -872,8 +854,6 @@ int tegra_aon_debugfs_create(struct tegra_aon *aon)
 		dev_err(dev, "failed to create debugfs nodes.\n");
 		goto exit;
 	}
-
-	devm_tegrafw_register(dev, "aon", TFW_NORMAL, aon_version_show, NULL);
 
 exit:
 	return ret;
