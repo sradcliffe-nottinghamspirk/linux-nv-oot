@@ -97,14 +97,19 @@ static int __ufs_tegra_mphy_receiver_calibration(
 		void __iomem *mphy_base)
 {
 	struct device *dev = ufs_tegra->hba->dev;
-	u32 mphy_rx_vendor;
+	u32 mphy_rx_vendor, mphy_rx_vendor2_reg;
 	int timeout = 100;
 
-	mphy_update(mphy_base, MPHY_GO_BIT, MPHY_RX_APB_VENDOR2_0);
+	if (ufs_tegra->soc->chip_id == TEGRA234)
+		mphy_rx_vendor2_reg = MPHY_RX_APB_VENDOR2_0_T234;
+	else
+		mphy_rx_vendor2_reg = MPHY_RX_APB_VENDOR2_0;
+
+	mphy_update(mphy_base, MPHY_GO_BIT, mphy_rx_vendor2_reg);
 
 	while (timeout--) {
 		udelay(1);
-		mphy_rx_vendor = mphy_readl(mphy_base, MPHY_RX_APB_VENDOR2_0);
+		mphy_rx_vendor = mphy_readl(mphy_base, mphy_rx_vendor2_reg);
 		if (mphy_rx_vendor & MPHY_RX_APB_VENDOR2_0_RX_CAL_DONE) {
 			dev_info(dev, "MPhy Receiver Calibration passed\n");
 			return 0;
@@ -129,18 +134,24 @@ static int ufs_tegra_mphy_receiver_calibration(struct ufs_tegra_host *ufs_tegra,
 					       void __iomem *mphy_base)
 {
 	int err = 0;
+	u32 mphy_rx_vendor2_reg;
 
-	if (!ufs_tegra->enable_mphy_rx_calib)
+	if (ufs_tegra->enable_mphy_rx_calib)
 		return 0;
 
+	if (ufs_tegra->soc->chip_id == TEGRA234)
+		mphy_rx_vendor2_reg = MPHY_RX_APB_VENDOR2_0_T234;
+	else
+		mphy_rx_vendor2_reg = MPHY_RX_APB_VENDOR2_0;
+
 	mphy_update(mphy_base, MPHY_RX_APB_VENDOR2_0_RX_CAL_EN,
-		    MPHY_RX_APB_VENDOR2_0);
+		    mphy_rx_vendor2_reg);
 	err = __ufs_tegra_mphy_receiver_calibration(ufs_tegra, mphy_base);
 	if (err)
 		return err;
 
 	mphy_clear_bits(mphy_base, MPHY_RX_APB_VENDOR2_0_RX_CAL_EN,
-			MPHY_RX_APB_VENDOR2_0);
+			mphy_rx_vendor2_reg);
 	err = __ufs_tegra_mphy_receiver_calibration(ufs_tegra, mphy_base);
 
 	return err;
