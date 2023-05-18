@@ -488,7 +488,7 @@ static struct dma_buf *__dma_buf_export(struct nvmap_handle_info *info,
 		exp_info.flags = O_RDWR;
 	}
 
-#if KERNEL_VERSION(6, 0, 0) > LINUX_VERSION_CODE
+#ifdef NVMAP_DEFERRED_DMABUF_UNMAP
 	/* Disable defer unmap feature only for kstable */
 	exp_info.exp_flags = DMABUF_CAN_DEFER_UNMAP |
 				DMABUF_SKIP_CACHE_SYNC;

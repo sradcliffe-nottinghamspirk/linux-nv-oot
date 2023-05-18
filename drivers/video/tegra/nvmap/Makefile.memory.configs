@@ -118,6 +118,9 @@ NVMAP_CONFIG_UPSTREAM_KERNEL := n
 
 # Config for enabling the cache flush at buffer allocation time from carveout
 NVMAP_CONFIG_CACHE_FLUSH_AT_ALLOC := y
+
+# Config for enabling the dma-buf deferred unmapping
+NVMAP_CONFIG_DMABUF_DEFERRED_UNMAPPING := n
 ################################################################################
 # Section 3
 # Enable/Disable configs based upon the kernel version
@@ -139,6 +142,10 @@ NVMAP_CONFIG_SCIIPC := y
 NVMAP_CONFIG_UPSTREAM_KERNEL := y
 NVMAP_CONFIG_COLOR_PAGES := n
 endif
+ifeq ($(CONFIG_DMABUF_DEFERRED_UNMAPPING),y)
+NVMAP_CONFIG_DMABUF_DEFERRED_UNMAPPING := y
+endif
+
 ################################################################################
 # Section 4
 # This section creates ccflags based upon the values specified
@@ -197,6 +204,10 @@ endif #NVMAP_CONFIG_LOADABLE_MODULE
 ifeq ($(NVMAP_CONFIG_UPSTREAM_KERNEL),y)
 ccflags-y += -DNVMAP_UPSTREAM_KERNEL
 endif #NVMAP_CONFIG_UPSTREAM_KERNEL
+
+ifeq ($(NVMAP_CONFIG_DMABUF_DEFERRED_UNMAPPING),y)
+ccflags-y += -DNVMAP_DEFERRED_DMABUF_UNMAP
+endif
 
 ifeq ($(NVMAP_CONFIG_PROCRANK),y)
 ccflags-y += -DNVMAP_CONFIG_PROCRANK
