@@ -184,7 +184,7 @@ struct hyp_server_page {
 #define _X4_X17 "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", \
 "x13", "x14", "x15", "x16", "x17"
 
-static inline int hyp_read_gid(unsigned int *gid)
+__attribute__((no_sanitize_address)) static inline int hyp_read_gid(unsigned int *gid)
 {
 	register uint64_t r0 asm("x0");
 	register uint64_t r1 asm("x1");
@@ -198,7 +198,7 @@ static inline int hyp_read_gid(unsigned int *gid)
 	return (int)r0;
 }
 
-static inline int hyp_read_nguests(unsigned int *nguests)
+__attribute__((no_sanitize_address)) static inline int hyp_read_nguests(unsigned int *nguests)
 {
 	register uint64_t r0 asm("x0");
 	register uint64_t r1 asm("x1");
@@ -212,7 +212,7 @@ static inline int hyp_read_nguests(unsigned int *nguests)
 	return (int)r0;
 }
 
-static inline int hyp_read_ivc_info(uint64_t *ivc_info_page_pa)
+__attribute__((no_sanitize_address)) static inline int hyp_read_ivc_info(uint64_t *ivc_info_page_pa)
 {
 	register uint64_t r0 asm("x0");
 	register uint64_t r1 asm("x1");
@@ -226,7 +226,7 @@ static inline int hyp_read_ivc_info(uint64_t *ivc_info_page_pa)
 	return (int)r0;
 }
 
-static inline int hyp_read_ipa_pa_info(struct hyp_ipa_pa_info *info,
+__attribute__((no_sanitize_address)) static inline int hyp_read_ipa_pa_info(struct hyp_ipa_pa_info *info,
 		unsigned int guestid, uint64_t ipa)
 {
 	register uint64_t r0 asm("x0") = guestid;
@@ -247,7 +247,7 @@ static inline int hyp_read_ipa_pa_info(struct hyp_ipa_pa_info *info,
 	return (int)r0;
 }
 
-static inline int hyp_raise_irq(unsigned int irq, unsigned int vmid)
+__attribute__((no_sanitize_address)) static inline int hyp_raise_irq(unsigned int irq, unsigned int vmid)
 {
 	register uint64_t r0 asm("x0") = irq;
 	register uint64_t r1 asm("x1") = vmid;
@@ -260,7 +260,7 @@ static inline int hyp_raise_irq(unsigned int irq, unsigned int vmid)
 	return (int)r0;
 }
 
-static inline int hyp_read_guest_state(unsigned int vmid, unsigned int *state)
+__attribute__((no_sanitize_address)) static inline int hyp_read_guest_state(unsigned int vmid, unsigned int *state)
 {
 	register uint64_t r0 asm("x0") = vmid;
 	register uint64_t r1 asm("x1");
@@ -274,7 +274,7 @@ static inline int hyp_read_guest_state(unsigned int vmid, unsigned int *state)
 	return (int)r0;
 }
 
-static inline int hyp_read_hyp_info(uint64_t *hyp_info_page_pa)
+__attribute__((no_sanitize_address)) static inline int hyp_read_hyp_info(uint64_t *hyp_info_page_pa)
 {
 	register uint64_t r0 asm("x0");
 	register uint64_t r1 asm("x1");
@@ -288,7 +288,7 @@ static inline int hyp_read_hyp_info(uint64_t *hyp_info_page_pa)
 	return (int)r0;
 }
 
-static inline int hyp_guest_reset(unsigned int id,
+__attribute__((no_sanitize_address)) static inline int hyp_guest_reset(unsigned int id,
 				  struct hyp_sys_state_info *out)
 {
 	register uint64_t r0 asm("x0") = id;
@@ -311,7 +311,7 @@ static inline int hyp_guest_reset(unsigned int id,
 	return (int)r0;
 }
 
-static inline uint64_t hyp_sysinfo_ipa(void)
+__attribute__((no_sanitize_address)) static inline uint64_t hyp_sysinfo_ipa(void)
 {
 	register uint64_t r0 asm("x0");
 
@@ -323,7 +323,7 @@ static inline uint64_t hyp_sysinfo_ipa(void)
 	return r0;
 }
 
-static inline int hyp_read_freq_feedback(uint64_t *value)
+__attribute__((no_sanitize_address)) static inline int hyp_read_freq_feedback(uint64_t *value)
 {
 	register uint64_t r0 asm("x0") = HVC_NR_CPU_FREQ;
 	register uint64_t r1 asm("x1") = 1U;
@@ -339,7 +339,7 @@ static inline int hyp_read_freq_feedback(uint64_t *value)
 	return (int16_t)r0;
 }
 
-static inline int hyp_read_freq_request(uint64_t *value)
+__attribute__((no_sanitize_address)) static inline int hyp_read_freq_request(uint64_t *value)
 {
 	register uint64_t r0 asm("x0") = HVC_NR_CPU_FREQ;
 	register uint64_t r1 asm("x1") = 0U;
@@ -355,7 +355,7 @@ static inline int hyp_read_freq_request(uint64_t *value)
 	return (int16_t)r0;
 }
 
-static inline int hyp_write_freq_request(uint64_t value)
+__attribute__((no_sanitize_address)) static inline int hyp_write_freq_request(uint64_t value)
 {
 	register uint64_t r0 asm("x0") = HVC_NR_CPU_FREQ;
 	register uint64_t r1 asm("x1") = 2U;
@@ -369,7 +369,7 @@ static inline int hyp_write_freq_request(uint64_t value)
 	return (int16_t)r0;
 }
 
-static inline int hyp_pct_cpu_id_read_freq_feedback(uint8_t cpu_id,
+__attribute__((no_sanitize_address)) static inline int hyp_pct_cpu_id_read_freq_feedback(uint8_t cpu_id,
 							uint64_t *value)
 {
 	register uint64_t r0 asm("x0") = HVC_NR_CPU_FREQ;
@@ -388,7 +388,7 @@ static inline int hyp_pct_cpu_id_read_freq_feedback(uint8_t cpu_id,
 
 }
 
-static inline int hyp_pct_cpu_id_read_freq_request(uint8_t cpu_id,
+__attribute__((no_sanitize_address)) static inline int hyp_pct_cpu_id_read_freq_request(uint8_t cpu_id,
 							uint64_t *value)
 {
 	register uint64_t r0 asm("x0") = HVC_NR_CPU_FREQ;
@@ -406,7 +406,7 @@ static inline int hyp_pct_cpu_id_read_freq_request(uint8_t cpu_id,
 	return (int16_t)r0;
 }
 
-static inline int hyp_pct_cpu_id_write_freq_request(uint8_t cpu_id,
+__attribute__((no_sanitize_address)) static inline int hyp_pct_cpu_id_write_freq_request(uint8_t cpu_id,
 							uint64_t value)
 {
 	register uint64_t r0 asm("x0") = HVC_NR_CPU_FREQ;
@@ -422,7 +422,7 @@ static inline int hyp_pct_cpu_id_write_freq_request(uint8_t cpu_id,
 	return (int16_t)r0;
 }
 
-static inline uint8_t hyp_get_cpu_count(void)
+__attribute__((no_sanitize_address)) static inline uint8_t hyp_get_cpu_count(void)
 {
 	register uint64_t r0 asm("x0") = HVC_NR_CPU_FREQ;
 	register uint64_t r1 asm("x1") = 6U;
@@ -438,7 +438,7 @@ static inline uint8_t hyp_get_cpu_count(void)
 	return 0;
 }
 
-static __attribute__((always_inline)) inline void hyp_call44(uint16_t id,
+__attribute__((no_sanitize_address)) static __attribute__((always_inline)) inline void hyp_call44(uint16_t id,
 			uint64_t args[4])
 {
 		register uint64_t x0 asm("x0") = args[0];
@@ -457,7 +457,7 @@ static __attribute__((always_inline)) inline void hyp_call44(uint16_t id,
 		args[3] = x3;
 }
 
-static inline int hyp_trace_get_mask(uint64_t *value)
+__attribute__((no_sanitize_address)) static inline int hyp_trace_get_mask(uint64_t *value)
 {
 	uint64_t args[4] = { 0U, 0U, 0U, 0U };
 
@@ -468,7 +468,7 @@ static inline int hyp_trace_get_mask(uint64_t *value)
 	return (int) args[0];
 }
 
-static inline int hyp_trace_set_mask(uint64_t mask)
+__attribute__((no_sanitize_address)) static inline int hyp_trace_set_mask(uint64_t mask)
 {
 	uint64_t args[4] = { mask, 0U, 0U, 0U };
 
