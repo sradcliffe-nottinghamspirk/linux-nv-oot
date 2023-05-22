@@ -6,4 +6,5 @@ obj-m += nvidia/
 ifdef CONFIG_PCI
 obj-m += marvell/
 obj-m += microchip/
+obj-m += realtek/
 endif
