@@ -14,7 +14,16 @@
 #include <linux/slab.h>
 #include <linux/memblock.h>
 #include <asm/page.h>
-#include "tegra_bootloader_debug.h"
+#include <linux/types.h>
+
+static phys_addr_t tegra_bl_debug_data_start;
+static phys_addr_t tegra_bl_debug_data_size;
+static phys_addr_t tegra_bl_prof_start;
+static phys_addr_t tegra_bl_prof_size;
+static phys_addr_t tegra_bl_prof_ro_start;
+static phys_addr_t tegra_bl_prof_ro_size;
+static phys_addr_t tegra_bl_bcp_start;
+static phys_addr_t tegra_bl_bcp_size;
 
 static const char *module_name = "tegra_bootloader_debug";
 static const char *dir_name = "tegra_bootloader";
@@ -26,6 +35,11 @@ static const char *gr_file_mb2 = "gr_mb2";
 static const char *gr_file_cpu_bl = "gr_cpu_bl";
 static const char *boot_cfg = "boot_cfg";
 #endif
+
+static char *bl_debug_data = "0@0x0";
+static char *bl_prof_dataptr = "0@0x0";
+static char *bl_prof_ro_ptr = "0@0x0";
+static char *bl_bcp_ptr = "0@0x0";
 
 struct gr_address_value {
 	unsigned int gr_address;
@@ -570,8 +584,70 @@ static int boot_cfg_open(struct inode *inode, struct file *file)
 }
 #endif /* CONFIG_DEBUG_FS */
 
+static int __init tegra_bl_args(char *options, phys_addr_t *tegra_bl_arg_size,
+				phys_addr_t *tegra_bl_arg_start)
+{
+	char *p = options;
+
+	*tegra_bl_arg_size = memparse(p, &p);
+
+	if (!p)
+		return -EINVAL;
+	if (*p != '@')
+		return -EINVAL;
+
+	*tegra_bl_arg_start = memparse(p + 1, &p);
+
+	if (!(*tegra_bl_arg_size) || !(*tegra_bl_arg_start)) {
+		*tegra_bl_arg_size = 0;
+		*tegra_bl_arg_start = 0;
+		return 0;
+	}
+
+	if (pfn_valid(__phys_to_pfn(*tegra_bl_arg_start))) {
+		pr_err("pfn_valid is true for %08llx@%08llx\n",
+			(u64)*tegra_bl_arg_size,
+			(u64)*tegra_bl_arg_start);
+		*tegra_bl_arg_size = 0;
+		*tegra_bl_arg_start = 0;
+		return -ENXIO;
+	}
+
+	return 0;
+}
+
 static int __init tegra_bl_debuginit_module_init(void)
 {
+	int err = 0;
+
+	err = tegra_bl_args(bl_prof_dataptr,
+			&tegra_bl_prof_size,
+			&tegra_bl_prof_start);
+
+	if (err != 0)
+		return err;
+
+	err = tegra_bl_args(bl_prof_ro_ptr,
+			&tegra_bl_prof_ro_size,
+			&tegra_bl_prof_ro_start);
+
+	if (err != 0)
+		return err;
+
+	err = tegra_bl_args(bl_debug_data,
+			&tegra_bl_debug_data_size,
+			&tegra_bl_debug_data_start);
+
+	if (err != 0)
+		return err;
+
+	err = tegra_bl_args(bl_bcp_ptr,
+			&tegra_bl_bcp_size,
+			&tegra_bl_bcp_start);
+
+	if (err != 0)
+		return err;
+
 	return tegra_bootloader_debuginit();
 }
 
@@ -605,6 +681,11 @@ static void __exit tegra_bl_debuginit_module_exit(void)
 	if (usc)
 		iounmap(usc);
 }
+
+module_param(bl_debug_data, charp, 0400);
+module_param(bl_prof_dataptr, charp, 0400);
+module_param(bl_prof_ro_ptr, charp, 0400);
+module_param(bl_bcp_ptr, charp, 0400);
 
 module_init(tegra_bl_debuginit_module_init);
 module_exit(tegra_bl_debuginit_module_exit);

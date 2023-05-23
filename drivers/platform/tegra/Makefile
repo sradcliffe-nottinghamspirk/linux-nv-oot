@@ -2,7 +2,6 @@
 # Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 tegra-bootloader-debug-objs := tegra_bootloader_debug.o
-tegra-bootloader-debug-objs += tegra_bootloader_debug_init.o
 obj-m += tegra-bootloader-debug.o
 
 tegra-cactmon-objs := cactmon.o
