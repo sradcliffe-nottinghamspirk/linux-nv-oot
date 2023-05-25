@@ -2,13 +2,14 @@
 /*
  * ISP5 driver
  *
- * Copyright (c) 2017-2022, NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2017-2023, NVIDIA Corporation.  All rights reserved.
  */
 
 #include <asm/ioctls.h>
 #include <linux/debugfs.h>
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-buf.h>
 #include <linux/export.h>
 #include <linux/fs.h>
 #include <linux/module.h>
@@ -138,6 +139,11 @@ int isp5_priv_early_probe(struct platform_device *pdev)
 
 	/* A bit was stolen */
 	(void) dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(39));
+
+#ifdef CONFIG_DMABUF_DEFERRED_UNMAPPING
+	if (dma_buf_defer_unmapping(dev, true) < 0)
+		dev_warn(dev, "Failed to set deferred dma buffer unmapping\n");
+#endif
 
 	return 0;
 

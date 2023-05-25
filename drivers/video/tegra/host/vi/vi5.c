@@ -9,6 +9,7 @@
 #include <linux/debugfs.h>
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-buf.h>
 #include <linux/export.h>
 #include <linux/fs.h>
 #include <linux/module.h>
@@ -180,6 +181,11 @@ int vi5_priv_early_probe(struct platform_device *pdev)
 	info->private_data = vi5;
 
 	(void) dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(39));
+
+#ifdef CONFIG_DMABUF_DEFERRED_UNMAPPING
+	if (dma_buf_defer_unmapping(dev, true) < 0)
+		dev_warn(dev, "Failed to set deferred dma buffer unmapping\n");
+#endif
 
 	return 0;
 
