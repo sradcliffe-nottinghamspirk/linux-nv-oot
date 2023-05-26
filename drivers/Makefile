@@ -26,6 +26,9 @@ obj-m += firmware/tegra/
 ifdef CONFIG_TEGRA_HOST1X
 obj-m += gpu/
 endif
+ifdef CONFIG_HWMON
+obj-m += hwmon/
+endif
 ifdef CONFIG_I2C
 obj-m += i2c/busses/
 obj-m += mfd/
