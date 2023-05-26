@@ -18,11 +18,7 @@
 #include <linux/nvhost.h>
 #include <linux/host1x.h>
 
-#ifdef CONFIG_EVENTLIB
-#include <linux/keventlib.h>
 #include <uapi/linux/nvdev_fence.h>
-#include <uapi/linux/nvhost_events.h>
-#endif
 
 #include <linux/version.h>
 #if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
@@ -34,6 +30,8 @@
 #include <linux/seq_file.h>
 #include <uapi/linux/nvpva_ioctl.h>
 #include <trace/events/nvhost_pva.h>
+#define CREATE_TRACE_POINTS
+#include <trace/events/nvpva_ftrace.h>
 
 #include "pva.h"
 #include "nvpva_buffer.h"
@@ -812,10 +810,9 @@ out:
 
 	return err;
 }
-#ifdef CONFIG_EVENTLIB
 
 static void
-pva_eventlib_fill_fence(struct nvdev_fence *dst_fence,
+pva_trace_log_fill_fence(struct nvdev_fence *dst_fence,
 			struct nvpva_submit_fence *src_fence)
 {
 	static u32 obj_type[] = {NVDEV_FENCE_TYPE_SYNCPT,
@@ -844,106 +841,53 @@ pva_eventlib_fill_fence(struct nvdev_fence *dst_fence,
 }
 
 static void
-pva_eventlib_record_r5_states(struct platform_device *pdev,
+pva_trace_log_record_task_states(struct platform_device *pdev,
 			      u32 syncpt_id,
 			      u32 syncpt_thresh,
 			      struct pva_task_statistics_s *stats,
 			      struct pva_submit_task *task)
 {
-	struct nvhost_device_data *pdata = platform_get_drvdata(pdev);
-	struct nvhost_pva_task_state state;
 	struct nvdev_fence post_fence;
 	struct nvpva_submit_fence *fence;
 	u8 i;
 
-	if ((task->pva->profiling_level == 0) || (!pdata->eventlib_id))
+	if ((task->pva->profiling_level == 0) || (!IS_ENABLED(CONFIG_TRACING)))
 		return;
 
 	/* Record task postfences */
 	for (i = 0 ; i < task->num_pva_fence_actions[NVPVA_FENCE_POST]; i++) {
 		fence = &(task->pva_fence_actions[NVPVA_FENCE_POST][i].fence);
-		pva_eventlib_fill_fence(&post_fence, fence);
-		nvhost_eventlib_log_fences(pdev,
-					   syncpt_id,
-					   syncpt_thresh,
-					   &post_fence,
-					   1,
-					   NVDEV_FENCE_KIND_POST,
-					   stats->complete_time);
+		pva_trace_log_fill_fence(&post_fence, fence);
+		trace_job_postfence(task->id,
+				    post_fence.syncpoint_index,
+				    post_fence.syncpoint_value);
+
 	}
 
-	state.class_id		= pdata->class;
-	state.syncpt_id		= syncpt_id;
-	state.syncpt_thresh	= syncpt_thresh;
-	state.vpu_id		= stats->vpu_assigned;
-	state.queue_id		= stats->queue_id;
-	state.iova		= task->dma_addr;
-
-	keventlib_write(pdata->eventlib_id,
-			&state,
-			sizeof(state),
-			stats->vpu_assigned == 0 ? NVHOST_PVA_VPU0_BEGIN
-						 : NVHOST_PVA_VPU1_BEGIN,
-			stats->vpu_start_time);
-
-	keventlib_write(pdata->eventlib_id,
-			&state,
-			sizeof(state),
-			stats->vpu_assigned == 0 ? NVHOST_PVA_VPU0_END
-						 : NVHOST_PVA_VPU1_END,
-			stats->vpu_complete_time);
-	keventlib_write(pdata->eventlib_id,
-			&state,
-			sizeof(state),
-			NVHOST_PVA_PREPARE_END,
-			stats->vpu_start_time);
-	keventlib_write(pdata->eventlib_id,
-			&state,
-			sizeof(state),
-			NVHOST_PVA_POST_BEGIN,
-			stats->vpu_complete_time);
-
-	if (task->pva->profiling_level >= 2) {
-		keventlib_write(pdata->eventlib_id,
-				&state,
-				sizeof(state),
-				NVHOST_PVA_QUEUE_BEGIN,
-				stats->queued_time);
-
-		keventlib_write(pdata->eventlib_id,
-				&state,
-				sizeof(state),
-				NVHOST_PVA_QUEUE_END,
-				stats->vpu_assigned_time);
-
-		keventlib_write(pdata->eventlib_id,
-				&state,
-				sizeof(state),
-				NVHOST_PVA_PREPARE_BEGIN,
-				stats->vpu_assigned_time);
-
-		keventlib_write(pdata->eventlib_id,
-				&state,
-				sizeof(state),
-				NVHOST_PVA_POST_END,
-				stats->complete_time);
+	if (task->pva->profiling_level == 1) {
+		trace_pva_job_base_event(task->id,
+					 syncpt_id,
+					 syncpt_thresh,
+					 stats->vpu_assigned,
+					 stats->queue_id,
+					 stats->vpu_start_time,
+					 stats->vpu_complete_time);
+	} else if (task->pva->profiling_level >= 2) {
+		trace_pva_job_ext_event(task->id,
+					 syncpt_id,
+					 syncpt_thresh,
+					 stats->vpu_assigned,
+					 stats->queue_id,
+					 stats->queued_time,
+					 stats->vpu_assigned_time,
+					 stats->vpu_assigned_time,
+					 stats->vpu_start_time,
+					 stats->vpu_start_time,
+					 stats->vpu_complete_time,
+					 stats->vpu_complete_time,
+					 stats->complete_time);
 	}
 }
-#else
-static void
-pva_eventlib_fill_fence(struct nvdev_fence *dst_fence,
-			struct nvpva_submit_fence *src_fence)
-{
-}
-static void
-pva_eventlib_record_r5_states(struct platform_device *pdev,
-			      u32 syncpt_id,
-			      u32 syncpt_thresh,
-			      struct pva_task_statistics_s *stats,
-			      struct pva_submit_task *task)
-{
-}
-#endif
 
 void pva_task_free(struct kref *ref)
 {
@@ -1053,19 +997,17 @@ static void update_one_task(struct pva *pva)
 				    stats->vpu_assigned,
 				    r5_overhead);
 prof:
-	if (task->pva->profiling_level == 0)
+	if ((task->pva->profiling_level == 0) || (!IS_ENABLED(CONFIG_TRACING)))
 		goto out;
 
-	nvhost_eventlib_log_task(pdev,
-				 queue->syncpt_id,
-				 task->local_sync_counter,
+	trace_job_timestamps(task->id,
 				 stats->vpu_assigned_time,
 				 stats->complete_time);
-	pva_eventlib_record_r5_states(pdev,
-				      queue->syncpt_id,
-				      task->local_sync_counter,
-				      stats,
-				      task);
+	pva_trace_log_record_task_states(pdev,
+				       queue->syncpt_id,
+				       task->local_sync_counter,
+				       stats,
+				       task);
 out:
 	/* Not linked anymore so drop the reference */
 	kref_put(&task->ref, pva_task_free);
@@ -1156,6 +1098,8 @@ static int pva_task_submit(const struct pva_submit_tasks *task_header)
 {
 	struct pva_submit_task *first_task = task_header->tasks[0];
 	struct nvpva_queue *queue = first_task->queue;
+	struct nvhost_device_data *pdata = platform_get_drvdata(first_task->pva->pdev);
+
 	u64 timestamp;
 	int err = 0;
 	u32 i;
@@ -1225,22 +1169,20 @@ static int pva_task_submit(const struct pva_submit_tasks *task_header)
 		struct nvdev_fence pre_fence;
 		struct pva_submit_task *task = task_header->tasks[i];
 
+		trace_job_submit(&task->pva->pdev->dev,
+				     pdata->class, task->id,
+				     task->num_prefences,
+				     task->prog_id,
+				     task->stream_id,
+				     timestamp);
 		for (j = 0; j < task->num_prefences; j++) {
-			pva_eventlib_fill_fence(&pre_fence,
+			pva_trace_log_fill_fence(&pre_fence,
 						&task->prefences[j]);
-			nvhost_eventlib_log_fences(task->pva->pdev,
-						   queue->syncpt_id,
-						   task->local_sync_counter,
-						   &pre_fence,
-						   1,
-						   NVDEV_FENCE_KIND_PRE,
-						   timestamp);
-		}
+			trace_job_prefence(task->id,
+					   pre_fence.syncpoint_index,
+					   pre_fence.syncpoint_value);
 
-		nvhost_eventlib_log_submit(task->pva->pdev,
-					   queue->syncpt_id,
-					   task->local_sync_counter,
-					   timestamp);
+		}
 	}
 out:
 	return 0;
@@ -1296,7 +1238,9 @@ set_task_parameters(const struct pva_submit_tasks *task_header)
 		status_interface = (task->queue->id + 1U);
 
 	for (idx = 0U; idx < task_header->num_tasks; idx++) {
+		queue->task_idx = (queue->task_idx + 1) & 0xFFFFFF;
 		task = task_header->tasks[idx];
+		task->id = queue->task_idx | (queue->id << 24);
 		hw_task = task->va;
 		WARN_ON(task->pool_index > 0xFF);
 		hw_task->task.task_id = task->pool_index;

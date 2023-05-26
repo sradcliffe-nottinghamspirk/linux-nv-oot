@@ -283,6 +283,7 @@ struct nvpva_queue_pool *nvpva_queue_init(struct platform_device *pdev,
 		queue->pool = pool;
 		queue->task_pool = (void *)&task_pool[i];
 		queue->batch_id = 0U;
+		queue->task_idx = 0U;
 		nvpva_queue_get_task_size(queue);
 	}
 

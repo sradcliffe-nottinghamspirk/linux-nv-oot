@@ -61,7 +61,7 @@ struct nvpva_queue {
 	struct nvpva_queue_pool *pool;
 	struct kref kref;
 	u32 id;
-
+	u32 task_idx;
 	/*wait list for task mem requester*/
 	struct semaphore task_pool_sem;
 

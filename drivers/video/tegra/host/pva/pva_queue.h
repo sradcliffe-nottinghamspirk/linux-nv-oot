@@ -93,6 +93,8 @@ struct pva_submit_task {
 
 	bool pinned_app;
 	u32 exe_id;
+	u64 stream_id;
+	u64 prog_id;
 
 	u32 l2_alloc_size; /* Not applicable for Xavier */
 	struct pva_cb *stdout;
@@ -116,7 +118,7 @@ struct pva_submit_task {
 
 	u32 sem_thresh;
 	u32 sem_num;
-
+	u32 id;
 	/* Data provided by userspace "as is" */
 	struct nvpva_submit_fence prefences[NVPVA_TASK_MAX_PREFENCES];
 	struct nvpva_fence_action

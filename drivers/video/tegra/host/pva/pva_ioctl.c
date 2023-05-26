@@ -170,6 +170,8 @@ static int pva_copy_task(struct nvpva_ioctl_task *ioctl_task,
 	 * copy them.
 	 */
 	task->exe_id = ioctl_task->exe_id;
+	task->stream_id = ioctl_task->stream_id;
+	task->prog_id = ioctl_task->prog_id;
 	task->l2_alloc_size = ioctl_task->l2_alloc_size;
 	task->symbol_payload_size = ioctl_task->symbol_payload.size;
 	task->flags = ioctl_task->flags;
