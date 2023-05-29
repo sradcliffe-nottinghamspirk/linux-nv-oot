@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION, All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION. All rights reserved.
 
 #ifndef __TEGRA_MC_UTILS_H
 #define __TEGRA_MC_UTILS_H
@@ -30,6 +30,14 @@ enum dram_types {
 	DRAM_TYPE_LPDDR4_8CH_2RANK,
 	DRAM_TYPE_LPDDR4_4CH_1RANK,
 	DRAM_TYPE_LPDDR4_4CH_2RANK,
+};
+
+struct mc_utils_ops {
+	unsigned long (*emc_freq_to_bw)(unsigned long freq);
+	unsigned long (*emc_bw_to_freq)(unsigned long bw);
+	enum dram_types (*tegra_dram_types)(void);
+	u8 (*get_dram_num_channels)(void);
+	unsigned long (*dram_clk_to_mc_clk)(unsigned long dram_clk);
 };
 
 /*

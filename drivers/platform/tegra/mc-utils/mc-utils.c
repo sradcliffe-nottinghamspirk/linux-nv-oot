@@ -82,6 +82,7 @@ static struct emc_params emc_param;
 static u32 ch_num;
 
 static enum dram_types dram_type;
+static struct mc_utils_ops *ops;
 
 static unsigned long freq_to_bw(unsigned long freq)
 {
@@ -107,21 +108,37 @@ static unsigned long bw_to_freq(unsigned long bw)
 	return (bw + CH_4_BYTES_PER_CLK - 1) / CH_4_BYTES_PER_CLK;
 }
 
-unsigned long emc_freq_to_bw(unsigned long freq)
+static unsigned long emc_freq_to_bw_t23x(unsigned long freq)
 {
 	return freq_to_bw(freq);
 }
+
+unsigned long emc_freq_to_bw(unsigned long freq)
+{
+	return ops->emc_freq_to_bw(freq);
+}
 EXPORT_SYMBOL(emc_freq_to_bw);
 
-unsigned long emc_bw_to_freq(unsigned long bw)
+static unsigned long emc_bw_to_freq_t23x(unsigned long bw)
 {
 	return bw_to_freq(bw);
 }
+
+unsigned long emc_bw_to_freq(unsigned long bw)
+{
+	return ops->emc_bw_to_freq(bw);
+}
 EXPORT_SYMBOL(emc_bw_to_freq);
+
+
+static u8 get_dram_num_channels_t23x(void)
+{
+	return ch_num;
+}
 
 u8 get_dram_num_channels(void)
 {
-	return ch_num;
+	return ops->get_dram_num_channels();
 }
 EXPORT_SYMBOL(get_dram_num_channels);
 
@@ -129,7 +146,7 @@ EXPORT_SYMBOL(get_dram_num_channels);
  *
  * Return: MC clock in MHz
 */
-unsigned long dram_clk_to_mc_clk(unsigned long dram_clk)
+static unsigned long dram_clk_to_mc_clk_t23x(unsigned long dram_clk)
 {
 	unsigned long mc_clk;
 
@@ -138,6 +155,11 @@ unsigned long dram_clk_to_mc_clk(unsigned long dram_clk)
 	else
 		mc_clk = (dram_clk + BR8_MODE - 1) / BR8_MODE;
 	return mc_clk;
+}
+
+unsigned long dram_clk_to_mc_clk(unsigned long dram_clk)
+{
+	return ops->dram_clk_to_mc_clk(dram_clk);
 }
 EXPORT_SYMBOL(dram_clk_to_mc_clk);
 
@@ -261,9 +283,14 @@ static void set_dram_type(void)
 	}
 }
 
-enum dram_types tegra_dram_types(void)
+static enum dram_types tegra_dram_types_t23x(void)
 {
 	return dram_type;
+}
+
+enum dram_types tegra_dram_types(void)
+{
+	return ops->tegra_dram_types();
 }
 EXPORT_SYMBOL(tegra_dram_types);
 
@@ -300,7 +327,16 @@ static u32 get_dram_dt_prop(struct device_node *np, const char *prop)
 	return val;
 }
 
-static int __init tegra_mc_utils_init(void)
+static struct mc_utils_ops mc_utils_t23x_ops = {
+	.emc_freq_to_bw = emc_freq_to_bw_t23x,
+	.emc_bw_to_freq = emc_bw_to_freq_t23x,
+	.tegra_dram_types = tegra_dram_types_t23x,
+	.get_dram_num_channels = get_dram_num_channels_t23x,
+	.dram_clk_to_mc_clk = dram_clk_to_mc_clk_t23x,
+};
+
+
+static int __init tegra_mc_utils_init_t23x(void)
 {
 	u32 dram, ch, ecc, rank;
 	void __iomem *emc_base;
@@ -353,6 +389,16 @@ static int __init tegra_mc_utils_init(void)
 	tegra_mc_utils_debugfs_init();
 #endif
 	return 0;
+}
+
+static int __init tegra_mc_utils_init(void)
+{
+	if (of_machine_is_compatible("nvidia,tegra234")) {
+		ops = &mc_utils_t23x_ops;
+		return tegra_mc_utils_init_t23x();
+	}
+	pr_err("mc-utils: Not able to find SOC DT node\n");
+	return -ENODEV;
 }
 module_init(tegra_mc_utils_init);
 
