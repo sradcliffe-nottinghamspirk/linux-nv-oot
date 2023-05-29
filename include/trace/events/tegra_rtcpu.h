@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #undef TRACE_SYSTEM
@@ -327,6 +327,64 @@ TRACE_EVENT(rtcpu_vinotify_error,
 );
 
 /*
+ * VI events
+ */
+
+TRACE_EVENT(vi_frame_begin,
+	TP_PROTO(u64 tstamp, u32 channel_id, u32 syncpt_id,
+		u32 syncpt_thresh, u32 class_id),
+	TP_ARGS(tstamp, channel_id, syncpt_id, syncpt_thresh, class_id),
+	TP_STRUCT__entry(
+		__field(u64, tstamp)
+		__field(u32, channel_id)
+		__field(u32, syncpt_id)
+		__field(u32, syncpt_thresh)
+		__field(u32, class_id)
+	),
+	TP_fast_assign(
+		__entry->tstamp = tstamp;
+		__entry->channel_id = channel_id;
+		__entry->syncpt_id = syncpt_id;
+		__entry->syncpt_thresh = syncpt_thresh;
+		__entry->class_id = class_id;
+	),
+	TP_printk(
+		"tstamp:%llu cch:%d syncpt_id:%u syncpt_thresh:%u class_id:%u",
+		__entry->tstamp,
+		__entry->channel_id,
+		__entry->syncpt_id,
+		__entry->syncpt_thresh,
+		__entry->class_id)
+);
+
+TRACE_EVENT(vi_frame_end,
+	TP_PROTO(u64 tstamp, u32 channel_id, u32 syncpt_id,
+		u32 syncpt_thresh, u32 class_id),
+	TP_ARGS(tstamp, channel_id, syncpt_id, syncpt_thresh, class_id),
+	TP_STRUCT__entry(
+		__field(u64, tstamp)
+		__field(u32, channel_id)
+		__field(u32, syncpt_id)
+		__field(u32, syncpt_thresh)
+		__field(u32, class_id)
+	),
+	TP_fast_assign(
+		__entry->tstamp = tstamp;
+		__entry->channel_id = channel_id;
+		__entry->syncpt_id = syncpt_id;
+		__entry->syncpt_thresh = syncpt_thresh;
+		__entry->class_id = class_id;
+	),
+	TP_printk(
+		"tstamp:%llu cch:%d syncpt_id:%u syncpt_thresh:%u class_id:%u",
+		__entry->tstamp,
+		__entry->channel_id,
+		__entry->syncpt_id,
+		__entry->syncpt_thresh,
+		__entry->class_id)
+);
+
+/*
  * NVCSI events
  */
 
@@ -502,6 +560,60 @@ TRACE_EVENT(rtcpu_isp_falcon_tile_end,
 		__entry->tstamp, __entry->ch, __entry->seq,
 		__entry->tile_x, __entry->tile_y
 	)
+);
+
+TRACE_EVENT(isp_task_begin,
+	TP_PROTO(u64 tstamp, u32 channel_id, u32 syncpt_id,
+		u32 syncpt_thresh, u32 class_id),
+	TP_ARGS(tstamp, channel_id, syncpt_id, syncpt_thresh, class_id),
+	TP_STRUCT__entry(
+		__field(u64, tstamp)
+		__field(u32, channel_id)
+		__field(u32, syncpt_id)
+		__field(u32, syncpt_thresh)
+		__field(u32, class_id)
+	),
+	TP_fast_assign(
+		__entry->tstamp = tstamp;
+		__entry->channel_id = channel_id;
+		__entry->syncpt_id = syncpt_id;
+		__entry->syncpt_thresh = syncpt_thresh;
+		__entry->class_id = class_id;
+	),
+	TP_printk(
+		"tstamp:%llu cch:%d syncpt_id:%u syncpt_thresh:%u class_id:%u",
+		__entry->tstamp,
+		__entry->channel_id,
+		__entry->syncpt_id,
+		__entry->syncpt_thresh,
+		__entry->class_id)
+);
+
+TRACE_EVENT(isp_task_end,
+	TP_PROTO(u64 tstamp, u32 channel_id, u32 syncpt_id,
+		u32 syncpt_thresh, u32 class_id),
+	TP_ARGS(tstamp, channel_id, syncpt_id, syncpt_thresh, class_id),
+	TP_STRUCT__entry(
+		__field(u64, tstamp)
+		__field(u32, channel_id)
+		__field(u32, syncpt_id)
+		__field(u32, syncpt_thresh)
+		__field(u32, class_id)
+	),
+	TP_fast_assign(
+		__entry->tstamp = tstamp;
+		__entry->channel_id = channel_id;
+		__entry->syncpt_id = syncpt_id;
+		__entry->syncpt_thresh = syncpt_thresh;
+		__entry->class_id = class_id;
+	),
+	TP_printk(
+		"tstamp:%llu cch:%d syncpt_id:%u syncpt_thresh:%u class_id:%u",
+		__entry->tstamp,
+		__entry->channel_id,
+		__entry->syncpt_id,
+		__entry->syncpt_thresh,
+		__entry->class_id)
 );
 
 

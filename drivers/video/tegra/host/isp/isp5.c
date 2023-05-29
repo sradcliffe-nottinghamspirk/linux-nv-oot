@@ -38,6 +38,8 @@
 /* 20% overhead */
 #define ISP_OVERHEAD	20
 
+#define ISP_CLASS_ID 0x32
+
 struct host_isp5 {
 	struct platform_device *pdev;
 	struct platform_device *isp_thi;
@@ -307,6 +309,7 @@ struct nvhost_device_data t19_isp5_info = {
 	.post_virt_init		= isp5_priv_late_probe,
 	.autosuspend_delay      = 500,
 	.can_powergate = true,
+	.class			= ISP_CLASS_ID,
 };
 
 static const struct of_device_id tegra_isp5_of_match[] = {

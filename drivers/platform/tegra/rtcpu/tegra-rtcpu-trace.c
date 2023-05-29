@@ -25,11 +25,7 @@
 #include <linux/nvhost.h>
 #include <asm/cacheflush.h>
 
-#ifdef CONFIG_EVENTLIB
-#include <linux/keventlib.h>
-#include <uapi/linux/nvhost_events.h>
-#include "rtcpu/device-group.h"
-#endif
+#include "device-group.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/tegra_rtcpu.h>
@@ -93,7 +89,6 @@ struct tegra_rtcpu_trace {
 	/* debugfs */
 	struct dentry *debugfs_root;
 
-	/* eventlib */
 	struct platform_device *vi_platform_device;
 	struct platform_device *vi1_platform_device;
 	struct platform_device *isp_platform_device;
@@ -716,13 +711,10 @@ static void rtcpu_trace_vinotify_event(struct camrtc_event_struct *event)
 	}
 }
 
-static void rtcpu_trace_vi_eventlib_event(struct tegra_rtcpu_trace *tracer,
+static void rtcpu_trace_vi_frame_event(struct tegra_rtcpu_trace *tracer,
 				struct camrtc_event_struct *event)
 {
-#ifdef CONFIG_EVENTLIB
 	struct nvhost_device_data *pdata = NULL;
-	struct nvhost_task_begin task_begin;
-	struct nvhost_task_end task_end;
 	u64 ts = 0;
 	u32 vi_unit_id = event->data.data32[6];
 
@@ -733,52 +725,40 @@ static void rtcpu_trace_vi_eventlib_event(struct tegra_rtcpu_trace *tracer,
 		pdata = platform_get_drvdata(tracer->vi_platform_device);
 	else if (vi_unit_id == 1)
 		pdata = platform_get_drvdata(tracer->vi1_platform_device);
+
 	if (pdata == NULL)
 		return;
 
-	if (!pdata->eventlib_id) {
-		pr_warn("%s kernel eventlib id %d cannot be found\n",
-			__func__, pdata->eventlib_id);
-		return;
-	}
-
 	switch (event->header.id) {
 	case camrtc_trace_vi_frame_begin:
-		/* Write task start event */
-		task_begin.syncpt_id = event->data.data32[0];
-		task_begin.syncpt_thresh = event->data.data32[1];
-		task_begin.class_id = pdata->class;
-		task_begin.channel_id = event->data.data32[2];
-
 		ts = ((u64)event->data.data32[5] << 32) |
 			(u64)event->data.data32[4];
-		keventlib_write(pdata->eventlib_id,
-			&task_begin,
-			sizeof(task_begin),
-			NVHOST_TASK_BEGIN,
-			ts);
+
+		trace_vi_frame_begin(
+			ts,
+			event->data.data32[2],
+			event->data.data32[0],
+			event->data.data32[1],
+			pdata->class
+		);
 		break;
 	case camrtc_trace_vi_frame_end:
-		/* Write task end event */
-		task_end.syncpt_id = event->data.data32[0];
-		task_end.syncpt_thresh = event->data.data32[1];
-		task_end.class_id = pdata->class;
-		task_end.channel_id = event->data.data32[2];
-
 		ts = ((u64)event->data.data32[5] << 32) |
 			(u64)event->data.data32[4];
-		keventlib_write(pdata->eventlib_id,
-			&task_end,
-			sizeof(task_end),
-			NVHOST_TASK_END,
-			ts);
+
+		trace_vi_frame_end(
+			ts,
+			event->data.data32[2],
+			event->data.data32[0],
+			event->data.data32[1],
+			pdata->class
+		);
 		break;
 	default:
-		pr_warn("%pFn event id %d cannot be found\n",
-			__func__, pdata->eventlib_id);
+		pr_warn("%pS invalid event id %d\n",
+			__func__, event->header.id);
 		break;
 	}
-#endif
 }
 
 static void rtcpu_trace_vi_event(struct tegra_rtcpu_trace *tracer,
@@ -787,7 +767,7 @@ static void rtcpu_trace_vi_event(struct tegra_rtcpu_trace *tracer,
 	switch (event->header.id) {
 	case camrtc_trace_vi_frame_begin:
 	case camrtc_trace_vi_frame_end:
-		rtcpu_trace_vi_eventlib_event(tracer, event);
+		rtcpu_trace_vi_frame_event(tracer, event);
 		break;
 	default:
 		trace_rtcpu_unknown(event->header.tstamp,
@@ -817,13 +797,10 @@ const unsigned int g_trace_isp_falcon_task_str_count =
 #define TRACE_ISP_FALCON_PROFILE_START    16U
 #define TRACE_ISP_FALCON_PROFILE_END      17U
 
-static void rtcpu_trace_isp_eventlib_event(struct tegra_rtcpu_trace *tracer,
+static void rtcpu_trace_isp_task_event(struct tegra_rtcpu_trace *tracer,
 	struct camrtc_event_struct *event)
 {
-#ifdef CONFIG_EVENTLIB
 	struct nvhost_device_data *pdata = NULL;
-	struct nvhost_task_begin task_begin;
-	struct nvhost_task_end task_end;
 
 	if (tracer->isp_platform_device == NULL)
 		return;
@@ -832,41 +809,30 @@ static void rtcpu_trace_isp_eventlib_event(struct tegra_rtcpu_trace *tracer,
 	if (pdata == NULL)
 		return;
 
-	if (!pdata->eventlib_id) {
-		pr_warn("%s kernel eventlib id %d cannot be found\n",
-			__func__, pdata->eventlib_id);
-		return;
-	}
-
 	switch (event->header.id) {
 	case camrtc_trace_isp_task_begin:
-		/* Write task start event */
-		task_begin.syncpt_id = event->data.data32[0];
-		task_begin.syncpt_thresh = event->data.data32[1];
-		task_begin.class_id = pdata->class;
-		task_begin.channel_id = event->data.data32[2];
-
-		keventlib_write(pdata->eventlib_id,
-			&task_begin,
-			sizeof(task_begin),
-			NVHOST_TASK_BEGIN,
-			event->header.tstamp);
+		trace_isp_task_begin(
+			event->header.tstamp,
+			event->data.data32[2],
+			event->data.data32[0],
+			event->data.data32[1],
+			pdata->class
+		);
 		break;
 	case camrtc_trace_isp_task_end:
-		/* Write task end event */
-		task_end.syncpt_id = event->data.data32[0];
-		task_end.syncpt_thresh = event->data.data32[1];
-		task_end.class_id = pdata->class;
-		task_end.channel_id = event->data.data32[2];
-
-		keventlib_write(pdata->eventlib_id,
-			&task_end,
-			sizeof(task_end),
-			NVHOST_TASK_END,
-			event->header.tstamp);
+		trace_isp_task_end(
+			event->header.tstamp,
+			event->data.data32[2],
+			event->data.data32[0],
+			event->data.data32[1],
+			pdata->class
+		);
+		break;
+	default:
+		pr_warn("%pS invalid event id %d\n",
+			__func__, event->header.id);
 		break;
 	}
-#endif
 }
 
 static void rtcpu_trace_isp_falcon_event(struct camrtc_event_struct *event)
@@ -917,7 +883,7 @@ static void rtcpu_trace_isp_event(struct tegra_rtcpu_trace *tracer,
 	switch (event->header.id) {
 	case camrtc_trace_isp_task_begin:
 	case camrtc_trace_isp_task_end:
-		rtcpu_trace_isp_eventlib_event(tracer, event);
+		rtcpu_trace_isp_task_event(tracer, event);
 		break;
 	case camrtc_trace_isp_falcon_traces_event:
 		rtcpu_trace_isp_falcon_event(event);
@@ -1441,21 +1407,21 @@ struct tegra_rtcpu_trace *tegra_rtcpu_trace_create(struct device *dev,
 	/* Debugfs */
 	rtcpu_trace_debugfs_init(tracer);
 
-#ifdef CONFIG_EVENTLIB
 	if (camera_devices != NULL) {
-		/* Eventlib */
 		tracer->isp_platform_device =
 			camrtc_device_get_byname(camera_devices, "isp");
 		if (IS_ERR(tracer->isp_platform_device)) {
 			dev_info(dev, "no camera-device \"%s\"\n", "isp");
 			tracer->isp_platform_device = NULL;
 		}
+
 		tracer->vi_platform_device =
 			camrtc_device_get_byname(camera_devices, "vi0");
 		if (IS_ERR(tracer->vi_platform_device)) {
 			dev_info(dev, "no camera-device \"%s\"\n", "vi0");
 			tracer->vi_platform_device = NULL;
 		}
+
 		tracer->vi1_platform_device =
 			camrtc_device_get_byname(camera_devices, "vi1");
 		if (IS_ERR(tracer->vi1_platform_device)) {
@@ -1463,7 +1429,6 @@ struct tegra_rtcpu_trace *tegra_rtcpu_trace_create(struct device *dev,
 			tracer->vi1_platform_device = NULL;
 		}
 	}
-#endif
 
 	/* Worker */
 	param = WORK_INTERVAL_DEFAULT;

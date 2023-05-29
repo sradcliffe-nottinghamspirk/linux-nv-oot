@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include "device-group.h"
 
@@ -125,4 +125,6 @@ struct platform_device *camrtc_device_get_byname(
 
 	return platform_device_get(grp->devices[index]);
 }
+EXPORT_SYMBOL(camrtc_device_get_byname);
+
 MODULE_LICENSE("GPL v2");

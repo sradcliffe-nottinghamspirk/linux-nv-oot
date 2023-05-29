@@ -43,6 +43,8 @@
 /* + 5% SW overhead */
 #define VI_OVERHEAD	20
 
+#define VI_CLASS_ID 0x30
+
 struct host_vi5 {
 	struct platform_device *pdev;
 	struct platform_device *vi_thi;
@@ -316,6 +318,7 @@ static struct nvhost_device_data t23x_vi0_info = {
 	.aggregate_constraints	= nvhost_vi5_aggregate_constraints,
 	.pre_virt_init		= vi5_priv_early_probe,
 	.post_virt_init		= vi5_priv_late_probe,
+	.class			= VI_CLASS_ID,
 };
 
 static struct nvhost_device_data t23x_vi1_info = {
@@ -328,6 +331,7 @@ static struct nvhost_device_data t23x_vi1_info = {
 	.aggregate_constraints	= nvhost_vi5_aggregate_constraints,
 	.pre_virt_init		= vi5_priv_early_probe,
 	.post_virt_init		= vi5_priv_late_probe,
+	.class			= VI_CLASS_ID,
 };
 
 static const struct of_device_id tegra_vi5_of_match[] = {

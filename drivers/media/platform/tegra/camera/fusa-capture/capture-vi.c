@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2017-2022 NVIDIA Corporation.  All rights reserved.
+// Copyright (c) 2017-2023 NVIDIA Corporation.  All rights reserved.
 
 /**
  * @file drivers/media/platform/tegra/camera/fusa-capture/capture-vi.c
@@ -1392,7 +1392,7 @@ int vi_capture_request(
 	capture_desc.header.channel_id = capture->channel_id;
 	capture_desc.capture_request_req.buffer_index = req->buffer_index;
 
-	nv_camera_log_submit(
+	nv_camera_log_vi_submit(
 			chan->ndev,
 			capture->progress_sp.id,
 			capture->progress_sp.threshold,
