@@ -18,7 +18,6 @@ obj-m += c2c/
 obj-m += clink/
 obj-m += cpuidle/
 obj-m += crypto/
-obj-m += debug/
 ifdef CONFIG_PM_DEVFREQ
 obj-m += devfreq/
 endif
