@@ -5,9 +5,10 @@
 # Makefile for NvSciIpc driver
 #
 
+ccflags-y += -I$(PWD)
+
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)
 ccflags-y += -DCONFIG_TEGRA_VIRTUALIZATION
 endif
 
 obj-m += nvsciipc.o
-

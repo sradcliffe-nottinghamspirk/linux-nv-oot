@@ -13,10 +13,10 @@ ln -s ${NVSCIIPC_INCLUDE}/linux ./
 ln -s ${NVSCIIPC_INCLUDE}/uapi ./
 
 3) build
-make -C /lib/modules/`uname -r`/build M=${PWD} CONFIG_TEGRA_OOT_MODULE=m modules
+make -C /lib/modules/`uname -r`/build M=${PWD} modules
 
 4) install NvSciIpc KMD
-sudo make -C /lib/modules/`uname -r`/build M=${PWD} CONFIG_TEGRA_OOT_MODULE=m modules_install
+sudo make -C /lib/modules/`uname -r`/build M=${PWD} modules_install
 sudo depmod -a
 
 nvsciipc.ko will be installed in /lib/modules/`uname -r`/extra/nvsciipc.ko
@@ -46,7 +46,7 @@ openssl req -new -nodes -utf8 -sha512 -days 36500 -batch -x509 -config x509.genk
 sudo mv signing_key.* /lib/modules/`uname -r`/build/certs/
 
 5) clean
-make -C /lib/modules/`uname -r`/build M=${PWD} CONFIG_TEGRA_OOT_MODULE=m clean
+make -C /lib/modules/`uname -r`/build M=${PWD} clean
 
 6) load NvSciIpc KMD
 You can load NvSciIpc KMD during desktop boot.
