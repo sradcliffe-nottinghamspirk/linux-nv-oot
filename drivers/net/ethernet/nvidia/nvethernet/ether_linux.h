@@ -34,7 +34,6 @@
 #include <linux/version.h>
 #include <linux/list.h>
 #include <net/pkt_sched.h>
-#include <soc/tegra/ivc_ext.h>
 #include <soc/tegra/virt/hv-ivc.h>
 #include <soc/tegra/fuse.h>
 #if IS_ENABLED(CONFIG_PAGE_POOL)
