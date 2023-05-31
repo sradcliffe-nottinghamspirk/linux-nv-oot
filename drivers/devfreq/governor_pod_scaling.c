@@ -892,6 +892,8 @@ static int nvhost_pod_event_handler(struct devfreq *df,
 
 static struct devfreq_governor nvhost_podgov = {
 	.name = "nvhost_podgov",
+	.attrs = DEVFREQ_GOV_ATTR_POLLING_INTERVAL
+		| DEVFREQ_GOV_ATTR_TIMER,
 	.get_target_freq = nvhost_pod_estimate_freq,
 	.event_handler = nvhost_pod_event_handler,
 };
