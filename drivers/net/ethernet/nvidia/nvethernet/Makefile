@@ -7,6 +7,12 @@ OSI_DMA := nvethernetrm/osi/dma
 
 obj-m += nvethernet.o
 
+# If CONFIG_TEGRA_NVPPS is not set, enable by default
+CONFIG_TEGRA_NVPPS ?= y
+ifeq ($(CONFIG_TEGRA_NVPPS),y)
+ccflags-y += -DCONFIG_TEGRA_NVPPS
+endif
+
 # These CFLAGS must not be shared/used in OSI. These are local to Linux
 ccflags-y += -DLINUX_OS -DNET30 -DNVPKCS_MACSEC -DLINUX_IVC -mno-outline-atomics \
 	     -I$(srctree.nvidia-oot)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/include \

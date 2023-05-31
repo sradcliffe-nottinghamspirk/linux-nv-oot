@@ -395,7 +395,9 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 {
 	struct osi_core_priv_data *osi_core = pdata->osi_core;
 	struct osi_dma_priv_data *osi_dma = pdata->osi_dma;
+#if CONFIG_TEGRA_NVPPS
 	struct net_device *ndev = pdata->ndev;
+#endif
 	struct osi_ioctl ioctl_data = {};
 	struct hwtstamp_config config;
 	unsigned int hwts_rx_en = 1;
@@ -596,8 +598,10 @@ int ether_handle_hwtstamp_ioctl(struct ether_priv_data *pdata,
 			dev_err(pdata->dev, "Failure to enable CONFIG_PTP\n");
 			return -EFAULT;
 		}
+#if CONFIG_TEGRA_NVPPS
 		/* Register broadcasting MAC timestamp to clients */
 		tegra_register_hwtime_source(ether_get_hw_time, ndev);
+#endif
 #ifndef OSI_STRIPPED_LIB
 		ether_config_slot_function(pdata, OSI_ENABLE);
 #endif /* !OSI_STRIPPED_LIB */
