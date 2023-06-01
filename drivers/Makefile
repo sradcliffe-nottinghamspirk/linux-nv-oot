@@ -30,6 +30,9 @@ ifdef CONFIG_I2C
 obj-m += i2c/busses/
 obj-m += mfd/
 endif
+ifdef CONFIG_MEMORY
+obj-m += memory/
+endif
 ifdef CONFIG_MTD
 obj-m += mtd/devices/
 endif
