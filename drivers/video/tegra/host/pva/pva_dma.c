@@ -741,7 +741,7 @@ validate_descriptor(const struct nvpva_dma_descriptor *desc,
 			(desc->dstRpt2 == 0U))) ? 1UL : 0UL;
 
 	ret |= (((desc->trigEventMode) == ((uint8_t)TRIG_EVENT_MODE_DIM3)) &&
-		((desc->srcRpt1 == 0U) || (desc->dstRpt1 == 0U))) ? 1UL : 0UL;
+		((desc->srcRpt1 == 0U) && (desc->dstRpt1 == 0U))) ? 1UL : 0UL;
 
 	/** BL format should be associated with MC only */
 	if (desc->srcFormat == 1U) {
