@@ -382,8 +382,14 @@ static irqreturn_t nvpps_gpio_isr(int irq, void *data)
 {
 	struct nvpps_device_data	*pdev_data = (struct nvpps_device_data *)data;
 
-	/* get timestamps for this event */
-	nvpps_get_ts(pdev_data, true);
+	/* Incase, if an interrupt is generated
+	 * then check current mode in use. Ignore the
+	 * interrupt if current mode is TIMER mode
+	 */
+	if (!pdev_data->timer_inited) {
+		/* get timestamps for this event */
+		nvpps_get_ts(pdev_data, true);
+	}
 
 	return IRQ_HANDLED;
 }
@@ -479,6 +485,8 @@ static int set_mode(struct nvpps_device_data *pdev_data, u32 mode)
 							pdev_data->irq_registered = true;
 							dev_info(pdev_data->dev, "Registered IRQ %d for nvpps\n", pdev_data->irq);
 						}
+					} else {
+						dev_dbg(pdev_data->dev, "IRQ %d for nvpps is already registered\n", pdev_data->irq);
 					}
 				} else {
 					dev_err(pdev_data->dev, "unable to switch mode. Only timer mode is supported\n");
@@ -487,12 +495,14 @@ static int set_mode(struct nvpps_device_data *pdev_data, u32 mode)
 				break;
 
 			case NVPPS_MODE_TIMER:
-				if (pdev_data->irq_registered) {
-					/* unregister IRQ handler */
-					devm_free_irq(pdev_data->dev, pdev_data->irq, pdev_data);
-					pdev_data->irq_registered = false;
-					dev_info(pdev_data->dev, "removed IRQ %d for nvpps\n", pdev_data->irq);
-				}
+				/* If GPIO mode is run and IRQ is registered previously,
+				 * then don't free the already requested IRQ. This is to
+				 * avoid free'ing and re-registering of the IRQ when
+				 * switching b/w the operating modes.
+				 */
+				/* If TIMER mode is requested and not initialized
+				 * already then initialize it
+				 */
 				if (!pdev_data->timer_inited) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 					setup_timer(&pdev_data->timer,
