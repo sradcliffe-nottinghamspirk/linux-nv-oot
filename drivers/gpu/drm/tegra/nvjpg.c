@@ -8,6 +8,7 @@
 #include <linux/devfreq.h>
 #include <linux/devfreq/tegra_wmark.h>
 #include <linux/host1x-next.h>
+#include <linux/interconnect.h>
 #include <linux/iommu.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -17,6 +18,7 @@
 #include <linux/pm_opp.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
+#include <linux/version.h>
 
 #include <soc/tegra/pmc.h>
 
@@ -26,6 +28,7 @@
 
 #define NVJPG_TFBIF_TRANSCFG			0x1444
 #define NVJPG_TFBIF_ACTMON_ACTIVE_WEIGHT	0x1454
+#define NVJPG_AXI_RW_BANDWIDTH			512
 
 struct nvjpg_config {
 	const char *firmware;
@@ -44,6 +47,7 @@ struct nvjpg {
 	struct clk *clk;
 	struct devfreq *devfreq;
 	struct devfreq_dev_profile *devfreq_profile;
+	struct icc_path *icc_write;
 
 	/* Platform configuration */
 	const struct nvjpg_config *config;
@@ -63,7 +67,7 @@ static int nvjpg_set_rate(struct nvjpg *nvjpg, unsigned long rate)
 {
 	struct host1x_client *client = &nvjpg->client.base;
 	unsigned long dev_rate;
-	u32 weight;
+	u32 weight, emc_kbps;
 	int err;
 
 	err = clk_set_rate(nvjpg->clk, rate);
@@ -76,6 +80,13 @@ static int nvjpg_set_rate(struct nvjpg *nvjpg, unsigned long rate)
 
 	if (weight)
 		nvjpg_writel(nvjpg, weight, NVJPG_TFBIF_ACTMON_ACTIVE_WEIGHT);
+
+	if (nvjpg->icc_write) {
+		emc_kbps = dev_rate * NVJPG_AXI_RW_BANDWIDTH / 1024;
+		err = icc_set_bw(nvjpg->icc_write, kbps_to_icc(emc_kbps), 0);
+		if (err)
+			dev_warn(nvjpg->dev, "failed to set icc bw: %d\n", err);
+	}
 
 	return 0;
 }
@@ -444,12 +455,19 @@ disable:
 static __maybe_unused int nvjpg_runtime_suspend(struct device *dev)
 {
 	struct nvjpg *nvjpg = dev_get_drvdata(dev);
+	int err;
 
 	devfreq_suspend_device(nvjpg->devfreq);
 
 	host1x_channel_stop(nvjpg->channel);
 
 	clk_disable_unprepare(nvjpg->clk);
+
+	if (nvjpg->icc_write) {
+		err = icc_set_bw(nvjpg->icc_write, 0, 0);
+		if (err)
+			dev_warn(nvjpg->dev, "failed to set icc bw: %d\n", err);
+	}
 
 	return 0;
 }
@@ -590,6 +608,17 @@ static int nvjpg_probe(struct platform_device *pdev)
 	if (err < 0)
 		return err;
 
+	nvjpg->icc_write = devm_of_icc_get(dev, "write");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+	if (IS_ERR(nvjpg->icc_write)) {
+		dev_err(&pdev->dev, "failed to get icc write handle\n");
+		return PTR_ERR(nvjpg->icc_write);
+	}
+#else
+	if (IS_ERR(nvjpg->icc_write))
+		nvjpg->icc_write = NULL;
+#endif
+
 	platform_set_drvdata(pdev, nvjpg);
 
 	INIT_LIST_HEAD(&nvjpg->client.base.list);
@@ -618,13 +647,13 @@ static int nvjpg_probe(struct platform_device *pdev)
 	err = nvjpg_set_rate(nvjpg, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate\n");
-		return err;
+		goto exit_falcon;
 	}
 
 	err = nvjpg_devfreq_init(nvjpg);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
-		return err;
+		goto exit_falcon;
 	}
 
 	pm_runtime_enable(dev);
@@ -635,6 +664,7 @@ static int nvjpg_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&nvjpg->falcon);
+	icc_put(nvjpg->icc_write);
 
 	return err;
 }
@@ -661,6 +691,8 @@ static int nvjpg_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&nvjpg->falcon);
+
+	icc_put(nvjpg->icc_write);
 
 	return 0;
 }
