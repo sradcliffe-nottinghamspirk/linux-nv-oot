@@ -8,6 +8,7 @@
 #include <linux/devfreq.h>
 #include <linux/devfreq/tegra_wmark.h>
 #include <linux/host1x-next.h>
+#include <linux/interconnect.h>
 #include <linux/iommu.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -17,6 +18,7 @@
 #include <linux/pm_opp.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
+#include <linux/version.h>
 
 #include <soc/tegra/pmc.h>
 
@@ -26,6 +28,7 @@
 
 #define NVENC_TFBIF_TRANSCFG			0x1844
 #define NVENC_TFBIF_ACTMON_ACTIVE_WEIGHT	0x1854
+#define NVENC_AXI_RW_BANDWIDTH			512
 
 struct nvenc_config {
 	const char *firmware;
@@ -45,6 +48,7 @@ struct nvenc {
 	struct clk *clk;
 	struct devfreq *devfreq;
 	struct devfreq_dev_profile *devfreq_profile;
+	struct icc_path *icc_write;
 
 	/* Platform configuration */
 	const struct nvenc_config *config;
@@ -64,7 +68,7 @@ static int nvenc_set_rate(struct nvenc *nvenc, unsigned long rate)
 {
 	struct host1x_client *client = &nvenc->client.base;
 	unsigned long dev_rate;
-	u32 weight;
+	u32 weight, emc_kbps;
 	int err;
 
 	err = clk_set_rate(nvenc->clk, rate);
@@ -77,6 +81,13 @@ static int nvenc_set_rate(struct nvenc *nvenc, unsigned long rate)
 
 	if (weight)
 		nvenc_writel(nvenc, weight, NVENC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+
+	if (nvenc->icc_write) {
+		emc_kbps = dev_rate * NVENC_AXI_RW_BANDWIDTH / 1024;
+		err = icc_set_bw(nvenc->icc_write, kbps_to_icc(emc_kbps), 0);
+		if (err)
+			dev_warn(nvenc->dev, "failed to set icc bw: %d\n", err);
+	}
 
 	return 0;
 }
@@ -445,12 +456,19 @@ disable:
 static __maybe_unused int nvenc_runtime_suspend(struct device *dev)
 {
 	struct nvenc *nvenc = dev_get_drvdata(dev);
+	int err;
 
 	devfreq_suspend_device(nvenc->devfreq);
 
 	host1x_channel_stop(nvenc->channel);
 
 	clk_disable_unprepare(nvenc->clk);
+
+	if (nvenc->icc_write) {
+		err = icc_set_bw(nvenc->icc_write, 0, 0);
+		if (err)
+			dev_warn(nvenc->dev, "failed to set icc bw: %d\n", err);
+	}
 
 	return 0;
 }
@@ -603,6 +621,17 @@ static int nvenc_probe(struct platform_device *pdev)
 	if (err < 0)
 		return err;
 
+	nvenc->icc_write = devm_of_icc_get(dev, "write");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+	if (IS_ERR(nvenc->icc_write)) {
+		dev_err(&pdev->dev, "failed to get icc write handle\n");
+		return PTR_ERR(nvenc->icc_write);
+	}
+#else
+	if (IS_ERR(nvenc->icc_write))
+		nvenc->icc_write = NULL;
+#endif
+
 	platform_set_drvdata(pdev, nvenc);
 
 	INIT_LIST_HEAD(&nvenc->client.base.list);
@@ -631,13 +660,13 @@ static int nvenc_probe(struct platform_device *pdev)
 	err = nvenc_set_rate(nvenc, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate\n");
-		return err;
+		goto exit_falcon;
 	}
 
 	err = nvenc_devfreq_init(nvenc);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
-		return err;
+		goto exit_falcon;
 	}
 
 	pm_runtime_enable(dev);
@@ -648,6 +677,7 @@ static int nvenc_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&nvenc->falcon);
+	icc_put(nvenc->icc_write);
 
 	return err;
 }
@@ -674,6 +704,8 @@ static int nvenc_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&nvenc->falcon);
+
+	icc_put(nvenc->icc_write);
 
 	return 0;
 }
