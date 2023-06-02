@@ -9,6 +9,7 @@
 #include <linux/devfreq/tegra_wmark.h>
 #include <linux/dma-mapping.h>
 #include <linux/host1x-next.h>
+#include <linux/interconnect.h>
 #include <linux/iommu.h>
 #include <linux/iopoll.h>
 #include <linux/module.h>
@@ -19,6 +20,7 @@
 #include <linux/pm_opp.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
+#include <linux/version.h>
 
 #include <soc/tegra/mc.h>
 
@@ -33,6 +35,7 @@
 #define NVDEC_FALCON_DEBUGINFO			0x1094
 #define NVDEC_TFBIF_TRANSCFG			0x2c44
 #define NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT	0x2c54
+#define NVDEC_AXI_RW_BANDWIDTH			512
 
 struct nvdec_config {
 	const char *firmware;
@@ -55,6 +58,7 @@ struct nvdec {
 	struct reset_control *reset;
 	struct devfreq *devfreq;
 	struct devfreq_dev_profile *devfreq_profile;
+	struct icc_path *icc_write;
 
 	/* Platform configuration */
 	const struct nvdec_config *config;
@@ -80,7 +84,7 @@ static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 	struct nvdec_config *config = nvdec->config;
 	struct host1x_client *client = &nvdec->client.base;
 	unsigned long dev_rate;
-	u32 weight;
+	u32 weight, emc_kbps;
 	int err;
 
 	err = clk_set_rate(nvdec->clks[0].clk, rate);
@@ -88,6 +92,13 @@ static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 		return err;
 
 	dev_rate = clk_get_rate(nvdec->clks[0].clk);
+
+	if (nvdec->icc_write) {
+		emc_kbps = dev_rate * NVDEC_AXI_RW_BANDWIDTH / 1024;
+		err = icc_set_bw(nvdec->icc_write, kbps_to_icc(emc_kbps), 0);
+		if (err)
+			dev_warn(nvdec->dev, "failed to set icc bw: %d\n", err);
+	}
 
 	host1x_actmon_update_client_rate(client, dev_rate, &weight);
 
@@ -534,12 +545,19 @@ disable:
 static __maybe_unused int nvdec_runtime_suspend(struct device *dev)
 {
 	struct nvdec *nvdec = dev_get_drvdata(dev);
+	int err;
 
 	devfreq_suspend_device(nvdec->devfreq);
 
 	host1x_channel_stop(nvdec->channel);
 
 	clk_bulk_disable_unprepare(nvdec->num_clks, nvdec->clks);
+
+	if (nvdec->icc_write) {
+		err = icc_set_bw(nvdec->icc_write, 0, 0);
+		if (err)
+			dev_warn(nvdec->dev, "failed to set icc bw: %d\n", err);
+	}
 
 	return 0;
 }
@@ -716,6 +734,17 @@ static int nvdec_probe(struct platform_device *pdev)
 			return err;
 	}
 
+	nvdec->icc_write = devm_of_icc_get(dev, "write");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+	if (IS_ERR(nvdec->icc_write)) {
+		dev_err(&pdev->dev, "failed to get icc write handle\n");
+		return PTR_ERR(nvdec->icc_write);
+	}
+#else
+	if (IS_ERR(nvdec->icc_write))
+		nvdec->icc_write = NULL;
+#endif
+
 	platform_set_drvdata(pdev, nvdec);
 
 	INIT_LIST_HEAD(&nvdec->client.base.list);
@@ -744,13 +773,13 @@ static int nvdec_probe(struct platform_device *pdev)
 	err = clk_set_rate(nvdec->clks[0].clk, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate: %d\n", err);
-		return err;
+		goto exit_falcon;
 	}
 
 	err = nvdec_devfreq_init(nvdec);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
-		return err;
+		goto exit_falcon;
 	}
 
 	pm_runtime_enable(dev);
@@ -761,6 +790,7 @@ static int nvdec_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&nvdec->falcon);
+	icc_put(nvdec->icc_write);
 
 	return err;
 }
@@ -787,6 +817,8 @@ static int nvdec_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&nvdec->falcon);
+
+	icc_put(nvdec->icc_write);
 
 	return 0;
 }
