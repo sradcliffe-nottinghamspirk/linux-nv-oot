@@ -29,7 +29,6 @@
 
 #include <linux/seq_file.h>
 #include <uapi/linux/nvpva_ioctl.h>
-#include <trace/events/nvhost_pva.h>
 #define CREATE_TRACE_POINTS
 #include <trace/events/nvpva_ftrace.h>
 
@@ -877,7 +876,6 @@ pva_trace_log_record_task_states(struct platform_device *pdev,
 					 syncpt_id,
 					 syncpt_thresh,
 					 stats->vpu_assigned,
-					 stats->queue_id,
 					 stats->queued_time,
 					 stats->vpu_assigned_time,
 					 stats->vpu_assigned_time,
@@ -972,13 +970,12 @@ static void update_one_task(struct pva *pva)
 	vpu_time = (stats->vpu_complete_time - stats->vpu_start_time);
 	r5_overhead = ((stats->complete_time - stats->queued_time) - vpu_time);
 	r5_overhead = r5_overhead / tsc_ticks_to_us;
-
-	trace_nvhost_pva_task_timestamp(dev_name(&pdev->dev),
-				    pdata->class,
-				    queue->syncpt_id,
-				    task->local_sync_counter,
-				    stats->vpu_assigned_time,
-				    stats->complete_time);
+	trace_nvpva_task_timestamp(dev_name(&pdev->dev),
+				   pdata->class,
+				   queue->syncpt_id,
+				   task->local_sync_counter,
+				   stats->vpu_assigned_time,
+				   stats->complete_time);
 	nvpva_dbg_info(pva, "Completed task %p (0x%llx), "
 			"start_time=%llu, "
 			"end_time=%llu",
@@ -986,16 +983,16 @@ static void update_one_task(struct pva *pva)
 			(u64)task->dma_addr,
 			stats->vpu_assigned_time,
 			stats->complete_time);
-	trace_nvhost_pva_task_stats(pdev->name,
-				    stats->queued_time,
-				    stats->head_time,
-				    stats->input_actions_complete,
-				    stats->vpu_assigned_time,
-				    stats->vpu_start_time,
-				    stats->vpu_complete_time,
-				    stats->complete_time,
-				    stats->vpu_assigned,
-				    r5_overhead);
+	trace_nvpva_task_stats(pdev->name,
+			       stats->queued_time,
+			       stats->head_time,
+			       stats->input_actions_complete,
+			       stats->vpu_assigned_time,
+			       stats->vpu_start_time,
+			       stats->vpu_complete_time,
+			       stats->complete_time,
+			       stats->vpu_assigned,
+			       r5_overhead);
 prof:
 	if ((task->pva->profiling_level == 0) || (!IS_ENABLED(CONFIG_TRACING)))
 		goto out;

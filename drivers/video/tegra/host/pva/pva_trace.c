@@ -5,8 +5,7 @@
  * PVA trace log
  */
 
-#define CREATE_TRACE_POINTS
-#include <trace/events/nvhost_pva.h>
+#include <trace/events/nvpva_ftrace.h>
 
 #include "pva.h"
 #include "pva_trace.h"
@@ -34,7 +33,7 @@ static void read_linear(struct pva *pva, struct pva_trace_log *trace, u32 toff)
 				dt, name, tp->major, tp->minor, tp->flags,
 				tp->sequence, tp->arg1, tp->arg2);
 
-			trace_nvhost_pva_write(dt, name, tp->major,
+			trace_nvpva_write(dt, name, tp->major,
 				tp->minor, tp->flags, tp->sequence,
 				tp->arg1, tp->arg2);
 			tp = tp + 1;
