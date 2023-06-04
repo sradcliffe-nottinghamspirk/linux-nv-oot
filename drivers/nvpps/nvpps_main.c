@@ -42,6 +42,8 @@ static DEFINE_MUTEX(s_nvpps_lock);
 static DEFINE_IDR(s_nvpps_idr);
 
 static char *interface_name = "eth0";
+bool print_pri_ptp_failed = true;
+bool print_sec_ptp_failed = true;
 
 
 /* platform device instance data */
@@ -279,15 +281,10 @@ static void nvpps_get_ts(struct nvpps_device_data *pdev_data, bool in_isr)
 	} else {
 		/* get PTP_TSC concurrent timestamp(using ptp notifier) from MAC driver */
 		if (tegra_get_hwtime(pdev_data->iface_nm, &ptp_tsc_ts, PTP_TSC_HWTIME)) {
-			/* check flag to print ptp failure msg */
-			if (!pdev_data->pri_ptp_failed) {
-				dev_warn_ratelimited(pdev_data->dev,
-					"failed to get PTP_TSC concurrent timestamp from interface(%s)\nMake sure ptp is running\n",
-					pdev_data->iface_nm);
-				pdev_data->pri_ptp_failed = true;
-			}
+			pdev_data->pri_ptp_failed = true;
 		} else {
 			pdev_data->pri_ptp_failed = false;
+			print_pri_ptp_failed = true;
 			phc = ptp_tsc_ts.ptp_ts;
 			tsc = ptp_tsc_ts.tsc_ts / pdev_data->tsc_res_ns;
 		}
@@ -301,15 +298,10 @@ static void nvpps_get_ts(struct nvpps_device_data *pdev_data, bool in_isr)
 			 * driver for secondary interface
 			 */
 			if (tegra_get_hwtime(pdev_data->sec_iface_nm, &sec_ptp_tsc_ts, PTP_TSC_HWTIME)) {
-				/* check flag to print ptp failure msg */
-				if (!pdev_data->sec_ptp_failed) {
-					dev_warn_ratelimited(pdev_data->dev,
-						 "failed to get PTP_TSC concurrent timestamp for secondary interface(%s)\nMake sure ptp is running\n",
-						 pdev_data->sec_iface_nm);
-					pdev_data->sec_ptp_failed = true;
-				}
+				pdev_data->sec_ptp_failed = true;
 			} else {
 				pdev_data->sec_ptp_failed = false;
+				print_sec_ptp_failed = true;
 
 				/* Adjust secondary iface's PTP TS to primary iface's concurrent PTP_TSC TS */
 				secondary_phc = sec_ptp_tsc_ts.ptp_ts - (sec_ptp_tsc_ts.tsc_ts - ptp_tsc_ts.tsc_ts);
@@ -603,6 +595,22 @@ static long nvpps_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			unsigned long		flags;
 
 			dev_dbg(pdev_data->dev, "NVPPS_GETEVENT\n");
+
+			/* check flag to print ptp failure msg */
+			if ((pdev_data->pri_ptp_failed) && (print_pri_ptp_failed)) {
+				dev_warn_ratelimited(pdev_data->dev,
+					"failed to get PTP_TSC concurrent timestamp from interface(%s)\nMake sure ptp is running\n",
+					pdev_data->iface_nm);
+				print_pri_ptp_failed = false;
+			}
+
+			/* check flag to print ptp failure msg */
+			if ((pdev_data->sec_ptp_failed) && (print_sec_ptp_failed)) {
+				dev_warn_ratelimited(pdev_data->dev,
+					"failed to get PTP_TSC concurrent timestamp from interface(%s)\nMake sure ptp is running\n",
+					pdev_data->iface_nm);
+				print_sec_ptp_failed = false;
+			}
 
 			/* Return the fetched timestamp */
 			raw_spin_lock_irqsave(&pdev_data->lock, flags);
