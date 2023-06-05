@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
+/* Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
 
 #ifndef __PCI_CLIENT_H__
 #define __PCI_CLIENT_H__
@@ -85,9 +85,21 @@ int
 pci_client_change_link_status(void *pci_client_h,
 			      enum nvscic2c_pcie_link status);
 
+/* Update PCIe error offset with error. */
+int
+pci_client_set_link_aer_error(void *pci_client_h, u32 err);
+
 /* Helper function to mmap the PCI link status memory to user-space.*/
 int
 pci_client_mmap_link_mem(void *pci_client_h, struct vm_area_struct *vma);
+
+/* Helper function to mmap eDMA error memory to user-space.*/
+int
+pci_client_mmap_edma_err_mem(void *pci_client_h,
+			     u32 ep_id, struct vm_area_struct *vma);
+/* Update eDMA xfer error code.*/
+int
+pci_client_set_edma_error(void *pci_client_h, u32 ep_id, u32 err);
 
 /* Query PCI link status. */
 enum nvscic2c_pcie_link

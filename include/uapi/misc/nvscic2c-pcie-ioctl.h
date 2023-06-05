@@ -15,10 +15,22 @@
 
 #define MAX_NAME_SZ		(32)
 
+/* Represents PCIe runtime errors reported to user space. */
+#define NVSCIC2C_PCIE_NO_ERROR                   (0x00U)
+#define NVSCIC2C_PCIE_EDMA_XFER_ERROR            (0x01U)
+#define NVSCIC2C_PCIE_AER_UNCORRECTABLE_FATAL    (0x02U)
+#define NVSCIC2C_PCIE_AER_UNCORRECTABLE_NONFATAL (0x04U)
+
 /* Link status between the two peers - encapsulates PCIe link also.*/
 enum nvscic2c_pcie_link {
 	NVSCIC2C_PCIE_LINK_DOWN = 0,
 	NVSCIC2C_PCIE_LINK_UP,
+};
+
+/* Represents layout of link status memory. */
+struct nvscic2c_pcie_link_mem {
+	enum nvscic2c_pcie_link link_status;
+	__u32 aer_err;
 };
 
 /**
@@ -70,6 +82,7 @@ struct nvscic2c_pcie_endpoint_info {
 	struct nvscic2c_pcie_endpoint_mem_info peer;
 	struct nvscic2c_pcie_endpoint_mem_info self;
 	struct nvscic2c_pcie_endpoint_mem_info link;
+	struct nvscic2c_pcie_endpoint_mem_info edma_err;
 };
 
 /**

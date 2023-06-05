@@ -40,6 +40,8 @@ enum mem_mmap_type {
 	SELF_MEM_MMAP,
 	/* Map Link memory segment to query link status with Peer.*/
 	LINK_MEM_MMAP,
+	/* Map eDMA error memory segment to query eDMA xfer errors.*/
+	EDMA_ERR_MEM_MMAP,
 	/* Maximum. */
 	MEM_MAX_MMAP,
 };
@@ -110,11 +112,14 @@ struct endpoint_t {
 	/* msi irq to x86 RP */
 	u16 msi_irq;
 
-	/* book-keeping of peer notifications.*/
-	atomic_t dataevent_count;
+	/*
+	 * book-keeping of:
+	 *  peer notifications.
+	 *  PCIe link event.
+	 *  eDMA xfer error event.
+	 */
+	atomic_t event_count;
 
-	/* book-keeping of PCIe link event.*/
-	atomic_t linkevent_count;
 	u32 linkevent_id;
 
 	/* propagate events when endpoint was initialized.*/
@@ -168,7 +173,7 @@ struct endpoint_drv_ctx_t {
  * in PCIe link status(up->down OR down->up).
  */
 static void
-link_event_callback(void *event_type, void *ctx);
+event_callback(void *event_type, void *ctx);
 
 /* prototype. */
 static void
@@ -320,6 +325,10 @@ endpoint_fops_mmap(struct file *filp, struct vm_area_struct *vma)
 		}
 		ret = pci_client_mmap_link_mem(endpoint->pci_client_h, vma);
 		goto exit;
+	case EDMA_ERR_MEM_MMAP:
+		ret = pci_client_mmap_edma_err_mem(endpoint->pci_client_h,
+						   endpoint->minor, vma);
+		goto exit;
 	default:
 		pr_err("(%s): unrecognised mmap type: (%llu)\n",
 		       endpoint->name, mmap_type);
@@ -376,13 +385,10 @@ endpoint_fops_poll(struct file *filp, poll_table *wait)
 
 	/*
 	 * wake up read, write (& exception - those who want to use) fd on
-	 * getting Link + peer notifications.
+	 * getting Link + peer notifications + eDMA xfer error notifications.
 	 */
-	if (atomic_read(&endpoint->linkevent_count)) {
-		atomic_dec(&endpoint->linkevent_count);
-		mask = (__force __poll_t)(POLLPRI | POLLIN | POLLOUT);
-	} else if (atomic_read(&endpoint->dataevent_count)) {
-		atomic_dec(&endpoint->dataevent_count);
+	if (atomic_read(&endpoint->event_count)) {
+		atomic_dec(&endpoint->event_count);
 		mask = (__force __poll_t)(POLLPRI | POLLIN | POLLOUT);
 	}
 
@@ -457,14 +463,16 @@ ioctl_get_info_impl(struct endpoint_t *endpoint,
 	    endpoint->self_mem.size > U32_MAX)
 		return -EINVAL;
 
-	get_info->nframes     = endpoint->nframes;
-	get_info->frame_size  = endpoint->frame_sz;
-	get_info->peer.offset = (PEER_MEM_MMAP << PAGE_SHIFT);
-	get_info->peer.size   = endpoint->peer_mem.size;
-	get_info->self.offset = (SELF_MEM_MMAP << PAGE_SHIFT);
-	get_info->self.size   = endpoint->self_mem.size;
-	get_info->link.offset = (LINK_MEM_MMAP << PAGE_SHIFT);
-	get_info->link.size   = PAGE_ALIGN(sizeof(enum nvscic2c_pcie_link));
+	get_info->nframes         = endpoint->nframes;
+	get_info->frame_size      = endpoint->frame_sz;
+	get_info->peer.offset     = (PEER_MEM_MMAP << PAGE_SHIFT);
+	get_info->peer.size       = endpoint->peer_mem.size;
+	get_info->self.offset     = (SELF_MEM_MMAP << PAGE_SHIFT);
+	get_info->self.size       = endpoint->self_mem.size;
+	get_info->link.offset     = (LINK_MEM_MMAP << PAGE_SHIFT);
+	get_info->link.size       = PAGE_ALIGN(sizeof(enum nvscic2c_pcie_link));
+	get_info->edma_err.offset = (EDMA_ERR_MEM_MMAP << PAGE_SHIFT);
+	get_info->edma_err.size   = PAGE_ALIGN(sizeof(u32));
 
 	return 0;
 }
@@ -518,8 +526,7 @@ enable_event_handling(struct endpoint_t *endpoint)
 	 * propagate link and state change events that occur after the device
 	 * is opened and not the stale ones.
 	 */
-	atomic_set(&endpoint->dataevent_count, 0);
-	atomic_set(&endpoint->linkevent_count, 0);
+	atomic_set(&endpoint->event_count, 0);
 	atomic_set(&endpoint->event_handling, 1);
 }
 
@@ -532,14 +539,13 @@ disable_event_handling(struct endpoint_t *endpoint)
 		return ret;
 
 	atomic_set(&endpoint->event_handling, 0);
-	atomic_set(&endpoint->linkevent_count, 0);
-	atomic_set(&endpoint->dataevent_count, 0);
+	atomic_set(&endpoint->event_count, 0);
 
 	return ret;
 }
 
 static void
-link_event_callback(void *data, void *ctx)
+event_callback(void *data, void *ctx)
 {
 	struct endpoint_t *endpoint = NULL;
 
@@ -550,9 +556,9 @@ link_event_callback(void *data, void *ctx)
 
 	endpoint = (struct endpoint_t *)(ctx);
 
-	/* notify only if the endpoint was openend.*/
+	/* notify only if the endpoint was opened.*/
 	if (atomic_read(&endpoint->event_handling)) {
-		atomic_inc(&endpoint->linkevent_count);
+		atomic_inc(&endpoint->event_count);
 		wake_up_interruptible_all(&endpoint->poll_waitq);
 	}
 }
@@ -634,13 +640,7 @@ syncpt_callback(void *data)
 {
 	/* Skip args ceck, trusting host1x. */
 
-	struct endpoint_t *endpoint = (struct endpoint_t *)(data);
-
-	/* notify only if the endpoint was openend - else drain.*/
-	if (atomic_read(&endpoint->event_handling)) {
-		atomic_inc(&endpoint->dataevent_count);
-		wake_up_interruptible_all(&endpoint->poll_waitq);
-	}
+	event_callback(NULL, data);
 }
 
 /*
@@ -992,7 +992,7 @@ create_endpoint_device(struct endpoint_drv_ctx_t *eps_ctx,
 	}
 
 	/* Register for link events.*/
-	ops.callback = &(link_event_callback);
+	ops.callback = &(event_callback);
 	ops.ctx = (void *)(endpoint);
 	ret = pci_client_register_for_link_event(endpoint->pci_client_h, &ops,
 						 &endpoint->linkevent_id);

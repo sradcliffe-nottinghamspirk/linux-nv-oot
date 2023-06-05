@@ -8,6 +8,7 @@
 #include <linux/errno.h>
 #include <linux/iommu.h>
 #include <linux/kernel.h>
+#include <linux/libnvdimm.h>
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/pci-epc.h>
@@ -16,8 +17,6 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/version.h>
-
-#include <asm/cacheflush.h>
 
 #include <uapi/misc/nvscic2c-pcie-ioctl.h>
 #include <linux/tegra-pcie-edma.h>
@@ -85,12 +84,55 @@ struct pci_client_t {
 	 */
 	void *mem_mngr_h;
 
+	/* eDMA error memory for each endpoint. */
+	struct cpu_buff_t ep_edma_err_mem[MAX_LINK_EVENT_USERS];
 	/*
 	 * the context of DRV_MODE_EPC/DRV_MODE_EPF
 	 */
 	struct driver_ctx_t *drv_ctx;
 
 };
+
+static void
+free_ep_edma_err_mem(struct pci_client_t *ctx)
+{
+	uint32_t i = 0U;
+	struct cpu_buff_t *edma_err_mem = NULL;
+
+	if (ctx != NULL)
+		for (i = 0U; i < MAX_LINK_EVENT_USERS; i++) {
+			edma_err_mem = &ctx->ep_edma_err_mem[i];
+			kfree(edma_err_mem->pva);
+			edma_err_mem->pva = NULL;
+		}
+}
+
+static int
+allocate_ep_edma_err_mem(struct pci_client_t *ctx)
+{
+	int ret = 0;
+	uint32_t i = 0U;
+	struct cpu_buff_t *edma_err_mem = NULL;
+
+	for (i = 0U; i < MAX_LINK_EVENT_USERS; i++) {
+		edma_err_mem = &ctx->ep_edma_err_mem[i];
+		edma_err_mem->size = PAGE_ALIGN(sizeof(u32));
+		edma_err_mem->pva = kzalloc(edma_err_mem->size, GFP_KERNEL);
+		if (WARN_ON(!edma_err_mem->pva)) {
+			ret = -ENOMEM;
+			goto err;
+		}
+		/* physical address to be mmap() in user-space.*/
+		edma_err_mem->phys_addr = virt_to_phys(edma_err_mem->pva);
+		*(u32 *)edma_err_mem->pva = NVSCIC2C_PCIE_NO_ERROR;
+	}
+
+	return ret;
+err:
+	free_ep_edma_err_mem(ctx);
+
+	return ret;
+}
 
 static void
 free_link_status_mem(struct pci_client_t *ctx)
@@ -106,6 +148,7 @@ static int
 allocate_link_status_mem(struct pci_client_t *ctx)
 {
 	int ret = 0;
+	struct nvscic2c_pcie_link_mem *link_mem = NULL;
 	struct cpu_buff_t *mem = &ctx->link_status_mem;
 
 	mem->size = PAGE_ALIGN(sizeof(enum nvscic2c_pcie_link));
@@ -114,7 +157,10 @@ allocate_link_status_mem(struct pci_client_t *ctx)
 		return -ENOMEM;
 
 	atomic_set(&ctx->link_status, NVSCIC2C_PCIE_LINK_DOWN);
-	*((enum nvscic2c_pcie_link *)mem->pva) = NVSCIC2C_PCIE_LINK_DOWN;
+	link_mem = ((struct nvscic2c_pcie_link_mem  *)mem->pva);
+
+	link_mem->link_status = NVSCIC2C_PCIE_LINK_DOWN;
+	link_mem->aer_err = NVSCIC2C_PCIE_NO_ERROR;
 
 	/* physical address to be mmap() in user-space.*/
 	mem->phys_addr = virt_to_phys(mem->pva);
@@ -250,6 +296,10 @@ pci_client_init(struct pci_client_params *params, void **pci_client_h)
 	if (ret)
 		goto err;
 
+	ret = allocate_ep_edma_err_mem(ctx);
+	if (ret)
+		goto err;
+
 	/*
 	 * for mapping application objs and endpoint physical memory to remote
 	 * visible area.
@@ -317,6 +367,7 @@ pci_client_deinit(void **pci_client_h)
 		ctx->mem_mngr_h = NULL;
 	}
 
+	free_ep_edma_err_mem(ctx);
 	free_link_status_mem(ctx);
 	mutex_destroy(&ctx->event_tbl_lock);
 	kfree(ctx);
@@ -439,6 +490,73 @@ pci_client_mmap_link_mem(void *pci_client_h, struct vm_area_struct *vma)
 	return ret;
 }
 
+/* Helper function to mmap eDMA error memory to user-space.*/
+int
+pci_client_mmap_edma_err_mem(void *pci_client_h,
+			     u32 ep_id, struct vm_area_struct *vma)
+{
+	int ret = 0;
+	struct cpu_buff_t *edma_err_mem = NULL;
+	struct pci_client_t *ctx = (struct pci_client_t *)pci_client_h;
+
+	if (WARN_ON(!vma || !ctx))
+		return -EINVAL;
+
+	if (WARN_ON(ep_id >= MAX_LINK_EVENT_USERS))
+		return -EINVAL;
+
+	edma_err_mem = &ctx->ep_edma_err_mem[ep_id];
+	if (WARN_ON(!edma_err_mem->pva))
+		return -EINVAL;
+
+	if ((vma->vm_end - vma->vm_start) != edma_err_mem->size)
+		return -EINVAL;
+
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	ret = remap_pfn_range(vma,
+			      vma->vm_start,
+			      PFN_DOWN(edma_err_mem->phys_addr),
+			      edma_err_mem->size,
+			      vma->vm_page_prot);
+	if (ret)
+		pr_err("remap_pfn_range returns error: (%d) for eDMA err mem\n", ret);
+
+	return ret;
+}
+
+/* Update eDMA xfer error code.*/
+int
+pci_client_set_edma_error(void *pci_client_h, u32 ep_id, u32 err)
+{
+	int ret = 0;
+	struct event_t *event = NULL;
+	struct callback_ops *ops = NULL;
+	struct cpu_buff_t *edma_err_mem = NULL;
+	struct pci_client_t *ctx = (struct pci_client_t *)pci_client_h;
+
+	if (WARN_ON(!ctx))
+		return -EINVAL;
+
+	if (WARN_ON(ep_id > MAX_LINK_EVENT_USERS ||
+		    err != NVSCIC2C_PCIE_EDMA_XFER_ERROR))
+		return -EINVAL;
+
+	edma_err_mem = &ctx->ep_edma_err_mem[ep_id];
+	*(u32 *)edma_err_mem->pva = err;
+	arch_invalidate_pmem(edma_err_mem->pva, edma_err_mem->size);
+
+	mutex_lock(&ctx->event_tbl_lock);
+	/* notify user. */
+	event = &ctx->event_tbl[ep_id];
+	if (atomic_read(&event->in_use)) {
+		ops = &event->cb_ops;
+		ops->callback(NULL, ops->ctx);
+	}
+	mutex_unlock(&ctx->event_tbl_lock);
+
+	return ret;
+}
+
 /* Query PCI link status. */
 enum nvscic2c_pcie_link
 pci_client_query_link_status(void *pci_client_h)
@@ -526,9 +644,9 @@ pci_client_change_link_status(void *pci_client_h,
 {
 	u32 i = 0;
 	int ret = 0;
-	struct page *page = NULL;
 	struct event_t *event = NULL;
 	struct callback_ops *ops = NULL;
+	struct nvscic2c_pcie_link_mem *link_mem = NULL;
 	struct pci_client_t *ctx = (struct pci_client_t *)pci_client_h;
 
 	if (WARN_ON(!ctx))
@@ -544,9 +662,9 @@ pci_client_change_link_status(void *pci_client_h,
 	 * Call is arm64 specific.
 	 */
 	atomic_set(&ctx->link_status, status);
-	*((enum nvscic2c_pcie_link *)ctx->link_status_mem.pva) = status;
-	page = virt_to_page(ctx->link_status_mem.pva);
-	flush_dcache_page(page);
+	link_mem = ((struct nvscic2c_pcie_link_mem *)ctx->link_status_mem.pva);
+	link_mem->link_status = status;
+	arch_invalidate_pmem(ctx->link_status_mem.pva, ctx->link_status_mem.size);
 
 	/* interrupt registered users. */
 	mutex_lock(&ctx->event_tbl_lock);
@@ -558,6 +676,32 @@ pci_client_change_link_status(void *pci_client_h,
 		}
 	}
 	mutex_unlock(&ctx->event_tbl_lock);
+
+	return ret;
+}
+
+/* Update PCIe error offset with error. */
+int
+pci_client_set_link_aer_error(void *pci_client_h, u32 err)
+{
+	int ret = 0;
+	struct nvscic2c_pcie_link_mem *link_mem = NULL;
+	struct pci_client_t *ctx = (struct pci_client_t *)pci_client_h;
+
+	if (WARN_ON(!ctx))
+		return -EINVAL;
+
+	if (WARN_ON((err != NVSCIC2C_PCIE_AER_UNCORRECTABLE_FATAL) &&
+		    (err != NVSCIC2C_PCIE_AER_UNCORRECTABLE_NONFATAL)))
+		return -EINVAL;
+
+	link_mem = ((struct nvscic2c_pcie_link_mem *)ctx->link_status_mem.pva);
+	/*
+	 * There can be more than one type of AER raised before system recovery is done.
+	 * Hence update the offset with masked error codes.
+	 */
+	link_mem->aer_err |= err;
+	arch_invalidate_pmem(ctx->link_status_mem.pva, ctx->link_status_mem.size);
 
 	return ret;
 }

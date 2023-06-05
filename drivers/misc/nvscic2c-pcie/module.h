@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
+/* Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
 
 /*
  * Internal to nvscic2c-pcie module. This file is not supposed to be included
@@ -83,6 +83,7 @@ struct epf_context_t {
 	struct work_struct deinitialization_work;
 	atomic_t core_initialized;
 	atomic_t epf_initialized;
+	atomic_t shutdown_msg_received;
 	wait_queue_head_t core_initialized_waitq;
 };
 
@@ -90,6 +91,7 @@ struct epf_context_t {
 struct epc_context_t {
 	struct completion epf_ready_cmpl;
 	struct completion epf_shutdown_cmpl;
+	atomic_t aer_received;
 };
 
 /*

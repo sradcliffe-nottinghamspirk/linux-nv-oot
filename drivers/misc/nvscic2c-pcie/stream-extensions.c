@@ -609,6 +609,9 @@ ioctl_submit_copy_request(struct stream_ext_ctx_t *ctx,
 		ret = -EIO;
 		atomic_dec(&ctx->transfer_count);
 		release_copy_request_handles(cr);
+		/* Scheduling edma job failed. Update edma error and Notify user. */
+		(void)pci_client_set_edma_error(ctx->pci_client_h, ctx->ep_id,
+						NVSCIC2C_PCIE_EDMA_XFER_ERROR);
 		goto reclaim_cr;
 	}
 
@@ -959,6 +962,11 @@ callback_edma_xfer(void *priv, edma_xfer_status_t status,
 	if (status == EDMA_XFER_SUCCESS) {
 		signal_remote_post_fences(cr);
 		signal_local_post_fences(cr);
+	} else {
+		/* eDMA xfer failed, Update eDMA error and notify user. */
+		(void)pci_client_set_edma_error(cr->ctx->pci_client_h,
+						cr->ctx->ep_id,
+						NVSCIC2C_PCIE_EDMA_XFER_ERROR);
 	}
 
 	/* releases the references of the cubmit-copy handles.*/

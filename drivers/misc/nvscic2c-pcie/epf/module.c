@@ -413,6 +413,7 @@ shutdown_msg_cb(void *data, void *ctx)
 		return;
 	}
 
+	atomic_set(&drv_ctx->epf_ctx->shutdown_msg_received, 1);
 	/* schedule deinitialization of epf interfaces. */
 	schedule_work(&drv_ctx->epf_ctx->deinitialization_work);
 }
@@ -460,16 +461,19 @@ deinit_work(struct work_struct *work)
 
 	/*
 	 * Acknowledge @DRV_MODE_EPC that @DRV_MODE_EPF(this) endpoints are
-	 * closed. If PCIe RP SoC went abnormally away(halt/reset/kernel oops)
-	 * signal anyway (sending signal will not cause local SoC fault when
-	 * PCIe RP SoC (@DRV_MODE_EPC) went abnormally away).
+	 * closed if shutdown message was received from @DRV_MODE_EPC.
+	 * If @DRV_MODE_EPC went abruptly or AER was generated, @DRV_MODE_EPC
+	 * will not send shutdown message.
 	 */
-	msg.type = COMM_MSG_TYPE_LINK;
-	msg.u.link.status = NVSCIC2C_PCIE_LINK_DOWN;
-	ret = comm_channel_ctrl_msg_send(drv_ctx->comm_channel_h, &msg);
-	if (ret)
-		pr_err("(%s): Failed to send LINK (DOWN) message\n",
-		       drv_ctx->drv_name);
+	if (atomic_read(&drv_ctx->epf_ctx->shutdown_msg_received)) {
+		msg.type = COMM_MSG_TYPE_LINK;
+		msg.u.link.status = NVSCIC2C_PCIE_LINK_DOWN;
+		ret = comm_channel_ctrl_msg_send(drv_ctx->comm_channel_h, &msg);
+		if (ret)
+			pr_err("(%s): Failed to send LINK (DOWN) message\n",
+			       drv_ctx->drv_name);
+		atomic_set(&drv_ctx->epf_ctx->shutdown_msg_received, 0);
+	}
 
 	endpoints_release(&drv_ctx->endpoints_h);
 	edma_module_deinit(drv_ctx);
@@ -787,6 +791,9 @@ nvscic2c_pcie_epf_probe(struct pci_epf *epf)
 	atomic_set(&epf_ctx->core_initialized, 0);
 	atomic_set(&drv_ctx->epf_ctx->epf_initialized, 0);
 	init_waitqueue_head(&epf_ctx->core_initialized_waitq);
+
+	/* to check if shutdown message response required. */
+	atomic_set(&epf_ctx->shutdown_msg_received, 0);
 
 	return ret;
 

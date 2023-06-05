@@ -3,6 +3,7 @@
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: epc: " fmt
 
+#include <linux/aer.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
@@ -222,8 +223,13 @@ nvscic2c_pcie_epc_remove(struct pci_dev *pdev)
 		pr_err("(%s): Error waiting for endpoints to close\n",
 		       drv_ctx->drv_name);
 
-	/* if PCIe EP SoC went away abruptly already, jump to local deinit. */
-	if (!pci_device_is_present(pdev))
+	/*
+	 * Jump to local deinit if any of below condition is true:
+	 *  => if PCIe EP SoC went away abruptly already.
+	 *  => if PCIe AER received.
+	 */
+	if (!pci_device_is_present(pdev) ||
+	    atomic_read(&drv_ctx->epc_ctx->aer_received))
 		goto deinit;
 
 	/*
@@ -252,15 +258,19 @@ nvscic2c_pcie_epc_remove(struct pci_dev *pdev)
 			/*
 			 * continue wait only if PCIe EP SoC is still there. It can
 			 * go away abruptly waiting for it's own endpoints to close.
+			 * Also check PCIe AER not received.
 			 */
-			if (pci_device_is_present(pdev)) {
-				pr_err("(%s): Still waiting for nvscic2c-pcie-epf to close\n",
-				       drv_ctx->drv_name);
-			} else {
+			if (!pci_device_is_present(pdev)) {
 				pr_debug("(%s): nvscic2c-pcie-epf went away\n",
 					 drv_ctx->drv_name);
 				break;
+			} else if (atomic_read(&drv_ctx->epc_ctx->aer_received)) {
+				pr_debug("(%s): PCIe AER received\n",
+					 drv_ctx->drv_name);
+				break;
 			}
+			pr_err("(%s): Still waiting for nvscic2c-pcie-epf to close\n",
+			       drv_ctx->drv_name);
 		} else if (timeout > 0) {
 			pr_debug("(%s): nvscic2c-pcie-epf closed\n",
 				 drv_ctx->drv_name);
@@ -280,6 +290,7 @@ deinit:
 
 	pci_release_region(pdev, 0);
 	pci_clear_master(pdev);
+	pci_disable_pcie_error_reporting(pdev);
 	pci_disable_device(pdev);
 
 	dt_release(&drv_ctx->drv_param);
@@ -324,6 +335,7 @@ nvscic2c_pcie_epc_probe(struct pci_dev *pdev,
 	}
 	init_completion(&epc_ctx->epf_ready_cmpl);
 	init_completion(&epc_ctx->epf_shutdown_cmpl);
+	atomic_set(&epc_ctx->aer_received, 0);
 
 	drv_ctx->drv_mode = DRV_MODE_EPC;
 	drv_ctx->drv_name = name;
@@ -338,6 +350,7 @@ nvscic2c_pcie_epc_probe(struct pci_dev *pdev,
 	ret = pcim_enable_device(pdev);
 	if (ret)
 		goto err_enable_device;
+	pci_enable_pcie_error_reporting(pdev);
 	pci_set_master(pdev);
 	ret = pci_request_region(pdev, 0, MODULE_NAME);
 	if (ret)
@@ -477,6 +490,61 @@ err_dt_parse:
 	return ret;
 }
 
+/*
+ * Hot-replug is required to recover for both type of errors.
+ * Hence we will return PCI_ERS_RESULT_DISCONNECT in both cases.
+ */
+static pci_ers_result_t
+nvscic2c_pcie_error_detected(struct pci_dev *pdev,
+			     pci_channel_state_t state)
+{
+	struct driver_ctx_t *drv_ctx = NULL;
+
+	if (WARN_ON(!pdev))
+		return PCI_ERS_RESULT_DISCONNECT;
+
+	drv_ctx = pci_get_drvdata(pdev);
+	if (WARN_ON(!drv_ctx))
+		return PCI_ERS_RESULT_DISCONNECT;
+
+	atomic_set(&drv_ctx->epc_ctx->aer_received, 1);
+	if (state == pci_channel_io_normal) {
+		pr_err("AER(NONFATAL) detected for dev %04x:%02x:%02x.%x\n",
+		       pci_domain_nr(pdev->bus),
+		       pdev->bus->number,
+		       PCI_SLOT(pdev->devfn),
+		       PCI_FUNC(pdev->devfn));
+		(void)pci_client_set_link_aer_error(drv_ctx->pci_client_h,
+						    NVSCIC2C_PCIE_AER_UNCORRECTABLE_NONFATAL);
+	} else {
+		if (state == pci_channel_io_frozen) {
+			pr_err("AER: FATAL detected for dev %04x:%02x:%02x.%x\n",
+			       pci_domain_nr(pdev->bus),
+			       pdev->bus->number,
+			       PCI_SLOT(pdev->devfn),
+			       PCI_FUNC(pdev->devfn));
+		} else {
+			pr_err("Unknow error for dev %04x:%02x:%02x.%x treat as AER: FATAL\n",
+			       pci_domain_nr(pdev->bus),
+			       pdev->bus->number,
+			       PCI_SLOT(pdev->devfn),
+			       PCI_FUNC(pdev->devfn));
+		}
+		(void)pci_client_set_link_aer_error(drv_ctx->pci_client_h,
+						    NVSCIC2C_PCIE_AER_UNCORRECTABLE_FATAL);
+	}
+
+	/* Mark PCIe Link down and notify all subscribers. */
+	pci_client_change_link_status(drv_ctx->pci_client_h,
+				      NVSCIC2C_PCIE_LINK_DOWN);
+
+	return PCI_ERS_RESULT_DISCONNECT;
+}
+
+static struct pci_error_handlers nvscic2c_pcie_error_handlers = {
+	.error_detected = nvscic2c_pcie_error_detected,
+};
+
 MODULE_DEVICE_TABLE(pci, nvscic2c_pcie_epc_tbl);
 static struct pci_driver nvscic2c_pcie_epc_driver = {
 	.name		= DRIVER_NAME_EPC,
@@ -484,6 +552,7 @@ static struct pci_driver nvscic2c_pcie_epc_driver = {
 	.probe		= nvscic2c_pcie_epc_probe,
 	.remove		= nvscic2c_pcie_epc_remove,
 	.shutdown	= nvscic2c_pcie_epc_remove,
+	.err_handler    = &nvscic2c_pcie_error_handlers,
 };
 module_pci_driver(nvscic2c_pcie_epc_driver);
 
