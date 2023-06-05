@@ -248,7 +248,7 @@ static int cam_power_get(struct cam *priv)
 	const char *mclk_name;
 	const char *parentclk_name;
 	struct clk *parent;
-	int err = 0;
+	int err = 0, ret = 0;
 
 	struct camera_common_power_rail *pw = priv ? &priv->power : NULL;
 	struct camera_common_pdata *pdata = priv ? priv->pdata : NULL;
@@ -272,8 +272,13 @@ static int cam_power_get(struct cam *priv)
 				dev_err(&priv->i2c_client->dev,
 					"unable to get parent clcok %s",
 					parentclk_name);
-			else
-				clk_set_parent(pw->mclk, parent);
+			else {
+				ret = clk_set_parent(pw->mclk, parent);
+				if (ret < 0)
+					dev_dbg(&priv->i2c_client->dev,
+					"%s unable to set parent clock %d\n",
+					__func__, ret);
+			}
 		}
 	}
 

@@ -132,7 +132,7 @@ static int lt6911uxc_power_get(struct tegracam_device *tc_dev)
 	struct camera_common_power_rail *pw = s_data->power;
 	struct camera_common_pdata *pdata = s_data->pdata;
 	struct clk *parent;
-	int err = 0;
+	int err = 0, ret = 0;
 
 	if (!pdata) {
 		dev_err(dev, "pdata missing\n");
@@ -153,8 +153,13 @@ static int lt6911uxc_power_get(struct tegracam_device *tc_dev)
 			if (IS_ERR(parent)) {
 				dev_err(dev, "unable to get parent clock %s",
 					pdata->parentclk_name);
-			} else
-				clk_set_parent(pw->mclk, parent);
+			} else {
+				ret = clk_set_parent(pw->mclk, parent);
+				if (ret < 0)
+					dev_dbg(dev,
+						"%s unable to set parent clock %d\n",
+						__func__, ret);
+			}
 		}
 	}
 
@@ -508,8 +513,16 @@ static void lt6911uxc_remove(struct i2c_client *client)
 #endif
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct lt6911uxc *priv = (struct lt6911uxc *)s_data->priv;
+	struct lt6911uxc *priv;
 
+	if (!s_data)
+#if (KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE)
+		return -EINVAL;
+#else
+		return;
+#endif
+
+	priv = (struct lt6911uxc *)s_data->priv;
 	tegracam_v4l2subdev_unregister(priv->tc_dev);
 	tegracam_device_unregister(priv->tc_dev);
 
