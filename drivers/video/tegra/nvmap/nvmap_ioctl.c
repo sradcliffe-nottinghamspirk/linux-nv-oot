@@ -44,6 +44,10 @@
 #endif /* !NVMAP_LOADABLE_MODULE */
 #endif
 
+#ifdef NV_BUILD_KERNEL_ACK
+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+#endif
+
 extern struct device tegra_vpr_dev;
 
 static ssize_t rw_handle(struct nvmap_client *client, struct nvmap_handle *h,
