@@ -75,4 +75,5 @@ obj-m += media/
 endif
 obj-m += staging/platform/tegra/gte/
 obj-m += staging/platform/tegra/gte_test/
-obj-m	+= nv-virtio/
+obj-m += nv-virtio/
+obj-m += usb/
