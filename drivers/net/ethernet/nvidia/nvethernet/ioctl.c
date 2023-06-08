@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/*
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ */
 
 #include "ether_linux.h"
 
@@ -1198,8 +1200,10 @@ int ether_handle_priv_ioctl(struct net_device *ndev,
 		if (ret < 0)
 			goto err;
 
+#ifndef OSI_STRIPPED_LIB
 		ioctl_data.cmd = OSI_CMD_REG_DUMP;
 		ret = osi_handle_ioctl(osi_core, &ioctl_data);
+#endif /* !OSI_STRIPPED_LIB */
 		break;
 	case ETHER_STRUCTURE_DUMP:
 		osi_dma->ioctl_data.cmd = OSI_DMA_IOCTL_CMD_STRUCTS_DUMP;
