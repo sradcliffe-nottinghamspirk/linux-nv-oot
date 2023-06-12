@@ -12,6 +12,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
+#include <linux/version.h>
 
 #include <media/tegra_v4l2_camera.h>
 #include <media/tegracam_core.h>
@@ -436,8 +437,12 @@ static struct camera_common_sensor_ops lt6911uxc_common_ops = {
 };
 
 
+#if KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE
+static int lt6911uxc_probe(struct i2c_client *client)
+#else
 static int lt6911uxc_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
+#endif
 {
 	struct device *dev = &client->dev;
 	struct tegracam_device *tc_dev;
