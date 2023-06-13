@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/kernel.h> /* printk() */
@@ -72,6 +72,9 @@ int vblk_prep_mmc_multi_ioc(struct vblk_dev *vblkdev,
 		err = -EINVAL;
 		goto free_ioc_buf;
 	}
+
+	/* should be 512 byte aligned */
+	combo_cmd_size = ALIGN(combo_cmd_size, SZ_512);
 
 	if (combo_cmd_size > ioctl_bytes) {
 		dev_err(vblkdev->device,
