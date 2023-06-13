@@ -38,8 +38,6 @@ int pva_finalize_poweron(struct platform_device *pdev);
  */
 int pva_prepare_poweroff(struct platform_device *pdev);
 
-#ifdef CONFIG_TEGRA_SOC_HWPM
-
 enum tegra_soc_hwpm_ip_reg_op;
 
 /**
@@ -77,5 +75,4 @@ int pva_hwpm_ip_reg_op(void *ip_dev,
 		       enum tegra_soc_hwpm_ip_reg_op reg_op,
 		       u32 inst_element_index, u64 reg_offset,
 		       u32 *reg_data);
-#endif
 #endif
