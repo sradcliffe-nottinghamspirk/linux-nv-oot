@@ -21,17 +21,17 @@
 	fragment@0 {
 		target-path = "/bus@0/host1x@13e00000";
 		__overlay__ {
-			#address-cells = <1>;
-			#size-cells = <1>;
+			#address-cells = <2>;
+			#size-cells = <2>;
 
 			interrupt-parent = <&gic>;
 
-			ranges = <0x14800000 0x14800000 0x02800000>,
-				 <0x24f00000 0x24f00000 0x00100000>;
+			ranges = <0x0 0x14800000 0x0 0x14800000 0x0 0x02800000>,
+				 <0x0 0x24f00000 0x0 0x24f00000 0x0 0x00100000>;
 
 			nvdla0@15880000 {
 				compatible = "nvidia,tegra194-nvdla";
-				reg = <0x15880000 0x00040000>;
+				reg = <0x0 0x15880000 0x0 0x00040000>;
 				interrupts = <GIC_SPI 236 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&bpmp TEGRA194_CLK_DLA0_CORE>,
 					 <&bpmp TEGRA194_CLK_DLA0_FALCON>;
@@ -51,7 +51,7 @@
 
 			nvdla1@158c0000 {
 				compatible = "nvidia,tegra194-nvdla";
-				reg = <0x158c0000 0x00040000>;
+				reg = <0x0 0x158c0000 0x0 0x00040000>;
 				interrupts = <GIC_SPI 237 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&bpmp TEGRA194_CLK_DLA1_CORE>,
 					 <&bpmp TEGRA194_CLK_DLA1_FALCON>;
@@ -72,8 +72,8 @@
 			pva0@16000000 {
 				compatible = "nvidia,tegra194-pva";
 				power-domains = <&bpmp TEGRA194_POWER_DOMAIN_PVAA>;
-				reg = <0x16000000 0x00800000>,
-				      <0x24f00000 0x00080000>;
+				reg = <0x0 0x16000000 0x0 0x00800000>,
+				      <0x0 0x24f00000 0x0 0x00080000>;
 				interrupts = <GIC_SPI 234 IRQ_TYPE_LEVEL_HIGH>;
 
 				resets = <&bpmp TEGRA194_RESET_PVA0_ALL>;
@@ -102,8 +102,8 @@
 			pva1@16800000 {
 				compatible = "nvidia,tegra194-pva";
 				power-domains = <&bpmp TEGRA194_POWER_DOMAIN_PVAB>;
-				reg = <0x16800000 0x00800000>,
-				      <0x24f80000 0x00080000>;
+				reg = <0x0 0x16800000 0x0 0x00800000>,
+				      <0x0 0x24f80000 0x0 0x00080000>;
 				interrupts = <GIC_SPI 235 IRQ_TYPE_LEVEL_HIGH>;
 
 				resets = <&bpmp TEGRA194_RESET_PVA1_ALL>;
