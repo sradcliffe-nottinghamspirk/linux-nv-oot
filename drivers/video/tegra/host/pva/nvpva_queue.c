@@ -297,6 +297,42 @@ fail_alloc_pool:
 	return ERR_PTR(err);
 }
 
+#ifdef CONFIG_PM
+int nvpva_queue_pool_prepare_suspend(struct nvpva_queue_pool *pool)
+{
+	struct nvhost_device_data *pdata = platform_get_drvdata(pool->pdev);
+	struct pva *pva = pdata->private_data;
+	int err = 0;
+	unsigned int queue_id;
+	unsigned int i;
+
+	nvpva_dbg_fn(pva, "");
+
+	mutex_lock(&pool->queue_lock);
+
+	/* For each active queues, ensure there are no outstanding tasks. */
+	for (i = 0; i < NUM_POOL_ALLOC_SUB_TABLES; i++)
+		for_each_set_bit(queue_id, &pool->alloc_table[i], pool->max_queue_cnt) {
+			struct nvpva_queue *queue = &pool->queues[queue_id];
+			struct nvpva_queue_task_pool *task_pool = queue->task_pool;
+			bool nvpva_queue_is_idle;
+
+			mutex_lock(&task_pool->lock);
+			nvpva_queue_is_idle = (task_pool->alloc_table[i] == 0ULL);
+			mutex_unlock(&task_pool->lock);
+
+			if (!nvpva_queue_is_idle) {
+				err = -EBUSY;
+				goto not_idle;
+			}
+		}
+
+not_idle:
+	mutex_unlock(&pool->queue_lock);
+	return err;
+}
+#endif /* CONFIG_PM */
+
 void nvpva_queue_deinit(struct nvpva_queue_pool *pool)
 {
 	if (!pool)

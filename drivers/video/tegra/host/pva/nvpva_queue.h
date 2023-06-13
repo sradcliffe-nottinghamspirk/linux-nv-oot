@@ -290,4 +290,20 @@ void nvpva_queue_free_task_memory(struct nvpva_queue *queue, int index);
  */
 int nvpva_queue_set_attr(struct nvpva_queue *queue, void *arg);
 
+#ifdef CONFIG_PM
+/**
+ * @brief		Prepare suspension of all queues.
+ *
+ * This function is responsible for the following,
+ *  - Checks if there are no outstanding tasks.
+ *  - Does not attempt to clear or flush the outstanding tasks.
+ *
+ * @param pool		Pointer to a queue pool table.
+ *
+ * @return		0,	on successul completion.
+ *			-EBUSY,	if there are any outstanding tasks in queue.
+ **/
+int nvpva_queue_pool_prepare_suspend(struct nvpva_queue_pool *pool);
+#endif /* CONFIG_PM */
+
 #endif

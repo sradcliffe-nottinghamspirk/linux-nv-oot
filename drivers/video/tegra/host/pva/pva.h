@@ -432,6 +432,9 @@ struct pva {
 
 	struct work_struct pva_abort_handler_work;
 	bool booted;
+#ifdef CONFIG_PM
+	bool is_suspended;
+#endif
 	u32 log_level;
 	u32 driver_log_mask;
 	struct nvpva_client_context *clients;

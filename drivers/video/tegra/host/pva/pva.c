@@ -1138,6 +1138,9 @@ static int pva_probe(struct platform_device *pdev)
 	memset(&pva->vpu_util_info, 0, sizeof(pva->vpu_util_info));
 	pva->syncpts.syncpts_mapped_r = false;
 	pva->syncpts.syncpts_mapped_rw = false;
+#ifdef CONFIG_PM
+	pva->is_suspended = false;
+#endif
 	nvpva_dbg_fn(pva, "match. compatible = %s", match->compatible);
 	pva->is_hv_mode = is_tegra_hypervisor_mode();
 	if (pva->is_hv_mode)
@@ -1398,6 +1401,180 @@ static int __exit pva_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static int nvpva_module_runtime_suspend(struct device *dev)
+{
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct pva *pva = pdata->private_data;
+
+	nvpva_dbg_fn(pva, "");
+
+	if (nvhost_module_pm_ops.runtime_suspend != NULL)
+		return nvhost_module_pm_ops.runtime_suspend(dev);
+
+	return -EOPNOTSUPP;
+}
+
+static int nvpva_module_runtime_resume(struct device *dev)
+{
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct pva *pva = pdata->private_data;
+
+	nvpva_dbg_fn(pva, "");
+
+	if (nvhost_module_pm_ops.runtime_resume != NULL)
+		return nvhost_module_pm_ops.runtime_resume(dev);
+
+	return -EOPNOTSUPP;
+}
+
+static int nvpva_module_suspend(struct device *dev)
+{
+	int err = 0;
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct pva *pva = pdata->private_data;
+
+	nvpva_dbg_fn(pva, "");
+
+	if (nvhost_module_pm_ops.suspend != NULL) {
+		err = nvhost_module_pm_ops.suspend(dev);
+		if (err != 0) {
+			dev_err(dev, "(FAIL) NvHost suspend\n");
+			goto fail_nvhost_module_suspend;
+		}
+	} else {
+		err = pm_runtime_force_suspend(dev);
+		if (err != 0) {
+			dev_err(dev, "(FAIL) PM suspend\n");
+			goto fail_nvhost_module_suspend;
+		}
+	}
+
+	/* Mark module to be in suspend state. */
+	pva->is_suspended = true;
+
+fail_nvhost_module_suspend:
+	return err;
+}
+
+static int nvpva_module_resume(struct device *dev)
+{
+	int err = 0;
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct pva *pva = pdata->private_data;	nvpva_dbg_fn(pva, "");
+
+
+	nvpva_dbg_fn(pva, "");
+
+	/* Confirm if module is in suspend state. */
+	if (!pva->is_suspended) {
+		dev_warn(dev, "nvpva is not in suspend state.\n");
+		goto fail_not_in_suspend;
+	}
+
+	if (nvhost_module_pm_ops.resume != NULL) {
+		err = nvhost_module_pm_ops.resume(dev);
+		if (err != 0) {
+			dev_err(dev, "(FAIL) NvHost resume\n");
+			goto fail_nvhost_module_resume;
+		}
+	} else {
+		err = pm_runtime_force_resume(dev);
+		if (err != 0) {
+			dev_err(dev, "(FAIL) PM resume\n");
+			goto fail_nvhost_module_resume;
+		}
+	}
+
+	return 0;
+
+fail_nvhost_module_resume:
+fail_not_in_suspend:
+	return err;
+}
+
+static int nvpva_module_prepare_suspend(struct device *dev)
+{
+	int err = 0;
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct pva *pva = pdata->private_data;
+
+	nvpva_dbg_fn(pva, "");
+
+	/* Confirm if module is not in suspend state. */
+	if (pva->is_suspended) {
+		dev_warn(dev, "nvpva is already in suspend state.\n");
+		goto fail_already_in_suspend;
+	}
+
+	/* Prepare for queue pool suspension. */
+	err = nvpva_queue_pool_prepare_suspend(pva->pool);
+	if (err != 0) {
+		dev_err(dev, "(FAIL) Queue suspend\n");
+		goto fail_nvpva_queue_pool_prepare_suspend;
+	}
+
+	/* NvHost prepare suspend - callback */
+	if (nvhost_module_pm_ops.prepare != NULL) {
+		err = nvhost_module_pm_ops.prepare(dev);
+		if (err != 0) {
+			dev_err(dev, "(FAIL) NvHost prepare suspend\n");
+			goto fail_nvhost_module_prepare_suspend;
+		}
+	} else {
+		/* If we took an extra reference, drop it now to prevent
+		 * the device from automatically resuming upon system
+		 * resume.
+		 */
+		pm_runtime_put_sync(dev);
+	}
+
+
+	return 0;
+
+fail_nvhost_module_prepare_suspend:
+fail_nvpva_queue_pool_prepare_suspend:
+fail_already_in_suspend:
+	return err;
+}
+
+static void nvpva_module_complete_resume(struct device *dev)
+{
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct pva *pva = pdata->private_data;
+
+	nvpva_dbg_fn(pva, "");
+
+	if (nvhost_module_pm_ops.complete != NULL) {
+		nvhost_module_pm_ops.complete(dev);
+	} else {
+		/* Retake reference dropped above */
+		pm_runtime_get_noresume(dev);
+	}
+
+	/* Module is no longer in suspend and has resumed successfully */
+	pva->is_suspended = false;
+}
+
+/**
+ * SC7 suspend sequence
+ * - prepare_suspend
+ * - suspend
+ *
+ * SC7 resume sequence
+ * - resume
+ * - complete_resume
+ **/
+const struct dev_pm_ops nvpva_module_pm_ops = {
+	SET_RUNTIME_PM_OPS(nvpva_module_runtime_suspend,
+		nvpva_module_runtime_resume, NULL)
+	SET_SYSTEM_SLEEP_PM_OPS(nvpva_module_suspend,
+		nvpva_module_resume)
+	.prepare = nvpva_module_prepare_suspend,
+	.complete = nvpva_module_complete_resume,
+};
+#endif /* CONFIG_PM */
+
 static struct platform_driver pva_driver = {
 	.probe = pva_probe,
 	.remove = __exit_p(pva_remove),
@@ -1408,7 +1585,7 @@ static struct platform_driver pva_driver = {
 		.of_match_table = tegra_pva_of_match,
 #endif
 #ifdef CONFIG_PM
-		.pm = &nvhost_module_pm_ops,
+		.pm = &nvpva_module_pm_ops,
 #endif
 	},
 };
