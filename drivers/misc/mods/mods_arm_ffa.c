@@ -156,6 +156,10 @@ int esc_mods_arm_ffa_cmd(struct mods_client *client,
 					  (unsigned long long)data.data1);
 		p->outdata[0] = data.data1;
 		break;
+	case MODS_FFA_CMD_SE_TESTS:
+	case MODS_FFA_CMD_SE_KEY_MOVER:
+		p->outdata[0] = data.data1;
+		break;
 	case MODS_FFA_CMD_HSS_TEST:
 	case MODS_FFA_CMD_C2C_TEST:
 	case MODS_FFA_CMD_MISC:
