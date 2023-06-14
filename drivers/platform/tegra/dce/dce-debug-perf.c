@@ -69,10 +69,6 @@ out:
 static void dbg_dce_perf_stats_sched_task_xml(struct seq_file *s, struct tegra_dce *d,
 					      const struct dce_admin_task_stats *task_stat)
 {
-	/* Don't print task stats if task name is not set */
-	if (task_stat->name == NULL)
-		return;
-
 	seq_printf(s, "<task><name>%s</name>", task_stat->name);
 	seq_printf(s, "<init>%llu</init><ready>%llu</ready>",
 			task_stat->init, task_stat->ready);
@@ -168,10 +164,6 @@ static void dbg_dce_perf_stats_show_xml(struct seq_file *s, struct tegra_dce *d,
 static void dbg_dce_perf_stats_sched_task_csv(struct seq_file *s, struct tegra_dce *d,
 					      const struct dce_admin_task_stats *task_stat)
 {
-	/* Don't print if task_name is not set */
-	if (task_stat->name == NULL)
-		return;
-
 	seq_printf(s, "\"%s\",\"%llu\",\"%llu\",\"%llu\",\"%llu\",\"%llu\",\"%llu\",\"sleep\",\"%llu\",\"%llu\",\"%llu\",\"%llu\"\n",
 			task_stat->name, task_stat->init, task_stat->ready,
 			task_stat->ready_time, task_stat->dcache_misses,
@@ -464,9 +456,6 @@ static void dbg_dce_perf_events_show_csv(struct seq_file *s, struct tegra_dce *d
 	seq_puts(s, "\"Evt Name\",\"accumulate\",\"iterations\",\"min\",\"max\"\n");
 
 	for (i = 0; i < DCE_ADMIN_NUM_EVENTS; i++) {
-		if (events->events[i].name == NULL)
-			continue;
-
 		seq_printf(s, "\"%s\",\"%llu\",\"%llu\",\"%llu\",\"%llu\"\n",
 			   events->events[i].name, events->events[i].event.accumulate,
 			   events->events[i].event.iterations, events->events[i].event.min,
@@ -484,9 +473,6 @@ static void dbg_dce_perf_events_show_xml(struct seq_file *s, struct tegra_dce *d
 	seq_puts(s, "<EventsPerfData>");
 
 	for (i = 0; i < DCE_ADMIN_NUM_EVENTS; i++) {
-		if (events->events[i].name == NULL)
-			continue;
-
 		seq_printf(s, "<name>%s</name>\n", events->events[i].name);
 		seq_printf(s, "<accumulate>%llu</accumulate>\n",
 				events->events[i].event.accumulate);
