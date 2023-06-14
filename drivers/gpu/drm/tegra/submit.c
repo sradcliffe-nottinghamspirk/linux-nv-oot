@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2020 NVIDIA Corporation */
+/*
+ * Copyright (c) 2020-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
+ */
 
 #include <linux/dma-fence-array.h>
 #include <linux/dma-mapping.h>
@@ -425,7 +427,7 @@ submit_create_job(struct tegra_drm_context *context, struct gather_bo *bo,
 	needed_cmds = args->num_cmds;
 	if (job_data->timestamps.virt) {
 		/* Space for TSP method commands */
-		err = check_add_overflow(needed_cmds, 2, &needed_cmds);
+		err = check_add_overflow(needed_cmds, (u32)2U, &needed_cmds);
 		if (err) {
 			SUBMIT_ERR(context, "num_cmds too high");
 			job = ERR_PTR(-EINVAL);

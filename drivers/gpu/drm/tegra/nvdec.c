@@ -81,7 +81,7 @@ static inline void nvdec_writel(struct nvdec *nvdec, u32 value,
 
 static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 {
-	struct nvdec_config *config = nvdec->config;
+	const struct nvdec_config *config = nvdec->config;
 	struct host1x_client *client = &nvdec->client.base;
 	unsigned long dev_rate;
 	u32 weight, emc_kbps;
