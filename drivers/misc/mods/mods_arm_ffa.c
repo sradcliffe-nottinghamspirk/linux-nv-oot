@@ -26,6 +26,8 @@ struct mods_ffa_ctx {
 #endif
 };
 
+static DEFINE_MUTEX(mods_ffa_lock);
+
 static struct mods_ffa_ctx mods_ffa_info;
 
 static int ffa_probe(struct ffa_device *ffa_dev)
@@ -137,7 +139,9 @@ int esc_mods_arm_ffa_cmd(struct mods_client *client,
 		return err;
 	}
 
+	mutex_lock(&mods_ffa_lock);
 	err = mods_ffa_info.ffa_ops->sync_send_receive(mods_ffa_info.ffa_dev, &data);
+	mutex_unlock(&mods_ffa_lock);
 
 	switch (p->cmd) {
 	case MODS_FFA_CMD_READ_REG:
