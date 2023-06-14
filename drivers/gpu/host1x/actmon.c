@@ -81,7 +81,7 @@ DEFINE_SIMPLE_ATTRIBUTE(host1x_actmon_sample_period_fops,
 		host1x_actmon_sample_period_set,
 		"%lld\n");
 
-static void host1x_actmon_debug_init(struct host1x_actmon *actmon)
+static void host1x_actmon_debug_init(struct host1x_actmon *actmon, const char *name)
 {
 	struct host1x *host = dev_get_drvdata(actmon->client->host->parent);
 	struct dentry *debugfs = host->actmon_debugfs;
@@ -89,7 +89,7 @@ static void host1x_actmon_debug_init(struct host1x_actmon *actmon)
 	if (!debugfs)
 		return;
 
-	actmon->debugfs = debugfs_create_dir(actmon->name, debugfs);
+	actmon->debugfs = debugfs_create_dir(name, debugfs);
 
 	/* R/W files */
 	debugfs_create_file("sample_period", 0644, actmon->debugfs, actmon,
@@ -326,8 +326,8 @@ void host1x_actmon_handle_interrupt(struct host1x *host, int classid)
 int host1x_actmon_register(struct host1x_client *client)
 {
 	struct host1x *host = dev_get_drvdata(client->host->parent);
-	struct host1x_info *info = host->info;
-	struct host1x_actmon_entry *entry = NULL;
+	const struct host1x_info *info = host->info;
+	const struct host1x_actmon_entry *entry = NULL;
 	struct host1x_actmon_module *module;
 	struct host1x_actmon *actmon;
 	unsigned long flags;
@@ -357,7 +357,6 @@ int host1x_actmon_register(struct host1x_client *client)
 	actmon->rate = clk_get_rate(host->actmon_clk);
 	actmon->regs = host->actmon_regs + entry->offset;
 	actmon->irq = entry->irq;
-	actmon->name = entry->name;
 	actmon->num_modules = entry->num_modules;
 	actmon->usecs_per_sample = 1500;
 
@@ -365,7 +364,7 @@ int host1x_actmon_register(struct host1x_client *client)
 	host1x_actmon_init(actmon);
 
 	/* Create debugfs for the actmon */
-	host1x_actmon_debug_init(actmon);
+	host1x_actmon_debug_init(actmon, entry->name);
 
 	/* Configure actmon module registers */
 	for (i = 0; i < actmon->num_modules; i++) {

@@ -31,7 +31,6 @@ struct host1x_actmon_module {
 struct host1x_client;
 
 struct host1x_actmon {
-	char *name;
 	unsigned int irq;
 	unsigned int num_modules;
 	unsigned long rate;
