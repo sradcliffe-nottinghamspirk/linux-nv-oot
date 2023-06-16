@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -133,12 +133,16 @@ static int __init hvc_sysfs_register(void)
 		return -ENOMEM;
 	}
 
-	if (hyp_read_hyp_info(&ipa) != 0)
-		return -EINVAL;
+	if (hyp_read_hyp_info(&ipa) != 0) {
+		ret = -EINVAL;
+		goto fail;
+	}
 
 	info = (__force struct hyp_info_page *)ioremap(ipa, sizeof(*info));
-	if (info == NULL)
-		return -EFAULT;
+	if (info == NULL) {
+		ret = -EFAULT;
+		goto fail;
+	}
 
 	buffs = info->trace_buffs;
 	count = ARRAY_SIZE(info->trace_buffs);
@@ -147,7 +151,8 @@ static int __init hvc_sysfs_register(void)
 	if (MAX_NAME_SIZE < (ARRAY_SIZE(buffs[i].name) + 4U)) {
 		TEGRA_HV_INFO("hyp_shared_memory_attrs.name size is small\n");
 		iounmap((void __iomem *)info);
-		return -EFAULT;
+		ret = -EFAULT;
+		goto fail;
 	}
 
 	for (i = 0; i < count; i++) {
@@ -166,7 +171,8 @@ static int __init hvc_sysfs_register(void)
 			} else {
 				TEGRA_HV_INFO("snprintf failure - %s\n", buffs[i].name);
 				iounmap((void __iomem *)info);
-				return -EFAULT;
+				ret = -EFAULT;
+				goto fail;
 			}
 
 			ret = hvc_create_sysfs(kobj, &hyp_shared_memory_attrs[i]);
@@ -192,7 +198,8 @@ static int __init hvc_sysfs_register(void)
 	} else {
 		TEGRA_HV_INFO("snprintf failure - pct\n");
 		iounmap((void __iomem *)info);
-		return -EFAULT;
+		ret = -EFAULT;
+		goto fail;
 	}
 
 	ret = hvc_create_sysfs(kobj, &hyp_shared_memory_attrs[i]);
@@ -204,6 +211,10 @@ static int __init hvc_sysfs_register(void)
 	iounmap((void __iomem *)info);
 
 	return 0;
+
+fail:
+	kobject_del(kobj);
+	return ret;
 }
 
 late_initcall(hvc_sysfs_register);
