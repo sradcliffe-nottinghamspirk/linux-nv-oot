@@ -203,7 +203,11 @@ int tegra_dce_unregister_ipc_client(u32 handle)
 {
 	struct tegra_dce_client_ipc *cl;
 
-	cl = &client_handles[client_handle_to_index(handle)];
+	cl = dce_client_ipc_lookup_handle(handle);
+	if (cl == NULL) {
+		return -EINVAL;
+	}
+
 	dce_cond_destroy(&cl->recv_wait);
 
 	return dce_client_ipc_handle_free(handle);
