@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /* Copyright (C) 2018 Microchip Technology Inc. */
+/*
+ * Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ */
 
 #ifndef _LAN743X_H
 #define _LAN743X_H
@@ -626,6 +629,8 @@ struct lan743x_intr {
 struct lan743x_phy {
 	bool	fc_autoneg;
 	u8	fc_request_control;
+	bool	fixed;
+	u32	mdio_addr;
 };
 
 /* TX */
@@ -706,6 +711,7 @@ struct lan743x_rx {
 struct lan743x_adapter {
 	struct net_device       *netdev;
 	struct mii_bus		*mdiobus;
+	phy_interface_t		phy_mode;
 	int                     msg_enable;
 #ifdef CONFIG_PM
 	u32			wolopts;
