@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: GPL-2.0-only
 
 objtree = $(srctree)
@@ -45,10 +45,12 @@ tegra-rel-dtstree := $(rel-top-path)/hardware/nvidia
 
 DTC_INCLUDE :=
 # SOC independent common include
+DTC_INCLUDE += $(tegra-dtstree)/tegra/nv-public
 
 # SOC T23X specific common include
 DTC_INCLUDE += $(tegra-dtstree)/t23x/nv-public/include/kernel
 DTC_INCLUDE += $(tegra-dtstree)/t23x/nv-public/include/nvidia-oot
+DTC_INCLUDE += $(tegra-dtstree)/t23x/nv-public/include/platforms
 DTC_INCLUDE += $(tegra-dtstree)/t23x/nv-public
 
 dtb-y :=
