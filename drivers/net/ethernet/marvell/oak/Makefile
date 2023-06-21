@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
 ##
 ##
 ## If you received this File from Marvell, you may opt to use, redistribute and/or
