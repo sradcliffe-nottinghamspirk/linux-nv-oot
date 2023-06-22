@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #define pr_fmt(fmt) "mc-hwpm: " fmt
@@ -248,6 +248,12 @@ static int tegra_mc_hwpm_hwpm_probe(struct platform_device *pdev)
 
 static int tegra_mc_hwpm_remove(struct platform_device *pdev)
 {
+	hwpm_ip_ops.ip_dev = (void *)pdev;
+	hwpm_ip_ops.resource_enum = TEGRA_SOC_HWPM_RESOURCE_MSS_CHANNEL;
+	hwpm_ip_ops.ip_base_address = pdev->resource[0].start;
+	hwpm_ip_ops.hwpm_ip_reg_op = NULL;
+	tegra_soc_hwpm_ip_unregister(&hwpm_ip_ops);
+
 	return 0;
 }
 
