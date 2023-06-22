@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 //
-// Copyright (C) 2020-2023 NVIDIA CORPORATION.
+// Copyright (C) 2023 NVIDIA CORPORATION.
 
 #include <linux/clk.h>
 #include <linux/completion.h>
@@ -23,6 +23,7 @@
 #include <linux/spi/spi.h>
 #include <linux/acpi.h>
 #include <linux/property.h>
+#include <linux/tegra-oot-prod.h>
 
 #define QSPI_COMMAND1				0x000
 #define QSPI_BIT_LENGTH(x)			(((x) & 0x1f) << 0)
@@ -234,6 +235,7 @@ struct tegra_qspi {
 	dma_addr_t				tx_dma_phys;
 	struct dma_async_tx_descriptor		*tx_dma_desc;
 	const struct tegra_qspi_soc_data	*soc_data;
+	struct tegra_prod			*prod_list;
 };
 
 static inline u32 tegra_qspi_readl(struct tegra_qspi *tqspi, unsigned long offset)
@@ -901,6 +903,31 @@ static u32 tegra_qspi_setup_transfer_one(struct spi_device *spi, struct spi_tran
 	command1 &= ~QSPI_SDR_DDR_SEL;
 
 	return command1;
+}
+
+static void tegra_qspi_set_gr_registers(struct tegra_qspi *tqspi)
+{
+	int err;
+
+	if (!tqspi->prod_list)
+		goto regs_por;
+
+	/* If available, initialise the config registers
+	 * for QSPI with the values mentioned in prod list.
+	 */
+	err = tegra_prod_set_by_name(&tqspi->base, "prod", tqspi->prod_list);
+	if (err < 0)
+		dev_info_once(tqspi->dev,
+			      "Prod config not found for QSPI: %d\n", err);
+
+	return;
+regs_por:
+	/* If NOT defined in prod list or error in applying prod settings,
+	 * then initialise golden registers with POR values.
+	 */
+	tegra_qspi_writel(tqspi, tqspi->def_command2_reg, QSPI_COMMAND2);
+	tegra_qspi_writel(tqspi, tqspi->spi_cs_timing1, QSPI_CS_TIMING1);
+	tegra_qspi_writel(tqspi, tqspi->spi_cs_timing2, QSPI_CS_TIMING2);
 }
 
 static int tegra_qspi_start_transfer_one(struct spi_device *spi,
@@ -1612,6 +1639,12 @@ static int tegra_qspi_probe(struct platform_device *pdev)
 
 	tqspi->master = master;
 	tqspi->dev = &pdev->dev;
+	tqspi->prod_list = devm_tegra_prod_get(&pdev->dev);
+	if (IS_ERR(tqspi->prod_list)) {
+		dev_info(&pdev->dev, "Prod settings list not found\n");
+		tqspi->prod_list = NULL;
+	}
+
 	spin_lock_init(&tqspi->lock);
 
 	tqspi->soc_data = device_get_match_data(&pdev->dev);
@@ -1666,6 +1699,7 @@ static int tegra_qspi_probe(struct platform_device *pdev)
 	tqspi->spi_cs_timing1 = tegra_qspi_readl(tqspi, QSPI_CS_TIMING1);
 	tqspi->spi_cs_timing2 = tegra_qspi_readl(tqspi, QSPI_CS_TIMING2);
 	tqspi->def_command2_reg = tegra_qspi_readl(tqspi, QSPI_COMMAND2);
+	tegra_qspi_set_gr_registers(tqspi);
 
 	pm_runtime_put(&pdev->dev);
 
@@ -1728,6 +1762,7 @@ static int __maybe_unused tegra_qspi_resume(struct device *dev)
 
 	tegra_qspi_writel(tqspi, tqspi->command1_reg, QSPI_COMMAND1);
 	tegra_qspi_writel(tqspi, tqspi->def_command2_reg, QSPI_COMMAND2);
+	tegra_qspi_set_gr_registers(tqspi);
 	pm_runtime_put(dev);
 
 	return spi_master_resume(master);
