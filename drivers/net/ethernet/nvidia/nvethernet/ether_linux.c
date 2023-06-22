@@ -2408,6 +2408,11 @@ static int ether_update_mac_addr_filter(struct ether_priv_data *pdata,
 	return osi_handle_ioctl(osi_core, ioctl_data);
 }
 
+static u32 ether_mdio_c45_addr(int devad, u16 regnum)
+{
+	return OSI_MII_ADDR_C45 | devad << MII_DEVADDR_C45_SHIFT | regnum;
+}
+
 /**
  * @brief MII call back for MDIO register write.
  *
@@ -2470,6 +2475,18 @@ static int ether_mdio_read(struct mii_bus *bus, int phyaddr, int phyreg)
 				(unsigned int)phyreg);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+static int ether_mdio_write_c45(struct mii_bus *bus, int phyaddr, int devad, int regnum, u16 val)
+{
+	return ether_mdio_write(bus, phyaddr, ether_mdio_c45_addr(devad, regnum), val);
+}
+
+static int ether_mdio_read_c45(struct mii_bus *bus, int phyaddr, int devad, int regnum)
+{
+	return ether_mdio_read(bus, phyaddr, ether_mdio_c45_addr(devad, regnum));
+}
+#endif
+
 /**
  * @brief MDIO bus registration.
  *
@@ -2502,6 +2519,10 @@ static int ether_mdio_register(struct ether_priv_data *pdata)
 	new_bus->name = "nvethernet_mdio_bus";
 	new_bus->read = ether_mdio_read;
 	new_bus->write = ether_mdio_write;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	new_bus->read_c45 = ether_mdio_read_c45;
+	new_bus->write_c45 = ether_mdio_write_c45;
+#endif
 	ret = snprintf(new_bus->id, MII_BUS_ID_SIZE, "%s", dev_name(dev));
 	if (ret < 0) {
 		dev_err(dev, "%s:encoding error", __func__);
@@ -3747,7 +3768,7 @@ static int ether_handle_priv_rmdio_ioctl(struct ether_priv_data *pdata,
 	if (mdio_phy_id_is_c45(mii_data->phy_id)) {
 		prtad = mdio_phy_id_prtad(mii_data->phy_id);
 		devad = mdio_phy_id_devad(mii_data->phy_id);
-		devad = OSI_MII_ADDR_C45 | devad << MII_DEVADDR_C45_SHIFT | mii_data->reg_num;
+		devad = ether_mdio_c45_addr(devad, mii_data->reg_num);
 	} else {
 		prtad = mii_data->phy_id;
 		devad = mii_data->reg_num;
@@ -3788,7 +3809,7 @@ static int ether_handle_priv_wmdio_ioctl(struct ether_priv_data *pdata,
 	if (mdio_phy_id_is_c45(mii_data->phy_id)) {
 		prtad = mdio_phy_id_prtad(mii_data->phy_id);
 		devad = mdio_phy_id_devad(mii_data->phy_id);
-		devad = OSI_MII_ADDR_C45 | devad << MII_DEVADDR_C45_SHIFT | mii_data->reg_num;
+		devad = ether_mdio_c45_addr(devad, mii_data->reg_num);
 	} else {
 		prtad = mii_data->phy_id;
 		devad = mii_data->reg_num;
