@@ -37,6 +37,35 @@
 #define NVMAP_DMABUF_ATTACH  __nvmap_dmabuf_attach
 #endif
 
+struct nvmap_handle_sgt {
+	enum dma_data_direction dir;
+	struct sg_table *sgt;
+	struct device *dev;
+	struct list_head maps_entry;
+	struct nvmap_handle_info *owner;
+} ____cacheline_aligned_in_smp;
+
+static struct kmem_cache *handle_sgt_cache;
+
+/*
+ * Initialize a kmem cache for allocating nvmap_handle_sgt's.
+ */
+int nvmap_dmabuf_stash_init(void)
+{
+	handle_sgt_cache = KMEM_CACHE(nvmap_handle_sgt, 0);
+	if (IS_ERR_OR_NULL(handle_sgt_cache)) {
+		pr_err("Failed to make kmem cache for nvmap_handle_sgt.\n");
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+void nvmap_dmabuf_stash_deinit(void)
+{
+	kmem_cache_destroy(handle_sgt_cache);
+}
+
 static int __nvmap_dmabuf_attach(struct dma_buf *dmabuf, struct device *dev,
 			       struct dma_buf_attachment *attach)
 {
@@ -81,12 +110,53 @@ static inline bool access_vpr_phys(struct device *dev)
 	return !!of_find_property(dev->of_node, "access-vpr-phys", NULL);
 }
 
+static int nvmap_dmabuf_stash_sgt_locked(struct dma_buf_attachment *attach,
+					 enum dma_data_direction dir,
+					 struct sg_table *sgt)
+{
+	struct nvmap_handle_sgt *nvmap_sgt;
+	struct nvmap_handle_info *info = attach->dmabuf->priv;
+
+	nvmap_sgt = kmem_cache_alloc(handle_sgt_cache, GFP_KERNEL);
+	if (IS_ERR_OR_NULL(nvmap_sgt)) {
+		pr_err("Stashing SGT failed.\n");
+		return -ENOMEM;
+	}
+
+	nvmap_sgt->dir = dir;
+	nvmap_sgt->sgt = sgt;
+	nvmap_sgt->dev = attach->dev;
+	nvmap_sgt->owner = info;
+	list_add(&nvmap_sgt->maps_entry, &info->maps);
+
+	return 0;
+}
+
+static struct sg_table *nvmap_dmabuf_get_sgt_from_stash(struct dma_buf_attachment *attach,
+							enum dma_data_direction dir)
+{
+	struct nvmap_handle_info *info = attach->dmabuf->priv;
+	struct nvmap_handle_sgt *nvmap_sgt;
+	struct sg_table *sgt = NULL;
+
+	list_for_each_entry(nvmap_sgt, &info->maps, maps_entry) {
+		if (nvmap_sgt->dir != dir || nvmap_sgt->dev != attach->dev)
+			continue;
+
+		/* found sgt in stash */
+		sgt = nvmap_sgt->sgt;
+		break;
+	}
+
+	return sgt;
+}
+
 static struct sg_table *nvmap_dmabuf_map_dma_buf(struct dma_buf_attachment *attach,
 						  enum dma_data_direction dir)
 {
 	struct nvmap_handle_info *info = attach->dmabuf->priv;
 	int ents = 0;
-	struct sg_table *sgt;
+	struct sg_table *sgt = NULL;
 #ifdef NVMAP_CONFIG_DEBUG_MAPS
 	char *device_name = NULL;
 	u32 heap_type;
@@ -109,6 +179,10 @@ static struct sg_table *nvmap_dmabuf_map_dma_buf(struct dma_buf_attachment *atta
 	mutex_lock(&info->maps_lock);
 
 	atomic_inc(&info->handle->pin);
+
+	sgt = nvmap_dmabuf_get_sgt_from_stash(attach, dir);
+	if (sgt)
+		goto cache_hit;
 
 	sgt = __nvmap_sg_table(NULL, info->handle);
 	if (IS_ERR(sgt)) {
@@ -133,6 +207,10 @@ static struct sg_table *nvmap_dmabuf_map_dma_buf(struct dma_buf_attachment *atta
 			goto err_map;
 	}
 
+	if (nvmap_dmabuf_stash_sgt_locked(attach, dir, sgt))
+		WARN(1, "No mem to prep sgt.\n");
+
+cache_hit:
 	attach->priv = sgt;
 
 #ifdef NVMAP_CONFIG_DEBUG_MAPS
@@ -155,6 +233,26 @@ err_map:
 	return ERR_PTR(-ENOMEM);
 }
 
+static void __nvmap_dmabuf_unmap_dma_buf(struct nvmap_handle_sgt *nvmap_sgt)
+{
+	struct nvmap_handle_info *info = nvmap_sgt->owner;
+	enum dma_data_direction dir = nvmap_sgt->dir;
+	struct sg_table *sgt = nvmap_sgt->sgt;
+	struct device *dev = nvmap_sgt->dev;
+
+	if (!(nvmap_dev->dynamic_dma_map_mask & info->handle->heap_type)) {
+		sg_dma_address(sgt->sgl) = 0;
+	} else if (info->handle->heap_type == NVMAP_HEAP_CARVEOUT_VPR &&
+			access_vpr_phys(dev)) {
+		sg_dma_address(sgt->sgl) = 0;
+	} else {
+		dma_unmap_sg_attrs(dev,
+				   sgt->sgl, sgt->nents,
+				   dir, DMA_ATTR_SKIP_CPU_SYNC);
+	}
+	__nvmap_free_sg_table(NULL, info->handle, sgt);
+}
+
 static void nvmap_dmabuf_unmap_dma_buf(struct dma_buf_attachment *attach,
 				       struct sg_table *sgt,
 				       enum dma_data_direction dir)
@@ -174,18 +272,6 @@ static void nvmap_dmabuf_unmap_dma_buf(struct dma_buf_attachment *attach,
 		return;
 	}
 
-	if (!(nvmap_dev->dynamic_dma_map_mask & info->handle->heap_type)) {
-		sg_dma_address(sgt->sgl) = 0;
-	} else if (info->handle->heap_type == NVMAP_HEAP_CARVEOUT_VPR &&
-			access_vpr_phys(attach->dev)) {
-		sg_dma_address(sgt->sgl) = 0;
-	} else {
-		dma_unmap_sg_attrs(attach->dev,
-				   sgt->sgl, sgt->nents,
-				   dir, DMA_ATTR_SKIP_CPU_SYNC);
-	}
-	__nvmap_free_sg_table(NULL, info->handle, sgt);
-
 #ifdef NVMAP_CONFIG_DEBUG_MAPS
 	/* Remove the device name from the list of carveout accessing devices */
 	heap_type = info->handle->heap_type;
@@ -199,11 +285,23 @@ static void nvmap_dmabuf_unmap_dma_buf(struct dma_buf_attachment *attach,
 static void nvmap_dmabuf_release(struct dma_buf *dmabuf)
 {
 	struct nvmap_handle_info *info = dmabuf->priv;
+	struct nvmap_handle_sgt *nvmap_sgt;
 
 	trace_nvmap_dmabuf_release(info->handle->owner ?
 				   info->handle->owner->name : "unknown",
 				   info->handle,
 				   dmabuf);
+
+	mutex_lock(&info->maps_lock);
+	while (!list_empty(&info->maps)) {
+		nvmap_sgt = list_first_entry(&info->maps,
+					     struct nvmap_handle_sgt,
+					     maps_entry);
+		__nvmap_dmabuf_unmap_dma_buf(nvmap_sgt);
+		list_del(&nvmap_sgt->maps_entry);
+		kmem_cache_free(handle_sgt_cache, nvmap_sgt);
+	}
+	mutex_unlock(&info->maps_lock);
 
 	mutex_lock(&info->handle->lock);
 	if (info->is_ro) {

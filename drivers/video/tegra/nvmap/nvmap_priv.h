@@ -621,6 +621,7 @@ int __nvmap_dmabuf_fd(struct nvmap_client *client,
 		      struct dma_buf *dmabuf, int flags);
 
 int nvmap_dmabuf_stash_init(void);
+void nvmap_dmabuf_stash_deinit(void);
 
 void *nvmap_altalloc(size_t len);
 void nvmap_altfree(void *ptr, size_t len);
