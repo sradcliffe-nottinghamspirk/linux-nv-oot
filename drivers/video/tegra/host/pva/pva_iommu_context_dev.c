@@ -16,9 +16,22 @@
 #include <linux/of.h>
 #include <linux/version.h>
 #include <linux/dma-buf.h>
+#include <linux/nvhost.h>
+#include <linux/platform_device.h>
 
 #include "pva_iommu_context_dev.h"
 #include "pva.h"
+
+#define NVPVA_CNTXT_DEV_NAME_LEN_T23X	(29U)
+#define NVPVA_CNTXT_DEVICE_CNT		(8U)
+
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+#include "pva_cntxt_dev_name_t264.h"
+#include "pva_iommu_context_dev_t264.h"
+#else
+#define NVPVA_CNTXT_DEV_NAME_LEN NVPVA_CNTXT_DEV_NAME_LEN_T23X
+#define NVPVA_CNTXT_DEVICE_CNT_T264 NVPVA_CNTXT_DEVICE_CNT
+#endif
 
 static u32 cntxt_dev_count;
 static char *dev_names[] = {
@@ -30,6 +43,9 @@ static char *dev_names[] = {
 	"pva0_niso1_ctx5",
 	"pva0_niso1_ctx6",
 	"pva0_niso1_ctx7",
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+	PVA_CNTXT_DEV_NAME_T264
+#endif
 };
 
 static const struct of_device_id pva_iommu_context_dev_of_match[] = {
@@ -49,22 +65,31 @@ struct pva_iommu_ctx {
 static LIST_HEAD(pva_iommu_ctx_list);
 static DEFINE_MUTEX(pva_iommu_ctx_list_mutex);
 
-bool is_cntxt_initialized(void)
+bool is_cntxt_initialized(const int hw_gen)
 {
-	return (cntxt_dev_count == 8);
+	u32 pva_cntxt_dev_cnt = (hw_gen == PVA_HW_GEN3) ? NVPVA_CNTXT_DEVICE_CNT_T264
+					 : NVPVA_CNTXT_DEVICE_CNT;
+	return (cntxt_dev_count == pva_cntxt_dev_cnt);
 }
 
-int nvpva_iommu_context_dev_get_sids(int *hwids, int *count, int max_cnt)
+int nvpva_iommu_context_dev_get_sids(int *hwids, int *count, const int hw_gen)
 {
 	struct pva_iommu_ctx *ctx;
 	int err = 0;
 	int i;
+	u32 pva_cntxt_dev_cnt;
+
+	if (hw_gen == PVA_HW_GEN3)
+		pva_cntxt_dev_cnt = NVPVA_CNTXT_DEVICE_CNT_T264;
+	else
+		pva_cntxt_dev_cnt = NVPVA_CNTXT_DEVICE_CNT;
 
 	*count = 0;
 	mutex_lock(&pva_iommu_ctx_list_mutex);
-	for (i = 0; i < max_cnt; i++) {
+	for (i = 0; i < pva_cntxt_dev_cnt; i++) {
 		list_for_each_entry(ctx, &pva_iommu_ctx_list, list) {
-			if (strnstr(ctx->pdev->name, dev_names[i], 29) != NULL) {
+			if (strnstr(ctx->pdev->name, dev_names[i],
+			 NVPVA_CNTXT_DEV_NAME_LEN) != NULL) {
 				hwids[*count] = nvpva_get_device_hwid(ctx->pdev, 0);
 				if (hwids[*count] < 0) {
 					err = hwids[*count];
@@ -72,7 +97,7 @@ int nvpva_iommu_context_dev_get_sids(int *hwids, int *count, int max_cnt)
 				}
 
 				++(*count);
-				if (*count >= max_cnt)
+				if (*count >= pva_cntxt_dev_cnt)
 					break;
 			}
 		}
@@ -167,7 +192,7 @@ static int pva_iommu_context_dev_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	if (strnstr(pdev->name, dev_names[7], 29) != NULL)
+	if (strnstr(pdev->name, dev_names[7], NVPVA_CNTXT_DEV_NAME_LEN) != NULL)
 		dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
 	else
 		dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(39));

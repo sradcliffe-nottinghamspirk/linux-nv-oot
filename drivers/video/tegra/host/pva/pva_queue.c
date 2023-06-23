@@ -198,10 +198,14 @@ pva_task_pin_fence(struct pva_submit_task *task,
 		if (IS_ERR(mem)) {
 			task_err(task, "sempahore submit pin failed");
 			err = PTR_ERR(mem);
-		} else
+		} else {
 			*addr = mem->dma_addr + fence->obj.sem.mem.offset;
 
-		*serial_id = mem->serial_id;
+			*serial_id = mem->serial_id;
+			nvpva_dbg_info(task->pva,
+			       "id = %d, semaphore addr = %llx",
+			       fence->obj.sem.mem.pin_id, *addr);
+		}
 		break;
 	}
 	case NVPVA_FENCE_OBJ_SYNCPT: {
@@ -1257,7 +1261,7 @@ set_task_parameters(const struct pva_submit_tasks *task_header)
 	 * thus the response should come in the correct CCQ
 	 */
 	if ((task->pva->submit_task_mode == PVA_SUBMIT_MODE_MMIO_CCQ)
-	   && (task_header->tasks[0]->pva->version == PVA_HW_GEN2))
+	   && (task_header->tasks[0]->pva->version != PVA_HW_GEN1))
 		status_interface = (task->queue->id + 1U);
 
 	for (idx = 0U; idx < task_header->num_tasks; idx++) {

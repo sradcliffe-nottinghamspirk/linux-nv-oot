@@ -9,8 +9,14 @@
 #include "nvpva_elf_parser.h"
 #include "pva_bit_helpers.h"
 #include "pva.h"
-#include  "hw_vmem_pva.h"
+#include "hw_vmem_pva.h"
 #include "pva_vpu_exe.h"
+
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+#include "hw_vmem_pva_t264.h"
+#else
+#define VMEM_REGION_COUNT_T26x 4
+#endif
 
 #define ELF_MAXIMUM_SECTION_NAME 64
 #define ELF_EXPORTS_SECTION "EXPORTS"
@@ -1123,16 +1129,22 @@ struct vmem_region {
 	uint32_t end;
 };
 
-struct vmem_region vmem_regions_tab[NUM_HEM_GEN + 1][VMEM_REGION_COUNT] = {
+struct vmem_region vmem_regions_tab[NUM_HEM_GEN + 1][VMEM_REGION_COUNT_T26x] = {
 	{{.start = 0, .end = 0},
+	 {.start = 0, .end = 0},
 	 {.start = 0, .end = 0},
 	 {.start = 0, .end = 0}},
 	{{.start = T19X_VMEM0_START, .end = T19X_VMEM0_END},
 	 {.start = T19X_VMEM1_START, .end = T19X_VMEM1_END},
-	 {.start = T19X_VMEM2_START, .end = T19X_VMEM2_END}},
+	 {.start = T19X_VMEM2_START, .end = T19X_VMEM2_END},
+	 {.start = 0xFFFFFFFF, .end = 0}},
 	{{.start = T23x_VMEM0_START, .end = T23x_VMEM0_END},
 	 {.start = T23x_VMEM1_START, .end = T23x_VMEM1_END},
-	 {.start = T23x_VMEM2_START, .end = T23x_VMEM2_END}},
+	 {.start = T23x_VMEM2_START, .end = T23x_VMEM2_END},
+	 {.start = 0xFFFFFFFF, .end = 0}},
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+	#include "pva_vmem_regions_tab_t264.h"
+#endif
 };
 
 int32_t
@@ -1143,13 +1155,15 @@ nvpva_validate_vmem_offset(const uint32_t vmem_offset,
 
 	int i;
 	int32_t err = -EINVAL;
+	const u8 vmem_region_count = (hw_gen == PVA_HW_GEN3) ? VMEM_REGION_COUNT_T26x
+								 : VMEM_REGION_COUNT_T23x;
 
 	if (hw_gen < 0 || hw_gen > NUM_HEM_GEN) {
 		pr_err("invalid hw_gen index: %d", hw_gen);
 		return err;
 	}
 
-	for (i = VMEM_REGION_COUNT; i > 0; i--) {
+	for (i = vmem_region_count; i > 0; i--) {
 		if (vmem_offset >= vmem_regions_tab[hw_gen][i-1].start)
 			break;
 	}

@@ -54,8 +54,6 @@ struct pva_version_info {
 #define MAX_PVA_TASK_COUNT_PER_QUEUE_SEG	\
 	(MAX_PVA_TASK_COUNT_PER_QUEUE/MAX_PVA_SEG_COUNT_PER_QUEUE)
 
-#define NVPVA_USER_VM_COUNT	MAX_PVA_CLIENTS
-
 /**
  * Maximum task count that a PVA engine can support
  */
@@ -254,6 +252,7 @@ struct pva_status_interface_registers {
 
 #define PVA_HW_GEN1 1
 #define PVA_HW_GEN2 2
+#define PVA_HW_GEN3 3
 
 /**
  * @brief		HW version specific configuration and functions

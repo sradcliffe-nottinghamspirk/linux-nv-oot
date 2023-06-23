@@ -61,6 +61,10 @@
 #include "pva-fw-address-map.h"
 #include "pva_sec_ec.h"
 
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+#include "pva_t264.h"
+#endif
+
 /*
  * NO IOMMU set 0x60000000 as start address.
  * With IOMMU set 0x80000000(>2GB) as startaddress
@@ -82,6 +86,10 @@ static u32 vm_regs_sid_idx_t234[] = {1, 2, 3, 4, 5, 6, 7, 7,
 #endif
 static u32 vm_regs_reg_idx_t234[] = {0, 1, 2, 3, 4, 5, 6, 7,
 				     8, 8, 8, 9, 9, 0, 0, 0};
+#ifndef CONFIG_TEGRA_T26X_GRHOST_PVA
+static u32 *vm_regs_sid_idx_t264 = vm_regs_sid_idx_t234;
+static u32 *vm_regs_reg_idx_t264 = vm_regs_reg_idx_t234;
+#endif
 static char *aux_dev_name = "16000000.pva0:pva0_niso1_ctx7";
 static u32 aux_dev_name_len = 29;
 
@@ -197,6 +205,12 @@ static struct of_device_id tegra_pva_of_match[] = {
 		.name = "pva0",
 		.compatible = "nvidia,tegra234-pva-hv",
 		.data = (struct nvhost_device_data *)&t23x_pva0_info },
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+	{
+		.name = "pva0",
+		.compatible = "nvidia,tegra264-pva",
+		.data = (struct nvhost_device_data *)&t264_pva0_info },
+#endif
 	{ },
 };
 
@@ -768,9 +782,12 @@ static int nvpva_write_hwid(struct platform_device *pdev)
 	if (pva->version == PVA_HW_GEN1) {
 		id_idx = vm_regs_sid_idx_t19x;
 		reg_idx = vm_regs_reg_idx_t19x;
-	} else {
+	} else if (pva->version == PVA_HW_GEN2) {
 		id_idx = vm_regs_sid_idx_t234;
 		reg_idx = vm_regs_reg_idx_t234;
+	} else {
+		id_idx = vm_regs_sid_idx_t264;
+		reg_idx = vm_regs_reg_idx_t264;
 	}
 
 	/* Go through the StreamIDs and assemble register values */
@@ -1040,7 +1057,9 @@ static int pva_probe(struct platform_device *pdev)
 	struct pva *pva;
 	int err = 0;
 	size_t i;
+#ifndef CONFIG_TEGRA_T26X_GRHOST_PVA
 	u32 offset;
+#endif
 
 #if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
 	struct kobj_attribute *attr = NULL;
@@ -1069,7 +1088,7 @@ static int pva_probe(struct platform_device *pdev)
 #endif
 
 	if ((pdata->version != PVA_HW_GEN1)
-	     && !is_cntxt_initialized()) {
+	     && !is_cntxt_initialized(pdata->version)) {
 		dev_warn(&pdev->dev,
 			 "nvpva cntxt was not initialized, deferring probe.");
 		return -EPROBE_DEFER;
@@ -1096,8 +1115,15 @@ static int pva_probe(struct platform_device *pdev)
 	}
 
 	/* Initialize PVA private data */
-	if (pdata->version == PVA_HW_GEN2) {
+	if (pdata->version == PVA_HW_GEN3) {
+		pva->version = PVA_HW_GEN3;
+		pdata->firmware_name = "nvpva_030.fw";
+		pdata->firmware_not_in_subdir = true;
+		pva->submit_cmd_mode = PVA_SUBMIT_MODE_MMIO_CCQ;
+		pva->version_config = &pva_t23x_config;
+	} else if (pdata->version == PVA_HW_GEN2) {
 		pva->version = PVA_HW_GEN2;
+		dev_info(&pdev->dev, "pdata->version is HW_GEN2");
 		pdata->firmware_name = "nvpva_020.fw";
 		pdata->firmware_not_in_subdir = true;
 		pva->submit_cmd_mode = PVA_SUBMIT_MODE_MMIO_CCQ;
@@ -1192,18 +1218,28 @@ static int pva_probe(struct platform_device *pdev)
 		goto err_client_device_init;
 	}
 
-	if (pdata->version != PVA_HW_GEN1) {
+	dev_info(dev, "Completed nvhost_client_device_init\n");
+
+	if (pdata->version == PVA_HW_GEN1) {
+		pva->aux_pdev = pva->pdev;
+	} else if (pdata->version == PVA_HW_GEN2) {
 		pva->aux_pdev =
 			nvpva_iommu_context_dev_allocate(aux_dev_name,
 							 aux_dev_name_len,
 							 false);
-		if (pva->aux_pdev == NULL) {
-			dev_err(&pva->pdev->dev,
-				"failed to allocate aux device");
-			goto err_context_alloc;
-		}
 	} else {
-		pva->aux_pdev = pva->pdev;
+#ifdef CONFIG_TEGRA_T26X_GRHOST_PVA
+		pva->aux_pdev =
+			nvpva_iommu_context_dev_allocate(aux_dev_name_t264,
+							 aux_dev_name_len_t264,
+							 false);
+#endif
+	}
+
+	if (pva->aux_pdev == NULL) {
+		dev_err(&pva->pdev->dev,
+			"failed to allocate aux device");
+		goto err_context_alloc;
 	}
 
 	pva->pool = nvpva_queue_init(pdev,  pva->aux_pdev, &pva_queue_ops,
@@ -1256,7 +1292,7 @@ static int pva_probe(struct platform_device *pdev)
 	pva->sid_count = 0;
 	err = nvpva_iommu_context_dev_get_sids(&pva->sids[1],
 					 &pva->sid_count,
-					 NVPVA_USER_VM_COUNT);
+					 pdata->version);
 	if (err)
 		goto err_iommu_ctxt_init;
 
@@ -1268,6 +1304,7 @@ static int pva_probe(struct platform_device *pdev)
 
 	++(pva->sid_count);
 
+#ifndef CONFIG_TEGRA_T26X_GRHOST_PVA
 	offset = hwpm_get_offset();
 
 	if ((UINT_MAX - offset) < pdev->resource[0].start) {
@@ -1282,6 +1319,7 @@ static int pva_probe(struct platform_device *pdev)
 	pva->hwpm_ip_ops.hwpm_ip_pm = &pva_hwpm_ip_pm;
 	pva->hwpm_ip_ops.hwpm_ip_reg_op = &pva_hwpm_ip_reg_op;
 	tegra_soc_hwpm_ip_register(&pva->hwpm_ip_ops);
+#endif
 
 #if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
 	if (pdata->num_clks > 0) {

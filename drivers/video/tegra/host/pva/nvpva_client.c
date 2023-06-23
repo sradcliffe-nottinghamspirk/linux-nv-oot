@@ -49,7 +49,7 @@ client_context_search_locked(struct platform_device *pdev,
 	c_node->pva = dev;
 	c_node->curr_sema_value = 0;
 	mutex_init(&c_node->sema_val_lock);
-	if (dev->version == PVA_HW_GEN2) {
+	if (dev->version != PVA_HW_GEN1) {
 		c_node->cntxt_dev =
 			nvpva_iommu_context_dev_allocate(NULL,
 							 0,
@@ -70,7 +70,7 @@ client_context_search_locked(struct platform_device *pdev,
 		dev_err(&dev->pdev->dev,
 			"failed to init nvhost buffer for client:%lu",
 			PTR_ERR(c_node->buffers));
-		if (dev->version == PVA_HW_GEN2)
+		if (dev->version != PVA_HW_GEN1)
 			nvpva_iommu_context_dev_release(c_node->cntxt_dev);
 		c_node = NULL;
 	}

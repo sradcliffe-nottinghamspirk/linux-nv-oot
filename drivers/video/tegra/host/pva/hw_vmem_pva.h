@@ -6,8 +6,10 @@
 #ifndef _hw_vmem_pva_h_
 #define _hw_vmem_pva_h_
 
-#define NUM_HEM_GEN		2U
-#define VMEM_REGION_COUNT	3U
+#define NUM_HEM_GEN		3U
+#define VMEM_REGION_COUNT_T19x	3U
+#define VMEM_REGION_COUNT_T23x	3U
+
 #define T19X_VMEM0_START	0x40U
 #define T19X_VMEM0_END		0x10000U
 #define T19X_VMEM1_START	0x40000U
