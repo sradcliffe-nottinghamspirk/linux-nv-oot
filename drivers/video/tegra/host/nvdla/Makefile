@@ -7,12 +7,8 @@ ifdef CONFIG_TEGRA_GRHOST
 ccflags-y += -DCONFIG_TEGRA_NVDLA_CHANNEL
 endif
 
-# Enable FUSE UPSTREAM
-CONFIG_TEGRA_FUSE_UPSTREAM := y
-
 ccflags-y += -Werror
 ccflags-y += -DCONFIG_TEGRA_HOST1X
-ccflags-y += -DCONFIG_TEGRA_FUSE_UPSTREAM
 
 nvhost-nvdla-objs  = \
 		nvdla.o \

@@ -2,8 +2,6 @@
 # Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
 
 ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
-# Enable UPSTREAM FUSE Driver always
-CONFIG_TEGRA_FUSE_UPSTREAM := y
 
 GCOV_PROFILE := y
 ccflags-y += -I$(srctree.nvidia-oot)/drivers/video/tegra/host/pva
@@ -11,7 +9,6 @@ ccflags-y += -I$(srctree.nvidia-oot)/drivers/video/tegra/host/pva/fw_include
 ccflags-y += -Werror
 
 ccflags-y += -DCONFIG_TEGRA_HOST1X
-ccflags-y += -DCONFIG_TEGRA_FUSE_UPSTREAM
 ccflags-y += -DTEGRA_OOT_MODULE
 
 nvhost-pva-objs  = \
