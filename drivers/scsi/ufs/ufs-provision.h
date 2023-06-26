@@ -17,6 +17,15 @@
 #include <linux/debugfs.h>
 void debugfs_provision_init(struct ufs_hba *hba, struct dentry *device_root);
 void debugfs_provision_exit(struct ufs_hba *hba);
+#else
+static inline void debugfs_provision_init(struct ufs_hba *hba, struct dentry *device_root)
+{
+	return;
+}
+static inline void debugfs_provision_exit(struct ufs_hba *hba)
+{
+	return;
+}
 #endif
 
 #endif

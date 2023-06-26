@@ -19,9 +19,7 @@
 #include <linux/iommu.h>
 #include <linux/pinctrl/consumer.h>
 
-#ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 #include <drivers-private/scsi/ufs/k515/ufshcd-pltfrm.h>
