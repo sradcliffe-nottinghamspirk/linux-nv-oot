@@ -623,7 +623,7 @@ static const struct regmap_config tegra210_mixer_regmap_config = {
 };
 
 static const struct of_device_id tegra210_mixer_of_match[] = {
-	{ .compatible = "nvidia,tegra210-amixer-oot" },
+	{ .compatible = "nvidia,tegra210-amixer" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_mixer_of_match);

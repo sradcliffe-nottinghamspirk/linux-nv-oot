@@ -2,7 +2,7 @@
 //
 // tegra186_dspk.c - Tegra186 DSPK driver
 //
-// Copyright (c) 2020-2022 NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2020-2023 NVIDIA CORPORATION. All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -624,7 +624,7 @@ static const struct regmap_config tegra186_dspk_regmap = {
 };
 
 static const struct of_device_id tegra186_dspk_of_match[] = {
-	{ .compatible = "nvidia,tegra186-dspk-oot" },
+	{ .compatible = "nvidia,tegra186-dspk" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra186_dspk_of_match);

@@ -3445,7 +3445,7 @@ static const struct regmap_config tegra210_sfc_regmap_config = {
 };
 
 static const struct of_device_id tegra210_sfc_of_match[] = {
-	{ .compatible = "nvidia,tegra210-sfc-oot" },
+	{ .compatible = "nvidia,tegra210-sfc" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_sfc_of_match);

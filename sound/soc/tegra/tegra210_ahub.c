@@ -1574,9 +1574,9 @@ static const struct tegra_ahub_soc_data soc_data_tegra234 = {
 };
 
 static const struct of_device_id tegra_ahub_of_match[] = {
-	{ .compatible = "nvidia,tegra210-ahub-oot", .data = &soc_data_tegra210 },
-	{ .compatible = "nvidia,tegra186-ahub-oot", .data = &soc_data_tegra186 },
-	{ .compatible = "nvidia,tegra234-ahub-oot", .data = &soc_data_tegra234 },
+	{ .compatible = "nvidia,tegra210-ahub", .data = &soc_data_tegra210 },
+	{ .compatible = "nvidia,tegra186-ahub", .data = &soc_data_tegra186 },
+	{ .compatible = "nvidia,tegra234-ahub", .data = &soc_data_tegra234 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra_ahub_of_match);

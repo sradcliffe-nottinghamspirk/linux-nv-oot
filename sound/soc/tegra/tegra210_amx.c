@@ -784,8 +784,8 @@ static const struct tegra210_amx_soc_data soc_data_tegra194 = {
 };
 
 static const struct of_device_id tegra210_amx_of_match[] = {
-	{ .compatible = "nvidia,tegra210-amx-oot", .data = &soc_data_tegra210 },
-	{ .compatible = "nvidia,tegra194-amx-oot", .data = &soc_data_tegra194 },
+	{ .compatible = "nvidia,tegra210-amx", .data = &soc_data_tegra210 },
+	{ .compatible = "nvidia,tegra194-amx", .data = &soc_data_tegra194 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_amx_of_match);

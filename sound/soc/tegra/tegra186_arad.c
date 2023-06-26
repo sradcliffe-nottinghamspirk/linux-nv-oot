@@ -655,7 +655,7 @@ static const struct regmap_config tegra186_arad_regmap_config = {
 };
 
 static const struct of_device_id tegra186_arad_of_match[] = {
-	{ .compatible = "nvidia,tegra186-arad-oot" },
+	{ .compatible = "nvidia,tegra186-arad" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra186_arad_of_match);

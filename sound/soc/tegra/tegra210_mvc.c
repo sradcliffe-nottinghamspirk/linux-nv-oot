@@ -688,7 +688,7 @@ static const struct regmap_config tegra210_mvc_regmap_config = {
 };
 
 static const struct of_device_id tegra210_mvc_of_match[] = {
-	{ .compatible = "nvidia,tegra210-mvc-oot" },
+	{ .compatible = "nvidia,tegra210-mvc" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_mvc_of_match);

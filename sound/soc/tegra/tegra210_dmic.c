@@ -2,7 +2,7 @@
 //
 // tegra210_dmic.c - Tegra210 DMIC driver
 //
-// Copyright (c) 2020-2022 NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2020-2023 NVIDIA CORPORATION.  All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -695,7 +695,7 @@ static const struct dev_pm_ops tegra210_dmic_pm_ops = {
 };
 
 static const struct of_device_id tegra210_dmic_of_match[] = {
-	{ .compatible = "nvidia,tegra210-dmic-oot" },
+	{ .compatible = "nvidia,tegra210-dmic" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra210_dmic_of_match);

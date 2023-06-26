@@ -188,7 +188,7 @@ static int tegra186_asrc_runtime_resume(struct device *dev)
 	 * Hw Bug:200208400 - asrc interrupt status gets cleared when
 	 * it is cleared twice. This WAR is only applicable for T186
 	 */
-	if (of_machine_is_compatible("nvidia,tegra186-asrc-oot"))
+	if (of_machine_is_compatible("nvidia,tegra186-asrc"))
 		regmap_write(asrc->regmap, TEGRA186_ASRC_GLOBAL_INT_CLEAR, 0x1);
 
 	for (lane_id = 0; lane_id < 6; lane_id++) {
@@ -1056,7 +1056,7 @@ static void tegra186_asrc_ahc_cb(void *data)
 	 * Hw Bug:200208400 - asrc interrupt status gets cleared when
 	 * it is cleared twice. This WAR is only applicable for T186
 	 */
-	if (of_machine_is_compatible("nvidia,tegra186-asrc-oot"))
+	if (of_machine_is_compatible("nvidia,tegra186-asrc"))
 		regmap_write(asrc->regmap, TEGRA186_ASRC_GLOBAL_INT_CLEAR, 0x1);
 
 	regmap_write(asrc->regmap, TEGRA186_ASRC_GLOBAL_ENB, 0x0);
@@ -1075,9 +1075,9 @@ static const struct tegra_asrc_soc_data soc_data_tegra239 = {
 };
 
 static const struct of_device_id tegra186_asrc_of_match[] = {
-	{ .compatible = "nvidia,tegra186-asrc-oot", .data = &soc_data_tegra186 },
-	{ .compatible = "nvidia,tegra194-asrc-oot", .data = &soc_data_tegra186 },
-	{ .compatible = "nvidia,tegra239-asrc-oot", .data = &soc_data_tegra239 },
+	{ .compatible = "nvidia,tegra186-asrc", .data = &soc_data_tegra186 },
+	{ .compatible = "nvidia,tegra194-asrc", .data = &soc_data_tegra186 },
+	{ .compatible = "nvidia,tegra239-asrc", .data = &soc_data_tegra239 },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tegra186_asrc_of_match);
