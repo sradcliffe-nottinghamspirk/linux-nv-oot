@@ -12,7 +12,10 @@ obj-m += ivc-bus.o
 obj-m += camchar.o
 obj-m += camera-diagnostics.o
 obj-m += rtcpu-debug.o
+obj-m += clk-group.o
 obj-m += hsp-mailbox-client.o
+obj-m += reset-group.o
+obj-m += device-group.o
 
 tegra-camera-rtcpu-objs := clk-group.o \
 			   device-group.o \
