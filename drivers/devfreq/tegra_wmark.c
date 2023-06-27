@@ -497,6 +497,8 @@ static int devfreq_tegra_wmark_event_handler(struct devfreq *df,
 					      unsigned int event,
 					      void *data)
 {
+	struct devfreq_tegra_wmark_data *drvdata = df->data;
+	struct devfreq_tegra_wmark_config wmark_config;
 	int err;
 
 	switch (event) {
@@ -509,6 +511,14 @@ static int devfreq_tegra_wmark_event_handler(struct devfreq *df,
 		break;
 	case DEVFREQ_GOV_STOP:
 		tegra_wmark_exit(df);
+		break;
+	case DEVFREQ_GOV_SUSPEND:
+		wmark_config.upper_wmark_enabled = 0;
+		wmark_config.lower_wmark_enabled = 0;
+		drvdata->update_wmark_threshold(df, &wmark_config);
+		break;
+	case DEVFREQ_GOV_RESUME:
+		devfreq_update_wmark_threshold(df);
 		break;
 	default:
 		break;
