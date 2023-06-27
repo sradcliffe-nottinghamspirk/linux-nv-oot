@@ -86,7 +86,7 @@ static void pva_task_dump(struct pva_submit_task *task)
 {
 	int i;
 
-	nvpva_dbg_info(task->pva, "task=%p, exe_id=%u", task, task->exe_id);
+	nvpva_dbg_info(task->pva, "task=%p, exe_id1=%u", task, task->exe_id1);
 
 	for (i = 0; i < task->num_input_task_status; i++)
 		nvpva_dbg_info(task->pva, "input task status %d: pin_id=%u, offset=%u", i,
@@ -562,11 +562,11 @@ pva_task_write_vpu_parameter(struct pva_submit_task *task,
 	u32 tail_count = 0U;
 	struct pva_vpu_parameters_s *hw_task_param_list;
 
-	if ((task->exe_id == NVPVA_NOOP_EXE_ID) || (task->num_symbols == 0U))
+	if ((task->exe_id1 == NVPVA_NOOP_EXE_ID) || (task->num_symbols == 0U))
 		goto out;
 
 	tail_index = ((u32)task->num_symbols - 1U);
-	elf = get_elf_image(&task->client->elf_ctx, task->exe_id);
+	elf = get_elf_image(&task->client->elf_ctx, task->exe_id1);
 	if (task->num_symbols > elf->num_symbols) {
 		task_err(task, "invalid number of symbols");
 		err = -EINVAL;
@@ -707,11 +707,11 @@ pva_task_write_vpu_parameter(struct pva_submit_task *task,
 					    + offsetof(struct pva_hw_task, param_info);
 
 	err = pva_task_acquire_ref_vpu_app(&task->client->elf_ctx,
-					   task->exe_id);
+					   task->exe_id1);
 	if (err) {
 		task_err(task,
 			 "unable to acquire ref count for app with id = %u",
-			 task->exe_id);
+			 task->exe_id1);
 	}
 
 	task->pinned_app = true;
@@ -758,9 +758,9 @@ static int pva_task_write(struct pva_submit_task *task)
 	u32 pre_ptr, post_ptr;
 	int err = 0;
 
-	if (!pva_vpu_elf_is_registered(&task->client->elf_ctx, task->exe_id) &&
-	    (task->exe_id != NVPVA_NOOP_EXE_ID)) {
-		task_err(task, "invalid exe id: %d", task->exe_id);
+	if (!pva_vpu_elf_is_registered(&task->client->elf_ctx, task->exe_id1) &&
+	    (task->exe_id1 != NVPVA_NOOP_EXE_ID)) {
+		task_err(task, "invalid exe id: %d", task->exe_id1);
 		return -EINVAL;
 	}
 	/* Task start from the memory base */
@@ -808,7 +808,7 @@ static int pva_task_write(struct pva_submit_task *task)
 		goto out;
 
 	hw_task->task.bin_info =
-	    phys_get_bin_info(&task->client->elf_ctx, task->exe_id);
+	    phys_get_bin_info(&task->client->elf_ctx, task->exe_id1);
 
 	if (task->stdout) {
 		hw_task->stdout_cb_info.buffer = task->stdout->buffer_addr;
@@ -929,7 +929,7 @@ void pva_task_free(struct kref *ref)
 	pva_task_unpin_mem(task);
 	if (task->pinned_app)
 		pva_task_release_ref_vpu_app(&task->client->elf_ctx,
-						     task->exe_id);
+						     task->exe_id1);
 
 	nvhost_module_idle(task->pva->pdev);
 	nvpva_client_context_put(task->client);
@@ -1053,7 +1053,7 @@ pva_queue_dump(struct nvpva_queue *queue, struct seq_file *s)
 	seq_printf(s, "Queue %u, Tasks\n", queue->id);
 	mutex_lock(&queue->list_lock);
 	list_for_each_entry(task, &queue->tasklist, node) {
-		seq_printf(s, "    #%u: exe_id = %u\n", i++, task->exe_id);
+		seq_printf(s, "    #%u: exe_id1 = %u\n", i++, task->exe_id1);
 	}
 
 	mutex_unlock(&queue->list_lock);

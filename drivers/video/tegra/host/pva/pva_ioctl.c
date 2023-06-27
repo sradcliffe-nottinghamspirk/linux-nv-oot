@@ -169,14 +169,14 @@ static int pva_copy_task(struct nvpva_ioctl_task *ioctl_task,
 	 * These fields are clear-text in the task descriptor. Just
 	 * copy them.
 	 */
-	task->exe_id = ioctl_task->exe_id;
+	task->exe_id1 = ioctl_task->exe_id1;
 	task->stream_id = ioctl_task->stream_id;
 	task->prog_id = ioctl_task->prog_id;
 	task->l2_alloc_size = ioctl_task->l2_alloc_size;
 	task->symbol_payload_size = ioctl_task->symbol_payload.size;
 	task->flags = ioctl_task->flags;
-	if (task->exe_id < NVPVA_NOOP_EXE_ID)
-		image = get_elf_image(&task->client->elf_ctx, task->exe_id);
+	if (task->exe_id1 < NVPVA_NOOP_EXE_ID)
+		image = get_elf_image(&task->client->elf_ctx, task->exe_id1);
 
 	task->is_system_app = (image != NULL) && image->is_system_app;
 

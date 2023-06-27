@@ -107,7 +107,7 @@ struct pva_submit_task {
 	int pool_index;
 
 	bool pinned_app;
-	u32 exe_id;
+	u32 exe_id1;
 	u64 stream_id;
 	u64 prog_id;
 

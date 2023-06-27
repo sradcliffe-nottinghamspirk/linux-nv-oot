@@ -329,7 +329,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 			goto out;
 		}
 
-		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id,
+		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id1,
 					 umd_dma_desc->srcPtr, &addr, &size);
 		if (err) {
 			err = -EINVAL;
@@ -371,7 +371,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 
 		/* calculate symbol address */
 		/* TODO: check VPUC handling in ELF segment */
-		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id,
+		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id1,
 					 umd_dma_desc->srcPtr, &addr, &size);
 		if (err) {
 			task_err(task, "ERROR: Invalid offset or address");
@@ -516,7 +516,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 			goto out;
 		}
 
-		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id,
+		err = pva_get_sym_offset(&task->client->elf_ctx, task->exe_id1,
 					 umd_dma_desc->dstPtr, &addr, &size);
 		if (err) {
 			err = -EINVAL;
@@ -528,7 +528,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 
 		if (umd_dma_desc->dst2Ptr != NVPVA_INVALID_SYMBOL_ID) {
 			err = pva_get_sym_offset(&task->client->elf_ctx,
-						 task->exe_id,
+						 task->exe_id1,
 						 umd_dma_desc->dst2Ptr,
 						 &addr2,
 						 &size2);
@@ -887,7 +887,7 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 		/* DMA_DESC_FRDA */
 		if (umd_dma_desc->dst2Ptr != NVPVA_INVALID_SYMBOL_ID) {
 			err = pva_get_sym_offset(&task->client->elf_ctx,
-						 task->exe_id,
+						 task->exe_id1,
 						 umd_dma_desc->dst2Ptr,
 						 &addr,
 						 &size);
