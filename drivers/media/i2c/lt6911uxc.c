@@ -454,7 +454,7 @@ static int lt6911uxc_probe(struct i2c_client *client,
 	struct lt6911uxc *priv;
 	int err;
 
-	dev_err(dev, "probing lt6911uxc v4l2 sensor at addr 0x%0x\n",
+	dev_info(dev, "probing lt6911uxc v4l2 sensor at addr 0x%0x\n",
 				client->addr);
 
 	if (!IS_ENABLED(CONFIG_OF) || !client->dev.of_node)
@@ -501,7 +501,7 @@ static int lt6911uxc_probe(struct i2c_client *client,
 		return err;
 	}
 
-	dev_err(dev, "detected lt6911uxc sensor\n");
+	dev_info(dev, "detected lt6911uxc sensor\n");
 
 	return 0;
 }
