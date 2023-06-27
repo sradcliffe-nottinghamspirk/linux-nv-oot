@@ -46,6 +46,7 @@ struct crypto_dev_to_ivc_map {
 	 * 2: awaiting actual message, wait for interrupt
 	 */
 	enum ivc_irq_state wait_interrupt;
+	struct mutex irq_state_lock;
 };
 
 struct tegra_virtual_se_dev {
