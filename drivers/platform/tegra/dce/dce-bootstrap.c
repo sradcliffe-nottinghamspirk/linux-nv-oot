@@ -94,6 +94,7 @@ int dce_handle_boot_complete_requested_event(struct tegra_dce *d, void *params)
 		if (ret)
 			dce_err(d, "failed to send DCE_BOOT_COMPLETE_RECEIVED event");
 
+		dce_cond_wait_reset(d, DCE_WAIT_BOOT_COMPLETE);
 		goto boot_done;
 	}
 

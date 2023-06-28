@@ -29,5 +29,6 @@ void dce_work_cond_sw_resource_deinit(struct tegra_dce *d);
 void dce_schedule_boot_complete_wait_worker(struct tegra_dce *d);
 int dce_wait_interruptible(struct tegra_dce *d, u32 msg_id);
 void dce_wakeup_interruptible(struct tegra_dce *d, u32 msg_id);
+void dce_cond_wait_reset(struct tegra_dce *d, u32 msg_id);
 
 #endif

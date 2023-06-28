@@ -77,6 +77,27 @@ void dce_wakeup_interruptible(struct tegra_dce *d, u32 msg_id)
 	dce_cond_signal_interruptible(&wait->cond_wait);
 }
 
+/*
+ * dce_cond_wait_reset : reset condition wait variable to zero
+ *
+ * @d : Pointer to tegra_dce struct.
+ * @msg_id : index of wait condition
+ *
+ * Return : void
+ */
+void dce_cond_wait_reset(struct tegra_dce *d, u32 msg_id)
+{
+	struct dce_wait_cond *wait;
+
+	if (msg_id >= DCE_MAX_WAIT) {
+		dce_err(d, "Invalid wait requested %u", msg_id);
+		return;
+	}
+
+	wait = &d->ipc_waits[msg_id];
+	atomic_set(&wait->complete, 0);
+}
+
 /**
  * dce_work_cond_sw_resource_init : Init dce workqueues related resources
  *
