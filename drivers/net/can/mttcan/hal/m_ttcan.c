@@ -327,7 +327,9 @@ int ttcan_set_bitrate(struct mttcan_priv *priv)
 	u32 cccr_reg;
 	u32 nbtp_reg;
 	u32 dbtp_reg;
+#if KERNEL_VERSION(5, 16, 0) < LINUX_VERSION_CODE
 	u32 tdcr_reg;
+#endif
 
 	nbtp_reg = ((ttcan->bt_config.nominal.phase_seg2 - 1) <<
 		    MTT_NBTP_NTSEG2_SHIFT) & MTT_NBTP_NTSEG2_MASK;
