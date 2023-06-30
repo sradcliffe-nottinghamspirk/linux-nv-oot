@@ -1702,6 +1702,8 @@ verify_hwseq_blob(struct pva_submit_task *task,
 	struct pva_hwseq_cr_header_s *end_addr;
 	struct pva_hwseq_priv_s *hwseq_info = &task->hwseq_info[ch_num - 1];
 	struct pva_dma_hwseq_desc_entry_s *desc_entries = &task->desc_entries[ch_num - 1][0];
+	s8 *desc_block_height_log2 = task->desc_block_height_log2;
+
 	u32 end = user_ch->hwseqEnd * 4;
 	u32 start = user_ch->hwseqStart * 4;
 	int err = 0;
@@ -1767,6 +1769,8 @@ verify_hwseq_blob(struct pva_submit_task *task,
 	start += sizeof(blob->f_header);
 	end += 4;
 	for (i = 0; i < cr_count; i++) {
+		u8 did;
+
 		num_descriptors = cr_header->dec + 1;
 		num_desc_entries = (cr_header->dec + 2) / 2;
 		nvpva_dbg_fn(task->pva,
@@ -1802,13 +1806,15 @@ verify_hwseq_blob(struct pva_submit_task *task,
 				goto out;
 			}
 
-			desc_entries[k].did = array_index_nospec((blob_desc->did1 - 1),
-								  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+			did = array_index_nospec((blob_desc->did1 - 1U),
+						  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+			desc_entries[k].did = did;
 			desc_entries[k].dr = blob_desc->dr1;
 			hwseq_info->tiles_per_packet += (blob_desc->dr1 + 1U);
 			nvpva_dbg_fn(task->pva,
 				     "tiles per packet=%d",
 				     hwseq_info->tiles_per_packet);
+			desc_block_height_log2[did] = user_ch->blockHeight;
 			++k;
 			if (k >= num_descriptors) {
 				++blob_desc;
@@ -1824,13 +1830,15 @@ verify_hwseq_blob(struct pva_submit_task *task,
 				goto out;
 			}
 
-			desc_entries[k].did = array_index_nospec((blob_desc->did2 - 1),
-								  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+			did = array_index_nospec((blob_desc->did2 - 1U),
+						  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+			desc_entries[k].did = did;
 			desc_entries[k].dr = blob_desc->dr2;
 			hwseq_info->tiles_per_packet += (blob_desc->dr2 + 1U);
 			nvpva_dbg_fn(task->pva,
 				     "tiles per packet=%d",
 				     hwseq_info->tiles_per_packet);
+			desc_block_height_log2[did] = user_ch->blockHeight;
 			++blob_desc;
 		}
 
