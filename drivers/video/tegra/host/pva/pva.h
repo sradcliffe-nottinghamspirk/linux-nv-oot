@@ -430,6 +430,9 @@ struct pva {
 	u32 profiling_level;
 
 	struct work_struct pva_abort_handler_work;
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+	struct task_struct *pva_aisr_handler_task;
+#endif
 	bool booted;
 #ifdef CONFIG_PM
 	bool is_suspended;

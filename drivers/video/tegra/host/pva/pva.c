@@ -25,6 +25,11 @@
 #include <linux/platform/tegra/emc_bwmgr.h>
 #include <linux/nvhost.h>
 #include <linux/interrupt.h>
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+#include <linux/kthread.h>
+#include <linux/sched.h>
+#include <linux/mutex.h>
+#endif
 #if KERNEL_VERSION(5, 14, 0) > LINUX_VERSION_CODE
 #include <linux/tegra-ivc.h>
 #else
@@ -448,7 +453,11 @@ static int pva_init_fw(struct platform_device *pdev)
 	nvpva_dbg_fn(pva, "Waiting for PVA to be READY");
 
 	/* Wait PVA to report itself as ready */
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+	err = pva_poll_mailbox_isr(pva, 600000);
+#else
 	err = pva_mailbox_wait_event(pva, 60000);
+#endif
 	if (err) {
 		dev_err(&pdev->dev, "mbox timedout boot sema=%x\n",
 			(host1x_readl(pdev, hsp_ss0_state_r())));
@@ -823,6 +832,63 @@ static int nvpva_write_hwid(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+int pva_aisr_handler(void *arg)
+{
+	struct pva *pva = (struct pva *)arg;
+	struct platform_device *pdev = pva->pdev;
+	bool recover = false;
+	u32 status5 = 0;
+	u32 sleep_us = 127; // 127us
+
+	nvpva_warn(&pva->pdev->dev, "Thread started for polling PVA AISR");
+
+	while (true) {
+		/* Wait for AISR to be updated to INT_PENDING*/
+		do {
+			// schedule();
+			usleep_range((sleep_us >> 2) + 1, sleep_us);
+			// cond_resched();
+		} while ((pva->version_config->read_mailbox(pdev, PVA_MBOX_AISR)
+			 & PVA_AISR_INT_PENDING) == 0);
+
+		nvpva_warn(&pva->pdev->dev, "PVA AISR received");
+
+		recover = false;
+		/* Dump nvhost state to show the pending jobs */
+		nvhost_debug_dump_device(pdev);
+
+		status5 = pva->version_config->read_mailbox(pdev, PVA_MBOX_AISR);
+		if (status5 & PVA_AISR_INT_PENDING) {
+			nvpva_dbg_info(pva, "PVA AISR (%x)", status5);
+			if (status5 & (PVA_AISR_TASK_COMPLETE | PVA_AISR_TASK_ERROR)) {
+				atomic_add(1, &pva->n_pending_tasks);
+				queue_work(pva->task_status_workqueue,
+				&pva->task_update_work);
+				if ((status5 & PVA_AISR_ABORT) == 0U)
+					pva_push_aisr_status(pva, status5);
+			}
+
+			/* For now, just log the errors */
+			if (status5 & PVA_AISR_TASK_COMPLETE)
+				nvpva_warn(&pdev->dev, "PVA AISR: PVA_AISR_TASK_COMPLETE");
+			if (status5 & PVA_AISR_TASK_ERROR)
+				nvpva_warn(&pdev->dev, "PVA AISR: PVA_AISR_TASK_ERROR");
+			if (status5 & PVA_AISR_ABORT) {
+				nvpva_warn(&pdev->dev, "PVA AISR: PVA_AISR_ABORT");
+				recover = true;
+			}
+
+			pva->version_config->write_mailbox(pdev, PVA_MBOX_AISR, 0x0);
+			nvpva_dbg_info(pva, "Clearing AISR");
+		}
+		/* Flush the work queue before abort?*/
+		if (recover)
+			pva_abort(pva);
+	}
+}
+#endif
+
 int pva_finalize_poweron(struct platform_device *pdev)
 {
 	struct nvhost_device_data *pdata = platform_get_drvdata(pdev);
@@ -882,6 +948,17 @@ int pva_finalize_poweron(struct platform_device *pdev)
 		goto err_poweron;
 	}
 
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+	pva->pva_aisr_handler_task = kthread_create(pva_aisr_handler,
+							 (void *)pva, "pva_aisr_handler");
+
+	if (pva->pva_aisr_handler_task != NULL)
+		wake_up_process(pva->pva_aisr_handler_task);
+	else
+		nvpva_err(&pdev->dev, " PVA AISR thread failed to init\n");
+
+#endif
+
 	timestamp2 = nvpva_get_tsc_stamp() - timestamp;
 
 	pva_set_log_level(pva, pva->log_level, true);
@@ -916,6 +993,9 @@ int pva_prepare_poweroff(struct platform_device *pdev)
 	struct nvhost_device_data *pdata = platform_get_drvdata(pdev);
 	struct pva *pva = pdata->private_data;
 	int i;
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+	int ret = 0;
+#endif
 
 	/*
 	 * Disable IRQs. Interrupt handler won't be under execution after the
@@ -923,6 +1003,16 @@ int pva_prepare_poweroff(struct platform_device *pdev)
 	 */
 	for (i = 0; i < pva->version_config->irq_count; i++)
 		disable_irq(pva->irq[i]);
+
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+	if (pva->pva_aisr_handler_task != NULL) {
+		ret = kthread_stop(pva->pva_aisr_handler_task);
+		if (ret == 0)
+			nvpva_warn(&pva->pdev->dev, "Thread for polling PVA AISR stopped");
+		else
+			nvpva_warn(&pva->pdev->dev, "Could not stop thread for polling PVA AISR");
+	}
+#endif
 
 	/* disable error reporting to HSM*/
 	pva_disable_ec_err_reporting(pva);

@@ -109,6 +109,18 @@ int pva_mailbox_send_cmd_sync_locked(struct pva *pva,
  */
 void pva_mailbox_isr(struct pva *pva);
 
+#ifdef CONFIG_PVA_INTERRUPT_DISABLED
+/**
+ * pva_poll_mailbox_isr() - Handle interrupt by polling for PVA ISR.
+ *
+ * @pva:        Pointer to PVA structure
+ *
+ * This function is used to poll the status
+ * set in mailbox7 by the PVA uCode.
+ */
+int pva_poll_mailbox_isr(struct pva *pva, int wait_time);
+#endif
+
 /**
  * pva_mailbox_wait_event() - mailbox wait event
  *
