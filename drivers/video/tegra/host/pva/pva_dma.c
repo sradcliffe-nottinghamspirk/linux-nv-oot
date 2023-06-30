@@ -55,12 +55,12 @@ pitch_linear_eq_offset(struct nvpva_dma_descriptor const *dma_desc,
 		offset = dma_desc->dst_offset;
 		line_pitch = dma_desc->dstLinePitch;
 		cb_enable = dma_desc->dstCbEnable;
-	} else if(is_dst2) {
+	} else if (is_dst2) {
 		format = dma_desc->dstFormat;
 		offset = dma_desc->dst2Offset;
 		line_pitch = dma_desc->dstLinePitch;
 		cb_enable = dma_desc->dstCbEnable;
-	}else {
+	} else {
 		format = dma_desc->srcFormat;
 		offset = dma_desc->src_offset;
 		line_pitch = dma_desc->srcLinePitch;
@@ -74,18 +74,16 @@ pitch_linear_eq_offset(struct nvpva_dma_descriptor const *dma_desc,
 
 	line_pitch_bytes = (line_pitch << bppLog2);
 
-	if (cb_enable != 0)
-	{
+	if (cb_enable != 0) {
 		pr_err("circular buffer not allowed for BL");
 		goto done;
 	}
-	if ((line_pitch_bytes & BL_GOB_WIDTH_LOG2_ALIGNMASK) != 0)
-	{
+
+	if ((line_pitch_bytes & BL_GOB_WIDTH_LOG2_ALIGNMASK) != 0) {
 		pr_err("frame line pitch not a multiple of GOB width in BL");
 		goto done;
 	}
-	if (offset % 64U != 0)
-	{
+	if (offset % 64U != 0) {
 		pr_err("block linear access offsets are misaligned ");
 		goto done;
 	}
@@ -1143,31 +1141,31 @@ int validate_xfer_mode(struct nvpva_dma_descriptor *dma_desc)
 	int err = 0;
 
 	switch (dma_desc->srcTransferMode) {
-		case (uint8_t)DMA_DESC_SRC_XFER_VMEM:
-			if (!((dma_desc->dstTransferMode == (uint8_t)DMA_DESC_DST_XFER_MC)
-			|| (dma_desc->dstTransferMode == (uint8_t)DMA_DESC_DST_XFER_L2RAM))
-			|| (dma_desc->dstCbEnable == 1U)) {
-				pr_err("HWSequncer: Invalid dstTransferMode");
-				err = -EINVAL;
-			}
-			break;
-		case (uint8_t)DMA_DESC_SRC_XFER_L2RAM:
-		case (uint8_t)DMA_DESC_SRC_XFER_MC:
-			if ((dma_desc->dstTransferMode != (uint8_t)DMA_DESC_DST_XFER_VMEM)
-			|| (dma_desc->srcCbEnable == 1U)) {
+	case (uint8_t)DMA_DESC_SRC_XFER_VMEM:
+		if (!((dma_desc->dstTransferMode == (uint8_t)DMA_DESC_DST_XFER_MC)
+		|| (dma_desc->dstTransferMode == (uint8_t)DMA_DESC_DST_XFER_L2RAM))
+		|| (dma_desc->dstCbEnable == 1U)) {
+			pr_err("HWSequncer: Invalid dstTransferMode");
+			err = -EINVAL;
+		}
+		break;
+	case (uint8_t)DMA_DESC_SRC_XFER_L2RAM:
+	case (uint8_t)DMA_DESC_SRC_XFER_MC:
+		if ((dma_desc->dstTransferMode != (uint8_t)DMA_DESC_DST_XFER_VMEM)
+		|| (dma_desc->srcCbEnable == 1U)) {
 		/*
 		 * Source or destination Circular Buffer mode should not
 		 * be used for MC or L2 in frame addressing mode due to
 		 * rtl bug 3136383
 		 */
-			pr_err("HW Sequencer: Invalid srcTransferMode");
-			err = -EINVAL;
-			}
-			break;
-		default:
-			pr_err("Shouldn't be here %d",(int)dma_desc->srcTransferMode);
-			err = -EINVAL;
-			break;
+		pr_err("HW Sequencer: Invalid srcTransferMode");
+		err = -EINVAL;
+		}
+		break;
+	default:
+		pr_err("Shouldn't be here %d", (int)dma_desc->srcTransferMode);
+		err = -EINVAL;
+		break;
 	}
 
 	return err;
@@ -1214,26 +1212,26 @@ int validate_dst_vmem(struct pva_hwseq_priv_s *hwseq, int32_t *vmem_tile_count)
 
 		pr_err("VMEM address range validation failed for dst vmem with cb");
 		return -EINVAL;
-	} else {
-		if (hwseq->is_split_padding) {
-			pr_err("Split padding not supported without circular buffer");
-			return -EINVAL;
-		}
+	}
 
-		err = check_vmem_setup(head_desc, *vmem_tile_count, true);
-		if (err != 0) {
-			pr_err("Invalid VMEM destination setup");
-			return -EINVAL;
-		}
+	if (hwseq->is_split_padding) {
+		pr_err("Split padding not supported without circular buffer");
+		return -EINVAL;
+	}
 
-		tx = get_max_uint(head_desc->tx, tail_desc->tx);
-		ty = get_max_uint(head_desc->ty, tail_desc->ty);
-		tile_size = (int64_t)(head_desc->dstLinePitch) * (ty - 1) + tx;
-		if (((tile_size << head_desc->bytePerPixel) +
-		      head_desc->dst_offset) > vmem_size) {
-			pr_err("VMEM address range validation failed (dst, cb off)");
-			return -EINVAL;
-		}
+	err = check_vmem_setup(head_desc, *vmem_tile_count, true);
+	if (err != 0) {
+		pr_err("Invalid VMEM destination setup");
+		return -EINVAL;
+	}
+
+	tx = get_max_uint(head_desc->tx, tail_desc->tx);
+	ty = get_max_uint(head_desc->ty, tail_desc->ty);
+	tile_size = (int64_t)(head_desc->dstLinePitch) * (ty - 1) + tx;
+	if (((tile_size << head_desc->bytePerPixel) +
+		head_desc->dst_offset) > vmem_size) {
+		pr_err("VMEM address range validation failed (dst, cb off)");
+		return -EINVAL;
 	}
 
 	return err;
@@ -1324,7 +1322,7 @@ int validate_src_vmem(struct pva_hwseq_priv_s *hwseq, int32_t *vmem_tile_count)
 }
 
 static
-int validate_grid_padding(struct pva_hwseq_grid_info_s*gi)
+int validate_grid_padding(struct pva_hwseq_grid_info_s *gi)
 {
 	/* make sure grid is large enough to support defined padding */
 	if (gi->pad_x[0] > 0 && gi->pad_x[1] > 0 && gi->grid_size_x < 2) {
@@ -1354,9 +1352,8 @@ int compute_frame_info(struct pva_hwseq_frame_info_s *fi, struct pva_hwseq_grid_
 {
 	int32_t dim_offset = 0;
 
-	if (validate_grid_padding(gi) != 0) {
+	if (validate_grid_padding(gi) != 0)
 		return -EINVAL;
-	}
 
 	/* update X span (partial) */
 	dim_offset  = gi->grid_step_x * (gi->grid_size_x - 1);
@@ -1438,6 +1435,7 @@ static inline
 void swap_frame_boundaries(struct pva_hwseq_frame_info_s *frame_info)
 {
 	int32_t tmp;
+
 	tmp = frame_info->start_x;
 	frame_info->start_x = frame_info->start_y;
 	frame_info->start_y = tmp;
@@ -1449,12 +1447,12 @@ void swap_frame_boundaries(struct pva_hwseq_frame_info_s *frame_info)
 static inline
 int check_cb_for_bl_inputs(struct nvpva_dma_descriptor *desc)
 {
-	if ((desc->srcCbEnable != 0U) && (desc->srcFormat != 0U)) {
+	if ((desc->srcCbEnable != 0U) && (desc->srcFormat != 0U))
 		return -EINVAL;
-	}
-	if ((desc->dstCbEnable != 0U) && (desc->dstFormat != 0U)) {
+
+	if ((desc->dstCbEnable != 0U) && (desc->dstFormat != 0U))
 		return -EINVAL;
-	}
+
 
 	return 0;
 }
@@ -1528,10 +1526,10 @@ void dump_frame_info(struct pva_hwseq_priv_s *hwseq,
 		     struct pva_hwseq_frame_info_s *frame_info)
 {
 	nvpva_dbg_fn(hwseq->task->pva, "");
-	nvpva_dbg_fn(hwseq->task->pva,"sx=%d", frame_info->start_x);
-	nvpva_dbg_fn(hwseq->task->pva,"sy=%d", frame_info->start_y);
-	nvpva_dbg_fn(hwseq->task->pva,"ex=%d", frame_info->end_x);
-	nvpva_dbg_fn(hwseq->task->pva,"ey=%d", frame_info->end_y);
+	nvpva_dbg_fn(hwseq->task->pva, "sx=%d", frame_info->start_x);
+	nvpva_dbg_fn(hwseq->task->pva, "sy=%d", frame_info->start_y);
+	nvpva_dbg_fn(hwseq->task->pva, "ex=%d", frame_info->end_x);
+	nvpva_dbg_fn(hwseq->task->pva, "ey=%d", frame_info->end_y);
 
 }
 static
@@ -1586,15 +1584,13 @@ int validate_dma_boundaries(struct pva_hwseq_priv_s *hwseq)
 
 	sequencing_to_vmem = (hwseq->head_desc->dstTransferMode == (uint8_t)DMA_DESC_DST_XFER_VMEM);
 
-	if (sequencing_to_vmem) {
+	if (sequencing_to_vmem)
 		err = validate_dst_vmem(hwseq, &vmem_tile_count);
-	} else {
+	else
 		err = validate_src_vmem(hwseq, &vmem_tile_count);
-	}
 
-	if (err != 0) {
+	if (err != 0)
 		return -EINVAL;
-	}
 
 	/* total count of tiles sequenced */
 	seq_tile_count = hwseq->tiles_per_packet * (hwseq->colrow->crr + 1);
@@ -1676,7 +1672,7 @@ int validate_dma_boundaries(struct pva_hwseq_priv_s *hwseq)
 	frame_buffer_start = frame_info.start_y * frame_line_pitch + frame_info.start_x;
 	frame_buffer_end = (frame_info.end_y - 1) * frame_line_pitch + frame_info.end_x;
 
-	nvpva_dbg_fn(hwseq->task->pva,"flp=%d, st = %lld, ed=%lld, fbo=%lld, bpp = %d, fbs=%lld",
+	nvpva_dbg_fn(hwseq->task->pva, "flp=%d, st = %lld, ed=%lld, fbo=%lld, bpp = %d, fbs=%lld",
 		frame_line_pitch, frame_buffer_start, frame_buffer_end, frame_buffer_offset,
 		head_desc->bytePerPixel, frame_buffer_size);
 
@@ -1761,7 +1757,7 @@ verify_hwseq_blob(struct pva_submit_task *task,
 	}
 
 	cr_count = (blob->f_header.no_cr + 1U);
-	if(cr_count > PVA_HWSEQ_COL_ROW_LIMIT) {
+	if (cr_count > PVA_HWSEQ_COL_ROW_LIMIT) {
 		pr_err("number of col/row headers is greater than %d",
 			PVA_HWSEQ_COL_ROW_LIMIT);
 		err = -EINVAL;
@@ -1777,7 +1773,7 @@ verify_hwseq_blob(struct pva_submit_task *task,
 			     "n_descs=%d, n_entries=%d",
 			     num_descriptors,
 			     num_desc_entries);
-		if(num_descriptors > PVA_HWSEQ_DESC_LIMIT) {
+		if (num_descriptors > PVA_HWSEQ_DESC_LIMIT) {
 			pr_err("number of descriptors is greater than %d",
 				PVA_HWSEQ_DESC_LIMIT);
 			err = -EINVAL;
@@ -1793,8 +1789,8 @@ verify_hwseq_blob(struct pva_submit_task *task,
 			goto out;
 		}
 
-		nvpva_dbg_fn(task->pva,"entry size=%d", entry_size);
-		nvpva_dbg_fn(task->pva,"tiles per packet=%d",
+		nvpva_dbg_fn(task->pva, "entry size=%d", entry_size);
+		nvpva_dbg_fn(task->pva, "tiles per packet=%d",
 			     hwseq_info->tiles_per_packet);
 		for (j = 0, k = 0; j < num_desc_entries; j++) {
 			err = verify_dma_desc_hwseq(task,
@@ -1806,11 +1802,13 @@ verify_hwseq_blob(struct pva_submit_task *task,
 				goto out;
 			}
 
-			desc_entries[k].did = array_index_nospec((blob_desc->did1 -1),
+			desc_entries[k].did = array_index_nospec((blob_desc->did1 - 1),
 								  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
 			desc_entries[k].dr = blob_desc->dr1;
 			hwseq_info->tiles_per_packet += (blob_desc->dr1 + 1U);
-			nvpva_dbg_fn(task->pva,"tiles per packet=%d", hwseq_info->tiles_per_packet);
+			nvpva_dbg_fn(task->pva,
+				     "tiles per packet=%d",
+				     hwseq_info->tiles_per_packet);
 			++k;
 			if (k >= num_descriptors) {
 				++blob_desc;
@@ -1826,16 +1824,18 @@ verify_hwseq_blob(struct pva_submit_task *task,
 				goto out;
 			}
 
-			desc_entries[k].did = array_index_nospec((blob_desc->did2 -1),
+			desc_entries[k].did = array_index_nospec((blob_desc->did2 - 1),
 								  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
 			desc_entries[k].dr = blob_desc->dr2;
 			hwseq_info->tiles_per_packet += (blob_desc->dr2 + 1U);
-			nvpva_dbg_fn(task->pva,"tiles per packet=%d", hwseq_info->tiles_per_packet);
+			nvpva_dbg_fn(task->pva,
+				     "tiles per packet=%d",
+				     hwseq_info->tiles_per_packet);
 			++blob_desc;
 		}
 
-		nvpva_dbg_fn(task->pva,"entry size=%d", entry_size);
-		nvpva_dbg_fn(task->pva,"tiles per packet=%d", hwseq_info->tiles_per_packet);
+		nvpva_dbg_fn(task->pva, "entry size=%d", entry_size);
+		nvpva_dbg_fn(task->pva, "tiles per packet=%d", hwseq_info->tiles_per_packet);
 		start += entry_size;
 		cr_header = (struct pva_hwseq_cr_header_s *)blob_desc;
 		tmp_addr = (uintptr_t)blob_desc + sizeof(*cr_header);
@@ -2046,12 +2046,13 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 		if ((user_ch->hwseqEnable == 0U)
 		&&  (user_ch->blockHeight != U8_MAX)) {
 			u8 did = user_ch->descIndex + 1U;
+
 			while ((did != 0U)
 			&& (desc_block_height_log2[did - 1U] == -1)) {
 				desc_block_height_log2[did - 1U] =
 						user_ch->blockHeight;
 				did = decriptors[did - 1U].linkDescId;
-			 }
+			}
 		}
 
 		ch_num = i + 1; /* Channel 0 can't use */
@@ -2105,7 +2106,7 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	if (task->pva->version <= PVA_HW_GEN2) {
 		for (i = 0; i < task->num_dma_channels; i++) {
 			err = 0;
-			if(task->hwseq_info[i].verify_bounds)
+			if (task->hwseq_info[i].verify_bounds)
 				err = validate_dma_boundaries(&task->hwseq_info[i]);
 
 			if (err != 0) {

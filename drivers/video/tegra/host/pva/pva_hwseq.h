@@ -74,7 +74,7 @@ struct pva_hwseq_grid_info_s {
 	bool	is_split_padding;
 };
 
-struct pva_hwseq_frame_info_s{
+struct pva_hwseq_frame_info_s {
 	int32_t	start_x;
 	int32_t	start_y;
 	int32_t	end_x;
@@ -86,7 +86,7 @@ struct pva_hwseq_buffer_s {
 	uint32_t	bytes_left;
 };
 
-struct pva_hwseq_priv_s{
+struct pva_hwseq_priv_s {
 	struct pva_hwseq_buffer_s	*blob;
 	struct pva_hwseq_frame_header_s	*hdr;
 	struct pva_hwseq_cr_header_s	*colrow;
