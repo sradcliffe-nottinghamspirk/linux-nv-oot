@@ -302,7 +302,7 @@ static int nvdla_get_stats(struct nvdla_device *nvdla_dev)
 
 static int debug_dla_fw_resource_util_show(struct seq_file *s, void *data)
 {
-	int err;
+	int err = 0;
 	struct nvdla_device *nvdla_dev;
 	struct platform_device *pdev;
 
@@ -325,28 +325,35 @@ static int debug_dla_fw_resource_util_show(struct seq_file *s, void *data)
 		goto fail_no_dev;
 	}
 
-	/* make sure that device is powered on */
-	err = nvhost_module_busy(pdev);
-	if (err != 0) {
-		nvdla_dbg_err(pdev, "failed to power on\n");
-		err = -ENODEV;
-		goto fail_no_dev;
-	}
+	if (atomic_read(&pdev->dev.power.usage_count) == 0) {
+		/* Print 0% utilization rate if power refcount for DLA
+		 * is zero i.e., DLA is not turned on
+		 */
+		util_rate_characteristic = 0;
+		util_rate_mantissa = 0;
+	} else {
+		/* make sure that device is powered on */
+		err = nvhost_module_busy(pdev);
+		if (err != 0) {
+			nvdla_dbg_err(pdev, "failed to power on\n");
+			err = -ENODEV;
+			goto fail_no_dev;
+		}
 
-	err = nvdla_get_stats(nvdla_dev);
-	if (err != 0) {
-		nvdla_dbg_err(pdev, "Failed to send get stats command");
-		goto fail_to_send_cmd;
+		err = nvdla_get_stats(nvdla_dev);
+		if (err != 0) {
+			nvdla_dbg_err(pdev, "Failed to send get stats command");
+			nvhost_module_idle(pdev);
+			goto fail_no_dev;
+		}
+		utilization = *(unsigned int *)nvdla_dev->utilization_mem_va;
+		util_rate_characteristic = (utilization / 10000);
+		util_rate_mantissa = (utilization % 10000);
+		nvhost_module_idle(pdev);
 	}
-
-	utilization = *(unsigned int *)nvdla_dev->utilization_mem_va;
-	util_rate_characteristic = (utilization / 10000);
-	util_rate_mantissa = (utilization % 10000);
 
 	seq_printf(s, "%u.%04u\n", util_rate_characteristic, util_rate_mantissa);
 
-fail_to_send_cmd:
-	nvhost_module_idle(pdev);
 fail_no_dev:
 	return err;
 }
