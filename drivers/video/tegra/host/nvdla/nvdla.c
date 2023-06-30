@@ -19,6 +19,7 @@
 #include <linux/nvmem-consumer.h>
 #include <linux/pm_runtime.h>
 #include <soc/tegra/fuse-helper.h>
+#include <soc/tegra/fuse.h>
 #include <uapi/linux/nvhost_nvdla_ioctl.h>
 #include <uapi/linux/tegra-soc-hwpm-uapi.h>
 
@@ -978,6 +979,8 @@ static int nvdla_probe(struct platform_device *pdev)
 	struct nvdla_device *nvdla_dev = NULL;
 	struct device *dev = &pdev->dev;
 	uint32_t soft_fuse_ret = 0U;
+	int fuse_register_ret = 0U;
+	uint32_t register_value = 0U;
 	struct tegra_soc_hwpm_ip_ops hwpm_ip_ops;
 
 #if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
@@ -1037,26 +1040,26 @@ static int nvdla_probe(struct platform_device *pdev)
 				err = -ENODEV;
 				goto err_no_ip;
 			}
-
-#if KERNEL_VERSION(5, 11, 0) >= LINUX_VERSION_CODE
 		} else {
-
-			err = nvhost_nvdla_read_chip_option_register(pdev);
-
-			if ((err & FUSE_OPT_DLA_0_DISABLED)
+#if KERNEL_VERSION(5, 11, 0) >= LINUX_VERSION_CODE
+			fuse_register_ret = nvhost_nvdla_read_chip_option_register(pdev);
+#else
+			err = tegra_fuse_readl(NVDLA_DISABLE_FUSE_REGISTER_OFFSET, &register_value);
+			fuse_register_ret = (int)register_value;
+#endif
+			if ((fuse_register_ret & FUSE_OPT_DLA_0_DISABLED)
 					&& (pdata->class == NV_DLA0_CLASS_ID)) {
 				dev_err(dev, "NVDLA0 IP is disabled in Fuse\n");
 				err = -ENODEV;
 				goto err_no_ip;
 			}
 
-			if ((err & FUSE_OPT_DLA_1_DISABLED)
+			if ((fuse_register_ret & FUSE_OPT_DLA_1_DISABLED)
 					&& (pdata->class == NV_DLA1_CLASS_ID)) {
 				dev_err(dev, "NVDLA1 IP is disabled in Fuse\n");
 				err = -ENODEV;
 				goto err_no_ip;
 			}
-#endif
 		}
 	}
 

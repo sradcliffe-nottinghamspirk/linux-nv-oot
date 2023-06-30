@@ -40,6 +40,13 @@
 
 #endif /* CONFIG_TEGRA_HSIERRRPTINJ */
 
+/* DLA FUSE REGISTER
+ * Corresponds to the offset of "opt-dla-disable" - part of the
+ * struct tegra_fuse_cells of type nvmem_cell_info.
+ */
+
+#define NVDLA_DISABLE_FUSE_REGISTER_OFFSET	0x3f0
+
 /*
  * macro to encode firmware version
  */
