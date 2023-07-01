@@ -1006,11 +1006,17 @@ static int lan743x_phy_open(struct lan743x_adapter *adapter)
 	struct net_device *netdev = adapter->netdev;
 	struct lan743x_phy *phy = &adapter->phy;
 	struct phy_device *phydev;
+	struct device_node *phynode;
+
 	int ret = -EIO;
 
-	/* try devicetree phy, or fixed link */
-	phydev = of_phy_get_and_connect(netdev, adapter->pdev->dev.of_node,
-					lan743x_phy_link_status_change);
+	phynode = of_node_get(adapter->pdev->dev.of_node);
+
+	if (phynode) {
+		phydev = of_phy_connect(netdev, phynode,
+					lan743x_phy_link_status_change, 0,
+					adapter->phy_mode);
+	}
 
 	if (!phydev) {
 		/* try internal phy */
@@ -1024,6 +1030,10 @@ static int lan743x_phy_open(struct lan743x_adapter *adapter)
 		if (ret)
 			goto return_error;
 	}
+
+	/*phydev is assigned by now*/
+	/*Skip the device resume via mdio bus */
+	phydev->mac_managed_pm = true;
 
 	/* MAC doesn't support 1000T Half */
 	phy_remove_link_mode(phydev, ETHTOOL_LINK_MODE_1000baseT_Half_BIT);
