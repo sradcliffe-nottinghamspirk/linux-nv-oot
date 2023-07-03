@@ -1,19 +1,6 @@
-/*
- * run_app.c
- *
- * ADSP OS App management
- *
- * Copyright (C) 2014-2022, NVIDIA Corporation. All rights reserved.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
+// SPDX-License-Identifier: GPL-2.0-only
+/**
+ * Copyright (c) 2014-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/platform_device.h>
@@ -972,11 +959,15 @@ int load_adsp_static_apps(void)
 	pdev = priv.pdev;
 	dev = &pdev->dev;
 	drv_data = platform_get_drvdata(pdev);
+
 	shared_mem = drv_data->shared_adsp_os_data;
+	if (!shared_mem)
+		return 0;
+
 	msg_pool = &shared_mem->app_shared_msg_pool;
 	msgq_recv = &msg_pool->app_loader_recv_message.msgq;
 
-	while (1) {
+	while (msgq_recv->size) {
 		union app_complete_status_message message = { };
 		struct adsp_static_app_data *data;
 		struct adsp_shared_app *shared_app;
