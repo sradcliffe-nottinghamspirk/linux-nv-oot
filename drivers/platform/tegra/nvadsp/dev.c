@@ -143,7 +143,7 @@ static void nvadsp_bw_register(struct nvadsp_drv_data *drv_data)
 			drv_data->bwmgr = NULL;
 		}
 		break;
-	default:
+	case TEGRA234:
 		if (!is_tegra_hypervisor_mode()) {
 			/* Interconnect Support */
 #ifdef CONFIG_ARCH_TEGRA_23x_SOC
@@ -157,6 +157,9 @@ static void nvadsp_bw_register(struct nvadsp_drv_data *drv_data)
 				drv_data->icc_path_handle = NULL;
 			}
 		}
+		break;
+	default:
+		/* None */
 		break;
 	}
 }
