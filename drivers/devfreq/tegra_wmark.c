@@ -510,6 +510,9 @@ static int devfreq_tegra_wmark_event_handler(struct devfreq *df,
 		devfreq_update_wmark_threshold(df);
 		break;
 	case DEVFREQ_GOV_STOP:
+		wmark_config.upper_wmark_enabled = 0;
+		wmark_config.lower_wmark_enabled = 0;
+		drvdata->update_wmark_threshold(df, &wmark_config);
 		tegra_wmark_exit(df);
 		break;
 	case DEVFREQ_GOV_SUSPEND:
