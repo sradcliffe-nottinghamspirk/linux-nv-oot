@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/version.h>
@@ -93,7 +93,7 @@ int vblk_submit_ioctl_req(struct block_device *bdev,
 	if (!capable(CAP_SYS_RAWIO))
 		return -EPERM;
 
-	ioctl_req = kmalloc(sizeof(struct vblk_ioctl_req), GFP_KERNEL);
+	ioctl_req = kzalloc(sizeof(struct vblk_ioctl_req), GFP_KERNEL);
 	if (!ioctl_req) {
 		dev_err(vblkdev->device,
 			"failed to alloc memory for ioctl req!\n");
