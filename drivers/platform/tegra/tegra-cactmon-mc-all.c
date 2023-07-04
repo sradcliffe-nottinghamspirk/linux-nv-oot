@@ -75,7 +75,7 @@ static int central_actmon_mc_all_get(void *data, u64 *val)
 
 	mc_all_actives = cactmon_readl(cactmon, CENTRAL_ACTMON_MC_ALL_AVG_COUNT_REG);
 
-	*val = mc_all_actives * 1000 / sample_period_usec;
+	*val = (u64)mc_all_actives * 1000 / sample_period_usec;
 
 	return 0;
 }
