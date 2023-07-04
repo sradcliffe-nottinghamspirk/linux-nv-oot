@@ -3,6 +3,7 @@
  * Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
+#include <linux/bitops.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/devfreq.h>
@@ -29,13 +30,22 @@
 #include "riscv.h"
 #include "util.h"
 
-#define NVDEC_FW_MTHD_ADDR_ACTMON_WEIGHT	0xC9U
+#define NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_MASK	0xCAU
+#define NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_BORPS	0xCBU
+#define NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_WEIGHT	0xC9U
 #define NVDEC_FALCON_UCLASS_METHOD_OFFSET	0x40
 #define NVDEC_FALCON_UCLASS_METHOD_DATA		0x44
 #define NVDEC_FALCON_DEBUGINFO			0x1094
 #define NVDEC_TFBIF_TRANSCFG			0x2c44
+#define NVDEC_TFBIF_ACTMON_ACTIVE_MASK		0x2c4c
+#define NVDEC_TFBIF_ACTMON_ACTIVE_BORPS		0x2c50
 #define NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT	0x2c54
 #define NVDEC_AXI_RW_BANDWIDTH			512
+
+#define NVDEC_TFBIF_ACTMON_ACTIVE_MASK_STARVED	BIT(0)
+#define NVDEC_TFBIF_ACTMON_ACTIVE_MASK_STALLED	BIT(1)
+#define NVDEC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED	BIT(2)
+#define NVDEC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE	BIT(7)
 
 struct nvdec_config {
 	const char *firmware;
@@ -109,7 +119,7 @@ static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 		nvdec_writel(nvdec, weight, NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT);
 	} else {
 		nvdec_writel(nvdec,
-			     NVDEC_FW_MTHD_ADDR_ACTMON_WEIGHT,
+			     NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_WEIGHT,
 			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
 		nvdec_writel(nvdec, weight, NVDEC_FALCON_UCLASS_METHOD_DATA);
 	}
@@ -523,6 +533,22 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 		err = nvdec_boot_riscv(nvdec);
 		if (err < 0)
 			goto disable;
+
+		nvdec_writel(nvdec,
+			     NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_MASK,
+			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
+		nvdec_writel(nvdec,
+			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED |
+			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_STARVED,
+			     NVDEC_FALCON_UCLASS_METHOD_DATA);
+
+		nvdec_writel(nvdec,
+			     NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_BORPS,
+			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
+		nvdec_writel(nvdec,
+			     NVDEC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+			     NVDEC_FALCON_UCLASS_METHOD_DATA);
 	} else {
 		err = nvdec_load_falcon_firmware(nvdec);
 		if (err < 0)
@@ -531,6 +557,16 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 		err = nvdec_boot_falcon(nvdec);
 		if (err < 0)
 			goto disable;
+
+		nvdec_writel(nvdec,
+			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED |
+			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_STARVED,
+			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK);
+
+		nvdec_writel(nvdec,
+			     NVDEC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+			     NVDEC_TFBIF_ACTMON_ACTIVE_BORPS);
 	}
 
 	devfreq_resume_device(nvdec->devfreq);

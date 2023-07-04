@@ -3,6 +3,7 @@
  * Copyright (C) 2015-2023 NVIDIA CORPORATION.  All rights reserved.
  */
 
+#include <linux/bitops.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/devfreq.h>
@@ -506,6 +507,16 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 	err = vic_boot(vic);
 	if (err < 0)
 		goto assert;
+
+	vic_writel(vic,
+		   VIC_TFBIF_ACTMON_ACTIVE_MASK_STARVED |
+		   VIC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+		   VIC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED,
+		   NV_PVIC_TFBIF_ACTMON_ACTIVE_MASK);
+
+	vic_writel(vic,
+		   VIC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+		   NV_PVIC_TFBIF_ACTMON_ACTIVE_BORPS);
 
 	devfreq_resume_device(vic->devfreq);
 

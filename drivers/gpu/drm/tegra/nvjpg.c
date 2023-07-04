@@ -3,6 +3,7 @@
  * Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
+#include <linux/bitops.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/devfreq.h>
@@ -27,8 +28,15 @@
 #include "util.h"
 
 #define NVJPG_TFBIF_TRANSCFG			0x1444
+#define NVJPG_TFBIF_ACTMON_ACTIVE_MASK		0x144c
+#define NVJPG_TFBIF_ACTMON_ACTIVE_BORPS		0x1450
 #define NVJPG_TFBIF_ACTMON_ACTIVE_WEIGHT	0x1454
 #define NVJPG_AXI_RW_BANDWIDTH			512
+
+#define NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STARVED	BIT(0)
+#define NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STALLED	BIT(1)
+#define NVJPG_TFBIF_ACTMON_ACTIVE_MASK_DELAYED	BIT(2)
+#define NVJPG_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE	BIT(7)
 
 struct nvjpg_config {
 	const char *firmware;
@@ -442,6 +450,16 @@ static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 	err = nvjpg_boot(nvjpg);
 	if (err < 0)
 		goto disable;
+
+	nvjpg_writel(nvjpg,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STARVED |
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_DELAYED,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK);
+
+	nvjpg_writel(nvjpg,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS);
 
 	devfreq_resume_device(nvjpg->devfreq);
 
