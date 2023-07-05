@@ -883,10 +883,18 @@ static int max_gmsl_dp_ser_parse_gmsl_props(struct i2c_client *client,
 	return 0;
 }
 
-static void max_gmsl_dp_ser_calc_superframe_pipe_attr(struct i2c_client *client,
+static int max_gmsl_dp_ser_calc_superframe_pipe_attr(struct i2c_client *client,
 					   struct max_gmsl_dp_ser_priv *priv,
 					   int pipe_id)
 {
+	struct device *dev = &priv->client->dev;
+
+	if (pipe_id < 0 || pipe_id >= MAX_GMSL_ARRAY_SIZE) {
+		dev_err(dev, "%s: max_gmsl_dp_ser_calc_superframe_pipe_attr - Invalid pipe_id: %d\n",
+			 __func__, pipe_id);
+		return -1;
+	}
+
 	//Asymmetric dual-view total pixel count per frame in sub-image
 	priv->superframe.subimage_attr[pipe_id].m = priv->superframe.subimage_timing[pipe_id].h_total * priv->superframe.subimage_timing[pipe_id].v_total;
 
@@ -947,6 +955,8 @@ static void max_gmsl_dp_ser_calc_superframe_pipe_attr(struct i2c_client *client,
 	//LUT template
 	//TODO Get formula for this value
 	priv->superframe.subimage_attr[pipe_id].lut_template = 20;
+
+	return 0;
 }
 
 static int max_gmsl_dp_ser_parse_superframe_pipe_props(struct i2c_client *client,
@@ -965,6 +975,13 @@ static int max_gmsl_dp_ser_parse_superframe_pipe_props(struct i2c_client *client
 			 __func__);
 		return err;
 	}
+
+	if (pipe_id < 0 || pipe_id >= MAX_GMSL_ARRAY_SIZE) {
+		dev_err(dev, "%s: - Invalid pipe_id: %d\n",
+			 __func__, pipe_id);
+		return -1;
+	}
+
 	priv->superframe.subimage_timing[pipe_id].superframe_group = val;
 
 	err = of_property_read_u32(pipe_node, "timings-phandle", &val);
@@ -1068,12 +1085,13 @@ static int max_gmsl_dp_ser_parse_superframe_pipe_props(struct i2c_client *client
 	return 0;
 }
 
-static void max_gmsl_dp_ser_parse_superframe_props(struct i2c_client *client,
+static int max_gmsl_dp_ser_parse_superframe_props(struct i2c_client *client,
 					   struct max_gmsl_dp_ser_priv *priv)
 {
 	struct device *dev = &priv->client->dev;
 	struct device_node *ser = dev->of_node;
 	int err, i = 0;
+	int ret = 0;
 	struct device_node *superframe_video_timings, *pipe_node;
 	char pipe_name[MAX_GMSL_ARRAY_SIZE][7] = { "pipe-x", "pipe-y", "pipe-z", "pipe-u"};
 
@@ -1082,7 +1100,7 @@ static void max_gmsl_dp_ser_parse_superframe_props(struct i2c_client *client,
 	if (superframe_video_timings == NULL) {
 		dev_info(dev, "%s: - superframe-video-timings property not found\n",
 			 __func__);
-		return;
+		goto fail;
 	}
 
 	/* get superframe subimage properties for each pipe */
@@ -1093,14 +1111,24 @@ static void max_gmsl_dp_ser_parse_superframe_props(struct i2c_client *client,
 			if (!err) {
 				/* pipe have valid properties, calculate attributes */
 				priv->superframe.subimage_timing[i].enable = true;
-				max_gmsl_dp_ser_calc_superframe_pipe_attr(client, priv, i);
+				err = max_gmsl_dp_ser_calc_superframe_pipe_attr(client, priv, i);
+				if (err) {
+					dev_err(dev, "%s: - %s Invalid Pipe Id for the property \n", __func__, pipe_name[i]);
+					ret = -1;
+					goto fail;
+				}
 			} else {
 				dev_err(dev, "%s: - %s property found but properties are invalid\n", __func__, pipe_name[i]);
+				ret = -1;
+				goto fail;
 			}
 		} else {
 			dev_info(dev, "%s: - %s property not found\n", __func__, pipe_name[i]);
 		}
 	}
+
+fail:
+    return ret;
 }
 
 static int max_gmsl_dp_ser_parse_dt_props(struct i2c_client *client,
@@ -1121,7 +1149,11 @@ static int max_gmsl_dp_ser_parse_dt_props(struct i2c_client *client,
 		return -EFAULT;
 	}
 
-	max_gmsl_dp_ser_parse_superframe_props(client, priv);
+	err = max_gmsl_dp_ser_parse_superframe_props(client, priv);
+	if (err != 0) {
+		dev_err(dev, "%s: error parsing Super frame \n", __func__);
+		return -EFAULT;
+	}
 
 	return err;
 }
