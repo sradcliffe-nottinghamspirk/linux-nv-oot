@@ -1427,6 +1427,9 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 	/* creating and initializing the an internal request list */
 	INIT_LIST_HEAD(&vblkdev->req_list);
 
+	/* Create timers for each request going to storage server*/
+	tegra_create_timers(vblkdev);
+
 	if (devm_request_irq(vblkdev->device, vblkdev->ivck->irq,
 		ivc_irq_handler, 0, "vblk", vblkdev)) {
 		dev_err(dev, "Failed to request irq %d\n", vblkdev->ivck->irq);
@@ -1443,9 +1446,6 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 		goto free_wq;
 	}
 	mutex_unlock(&vblkdev->ivc_lock);
-
-	/* Create timers for each request going to storage server*/
-	tegra_create_timers(vblkdev);
 
 	return 0;
 
