@@ -251,7 +251,7 @@ static void host1x_actmon_module_init(struct host1x_actmon_module *module)
 {
 	/* Local control register */
 	actmon_module_writel(module,
-		HOST1X_ACTMON_MODULE_CTRL_ACTMON_ENB(1) |
+		HOST1X_ACTMON_MODULE_CTRL_ACTMON_ENB(0) |
 		HOST1X_ACTMON_MODULE_CTRL_ENB_PERIODIC(1) |
 		HOST1X_ACTMON_MODULE_CTRL_K_VAL(module->k) |
 		HOST1X_ACTMON_MODULE_CTRL_CONSEC_UPPER_NUM(module->consec_upper_num) |
@@ -419,6 +419,44 @@ int host1x_actmon_unregister(struct host1x_client *client)
 	return 0;
 }
 EXPORT_SYMBOL(host1x_actmon_unregister);
+
+void host1x_actmon_enable(struct host1x_client *client)
+{
+	struct host1x_actmon *actmon = client->actmon;
+	struct host1x_actmon_module *module;
+	int i;
+
+	if (!actmon)
+		return;
+
+	for (i = 0; i < actmon->num_modules; i++) {
+		module = &actmon->modules[i];
+		actmon_module_writel(module,
+			actmon_module_readl(module, HOST1X_ACTMON_MODULE_CTRL_REG) |
+			HOST1X_ACTMON_MODULE_CTRL_ACTMON_ENB(1),
+			HOST1X_ACTMON_MODULE_CTRL_REG);
+	}
+}
+EXPORT_SYMBOL(host1x_actmon_enable);
+
+void host1x_actmon_disable(struct host1x_client *client)
+{
+	struct host1x_actmon *actmon = client->actmon;
+	struct host1x_actmon_module *module;
+	int i;
+
+	if (!actmon)
+		return;
+
+	for (i = 0; i < actmon->num_modules; i++) {
+		module = &actmon->modules[i];
+		actmon_module_writel(module,
+			actmon_module_readl(module, HOST1X_ACTMON_MODULE_CTRL_REG) &
+			~HOST1X_ACTMON_MODULE_CTRL_ACTMON_ENB(1),
+			HOST1X_ACTMON_MODULE_CTRL_REG);
+	}
+}
+EXPORT_SYMBOL(host1x_actmon_disable);
 
 void host1x_actmon_update_client_rate(struct host1x_client *client,
 				      unsigned long rate,
