@@ -83,6 +83,9 @@ static int nvenc_set_rate(struct nvenc *nvenc, unsigned long rate)
 	if (err < 0)
 		return err;
 
+	if (pm_runtime_suspended(nvenc->dev))
+		return 0;
+
 	dev_rate = clk_get_rate(nvenc->clk);
 
 	host1x_actmon_update_client_rate(client, dev_rate, &weight);
@@ -678,8 +681,8 @@ static int nvenc_probe(struct platform_device *pdev)
 	if (err < 0)
 		dev_info(&pdev->dev, "failed to register host1x actmon: %d\n", err);
 
-	/* Set default clock rate for nvenc and update count weight register */
-	err = nvenc_set_rate(nvenc, ULONG_MAX);
+	/* Set default clock rate for nvenc */
+	err = clk_set_rate(nvenc->clk, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate\n");
 		goto exit_falcon;

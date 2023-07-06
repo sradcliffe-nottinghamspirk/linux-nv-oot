@@ -121,6 +121,9 @@ static int vic_set_rate(struct vic *vic, unsigned long rate)
 	if (err < 0)
 		return err;
 
+	if (pm_runtime_suspended(vic->dev))
+		return 0;
+
 	dev_rate = clk_get_rate(vic->clk);
 
 	host1x_actmon_update_client_rate(client, dev_rate, &weight);
@@ -746,8 +749,8 @@ static int vic_probe(struct platform_device *pdev)
 	if (err < 0)
 		dev_info(dev, "failed to register host1x actmon: %d\n", err);
 
-	/* Set default clock rate for vic and update count weight register */
-	err = vic_set_rate(vic, ULONG_MAX);
+	/* Set default clock rate for vic */
+	err = clk_set_rate(vic->clk, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate: %d\n", err);
 		goto exit_falcon;

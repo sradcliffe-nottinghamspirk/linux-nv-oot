@@ -82,6 +82,9 @@ static int nvjpg_set_rate(struct nvjpg *nvjpg, unsigned long rate)
 	if (err < 0)
 		return err;
 
+	if (pm_runtime_suspended(nvjpg->dev))
+		return 0;
+
 	dev_rate = clk_get_rate(nvjpg->clk);
 
 	host1x_actmon_update_client_rate(client, dev_rate, &weight);
@@ -665,8 +668,8 @@ static int nvjpg_probe(struct platform_device *pdev)
 	if (err < 0)
 		dev_info(&pdev->dev, "failed to register host1x actmon: %d\n", err);
 
-	/* Set default clock rate for nvjpg and update count weight register */
-	err = nvjpg_set_rate(nvjpg, ULONG_MAX);
+	/* Set default clock rate for nvjpg */
+	err = clk_set_rate(nvjpg->clk, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate\n");
 		goto exit_falcon;

@@ -101,6 +101,9 @@ static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 	if (err < 0)
 		return err;
 
+	if (pm_runtime_suspended(nvdec->dev))
+		return 0;
+
 	dev_rate = clk_get_rate(nvdec->clks[0].clk);
 
 	if (nvdec->icc_write) {
