@@ -461,6 +461,8 @@ static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
 		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS);
 
+	host1x_actmon_enable(&nvjpg->client.base);
+
 	devfreq_resume_device(nvjpg->devfreq);
 
 	return 0;
@@ -476,6 +478,8 @@ static __maybe_unused int nvjpg_runtime_suspend(struct device *dev)
 	int err;
 
 	devfreq_suspend_device(nvjpg->devfreq);
+
+	host1x_actmon_disable(&nvjpg->client.base);
 
 	host1x_channel_stop(nvjpg->channel);
 

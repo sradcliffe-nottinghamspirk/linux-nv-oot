@@ -518,6 +518,8 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 		   VIC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
 		   NV_PVIC_TFBIF_ACTMON_ACTIVE_BORPS);
 
+	host1x_actmon_enable(&vic->client.base);
+
 	devfreq_resume_device(vic->devfreq);
 
 	return 0;
@@ -536,6 +538,8 @@ static int __maybe_unused vic_runtime_suspend(struct device *dev)
 	int err;
 
 	devfreq_suspend_device(vic->devfreq);
+
+	host1x_actmon_disable(&vic->client.base);
 
 	host1x_channel_stop(vic->channel);
 

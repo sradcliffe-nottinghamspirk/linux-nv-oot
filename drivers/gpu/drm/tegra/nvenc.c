@@ -462,6 +462,8 @@ static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 		     NVENC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
 		     NVENC_TFBIF_ACTMON_ACTIVE_BORPS);
 
+	host1x_actmon_enable(&nvenc->client.base);
+
 	devfreq_resume_device(nvenc->devfreq);
 
 	return 0;
@@ -477,6 +479,8 @@ static __maybe_unused int nvenc_runtime_suspend(struct device *dev)
 	int err;
 
 	devfreq_suspend_device(nvenc->devfreq);
+
+	host1x_actmon_disable(&nvenc->client.base);
 
 	host1x_channel_stop(nvenc->channel);
 

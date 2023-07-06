@@ -569,6 +569,8 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 			     NVDEC_TFBIF_ACTMON_ACTIVE_BORPS);
 	}
 
+	host1x_actmon_enable(&nvdec->client.base);
+
 	devfreq_resume_device(nvdec->devfreq);
 
 	return 0;
@@ -584,6 +586,8 @@ static __maybe_unused int nvdec_runtime_suspend(struct device *dev)
 	int err;
 
 	devfreq_suspend_device(nvdec->devfreq);
+
+	host1x_actmon_disable(&nvdec->client.base);
 
 	host1x_channel_stop(nvdec->channel);
 
