@@ -521,22 +521,9 @@ cleanup:
 	return err;
 }
 
-static __maybe_unused int nvdec_runtime_resume(struct device *dev)
+static void nvdec_actmon_reg_init(struct nvdec *nvdec)
 {
-	struct nvdec *nvdec = dev_get_drvdata(dev);
-	int err;
-
-	err = clk_bulk_prepare_enable(nvdec->num_clks, nvdec->clks);
-	if (err < 0)
-		return err;
-
-	usleep_range(10, 20);
-
 	if (nvdec->config->has_riscv) {
-		err = nvdec_boot_riscv(nvdec);
-		if (err < 0)
-			goto disable;
-
 		nvdec_writel(nvdec,
 			     NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_MASK,
 			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
@@ -553,14 +540,6 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 			     NVDEC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
 			     NVDEC_FALCON_UCLASS_METHOD_DATA);
 	} else {
-		err = nvdec_load_falcon_firmware(nvdec);
-		if (err < 0)
-			goto disable;
-
-		err = nvdec_boot_falcon(nvdec);
-		if (err < 0)
-			goto disable;
-
 		nvdec_writel(nvdec,
 			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED |
 			     NVDEC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
@@ -571,6 +550,34 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 			     NVDEC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
 			     NVDEC_TFBIF_ACTMON_ACTIVE_BORPS);
 	}
+}
+
+static __maybe_unused int nvdec_runtime_resume(struct device *dev)
+{
+	struct nvdec *nvdec = dev_get_drvdata(dev);
+	int err;
+
+	err = clk_bulk_prepare_enable(nvdec->num_clks, nvdec->clks);
+	if (err < 0)
+		return err;
+
+	usleep_range(10, 20);
+
+	if (nvdec->config->has_riscv) {
+		err = nvdec_boot_riscv(nvdec);
+		if (err < 0)
+			goto disable;
+	} else {
+		err = nvdec_load_falcon_firmware(nvdec);
+		if (err < 0)
+			goto disable;
+
+		err = nvdec_boot_falcon(nvdec);
+		if (err < 0)
+			goto disable;
+	}
+
+	nvdec_actmon_reg_init(nvdec);
 
 	host1x_actmon_enable(&nvdec->client.base);
 

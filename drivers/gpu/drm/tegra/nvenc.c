@@ -435,6 +435,18 @@ cleanup:
 	return err;
 }
 
+static void nvenc_actmon_reg_init(struct nvenc *nvenc)
+{
+	nvenc_writel(nvenc,
+		     NVENC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED |
+		     NVENC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+		     NVENC_TFBIF_ACTMON_ACTIVE_MASK_STARVED,
+		     NVENC_TFBIF_ACTMON_ACTIVE_MASK);
+
+	nvenc_writel(nvenc,
+		     NVENC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+		     NVENC_TFBIF_ACTMON_ACTIVE_BORPS);
+}
 
 static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 {
@@ -455,15 +467,7 @@ static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
-	nvenc_writel(nvenc,
-		     NVENC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED |
-		     NVENC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
-		     NVENC_TFBIF_ACTMON_ACTIVE_MASK_STARVED,
-		     NVENC_TFBIF_ACTMON_ACTIVE_MASK);
-
-	nvenc_writel(nvenc,
-		     NVENC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
-		     NVENC_TFBIF_ACTMON_ACTIVE_BORPS);
+	nvenc_actmon_reg_init(nvenc);
 
 	host1x_actmon_enable(&nvenc->client.base);
 

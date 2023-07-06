@@ -434,6 +434,18 @@ cleanup:
 	return err;
 }
 
+static void nvjpg_actmon_reg_init(struct nvjpg *nvjpg)
+{
+	nvjpg_writel(nvjpg,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STARVED |
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_DELAYED,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK);
+
+	nvjpg_writel(nvjpg,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS);
+}
 
 static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 {
@@ -454,15 +466,7 @@ static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
-	nvjpg_writel(nvjpg,
-		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STARVED |
-		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
-		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK_DELAYED,
-		     NVJPG_TFBIF_ACTMON_ACTIVE_MASK);
-
-	nvjpg_writel(nvjpg,
-		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
-		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS);
+	nvjpg_actmon_reg_init(nvjpg);
 
 	host1x_actmon_enable(&nvjpg->client.base);
 

@@ -486,6 +486,19 @@ cleanup:
 }
 
 
+static void vic_actmon_reg_init(struct vic *vic)
+{
+	vic_writel(vic,
+		   VIC_TFBIF_ACTMON_ACTIVE_MASK_STARVED |
+		   VIC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+		   VIC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED,
+		   NV_PVIC_TFBIF_ACTMON_ACTIVE_MASK);
+
+	vic_writel(vic,
+		   VIC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+		   NV_PVIC_TFBIF_ACTMON_ACTIVE_BORPS);
+}
+
 static int __maybe_unused vic_runtime_resume(struct device *dev)
 {
 	struct vic *vic = dev_get_drvdata(dev);
@@ -511,15 +524,7 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto assert;
 
-	vic_writel(vic,
-		   VIC_TFBIF_ACTMON_ACTIVE_MASK_STARVED |
-		   VIC_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
-		   VIC_TFBIF_ACTMON_ACTIVE_MASK_DELAYED,
-		   NV_PVIC_TFBIF_ACTMON_ACTIVE_MASK);
-
-	vic_writel(vic,
-		   VIC_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
-		   NV_PVIC_TFBIF_ACTMON_ACTIVE_BORPS);
+	vic_actmon_reg_init(vic);
 
 	host1x_actmon_enable(&vic->client.base);
 
