@@ -325,20 +325,20 @@ typedef struct syncpoint_info {
 /**@}*/
 
 #define VI_NUM_GOS_TABLES	MK_U32(12)
-#define VI_NUM_ATOMP_SURFACES	4
-#define VI_NUM_STATUS_SURFACES	1
-#define VI_NUM_VI_PFSD_SURFACES	2
+#define VI_NUM_ATOMP_SURFACES	4U
+#define VI_NUM_STATUS_SURFACES	1U
+#define VI_NUM_VI_PFSD_SURFACES	2U
 
 /**
  * @defgroup ViAtompSurface VI ATOMP surface related defines
  * @{
  */
 /** Output surface plane 0 */
-#define VI_ATOMP_SURFACE0	0
+#define VI_ATOMP_SURFACE0	0U
 /** Output surface plane 1 */
-#define VI_ATOMP_SURFACE1	1
+#define VI_ATOMP_SURFACE1	1U
 /** Output surface plane 2 */
-#define VI_ATOMP_SURFACE2	2
+#define VI_ATOMP_SURFACE2	2U
 
 /** Sensor embedded data */
 #define VI_ATOMP_SURFACE_EMBEDDED 3
