@@ -38,6 +38,9 @@
 #endif
 #include "tegra_vblk.h"
 
+#define DISCARD_ERASE_SECERASE_MASK	(VS_BLK_DISCARD_OP_F | \
+					VS_BLK_SECURE_ERASE_OP_F | \
+					VS_BLK_ERASE_OP_F)
 #define UFS_IOCTL_MAX_SIZE_SUPPORTED	0x80000
 #define READ_WRITE_OR_IOCTL_OP		(req_op(bio_req) == REQ_OP_READ \
 					|| req_op(bio_req) == REQ_OP_WRITE \
@@ -504,6 +507,23 @@ static bool bio_req_sanity_check(struct vblk_dev *vblkdev,
 	return true;
 }
 
+static enum blk_cmd_op cleanup_op_supported(struct vblk_dev *vblkdev, uint32_t ops_supported)
+{
+	enum blk_cmd_op cleanup_op = VS_UNKNOWN_BLK_CMD;
+
+	/* Map discard operation if only secure erase ops is supported by VSC */
+	if ((ops_supported & DISCARD_ERASE_SECERASE_MASK) == VS_BLK_SECURE_ERASE_OP_F)
+		cleanup_op = VS_BLK_SECURE_ERASE;
+	else if ((ops_supported & DISCARD_ERASE_SECERASE_MASK) == VS_BLK_ERASE_OP_F)
+		cleanup_op = VS_BLK_ERASE;
+	else if ((ops_supported & DISCARD_ERASE_SECERASE_MASK) == VS_BLK_DISCARD_OP_F)
+		cleanup_op = VS_BLK_DISCARD;
+	else
+		dev_err(vblkdev->device, "Erase/Discard/SecErase neither is supported");
+
+	return cleanup_op;
+}
+
 /**
  * submit_bio_req: Fetch a bio request and submit it to
  * server for processing.
@@ -521,6 +541,7 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 	struct req_entry *entry = NULL;
 	size_t sz;
 	uint32_t sg_cnt, __data_len;
+	uint32_t ops_supported = vblkdev->config.blk_config.req_ops_supported;
 	dma_addr_t  sg_dma_addr = 0;
 
 	/* Check if ivc queue is full */
@@ -603,9 +624,23 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 		} else if (req_op(bio_req) == REQ_OP_FLUSH) {
 			vs_req->blkdev_req.req_op = VS_BLK_FLUSH;
 		} else if (req_op(bio_req) == REQ_OP_DISCARD) {
-			vs_req->blkdev_req.req_op = VS_BLK_DISCARD;
+			if (vblkdev->config.phys_dev == VSC_DEV_UFS) {
+				vs_req->blkdev_req.req_op =
+						cleanup_op_supported(vblkdev, ops_supported);
+				if (vs_req->blkdev_req.req_op == VS_UNKNOWN_BLK_CMD)
+					goto bio_exit;
+			} else {
+				vs_req->blkdev_req.req_op = VS_BLK_DISCARD;
+			}
 		} else if (req_op(bio_req) == REQ_OP_SECURE_ERASE) {
-			vs_req->blkdev_req.req_op = VS_BLK_SECURE_ERASE;
+			if (vblkdev->config.phys_dev == VSC_DEV_UFS) {
+				vs_req->blkdev_req.req_op =
+						cleanup_op_supported(vblkdev, ops_supported);
+				if (vs_req->blkdev_req.req_op == VS_UNKNOWN_BLK_CMD)
+					goto bio_exit;
+			} else {
+				vs_req->blkdev_req.req_op = VS_BLK_SECURE_ERASE;
+			}
 		} else {
 			dev_err(vblkdev->device,
 				"Request direction is not read/write!\n");
@@ -1173,8 +1208,16 @@ static void setup_device(struct vblk_dev *vblkdev)
 	blk_queue_max_hw_sectors(vblkdev->queue, max_io_bytes / SECTOR_SIZE);
 	blk_queue_flag_set(QUEUE_FLAG_NONROT, vblkdev->queue);
 
-	if (vblkdev->config.blk_config.req_ops_supported
-		& VS_BLK_DISCARD_OP_F) {
+#if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
+	if ((vblkdev->config.blk_config.req_ops_supported & VS_BLK_SECURE_ERASE_OP_F)
+	     || (vblkdev->config.blk_config.req_ops_supported & VS_BLK_ERASE_OP_F))
+		blk_queue_flag_set(QUEUE_FLAG_SECERASE, vblkdev->queue);
+#endif
+
+	if ((vblkdev->config.blk_config.req_ops_supported & VS_BLK_DISCARD_OP_F)
+	  || (((vblkdev->config.blk_config.req_ops_supported & VS_BLK_SECURE_ERASE_OP_F)
+	  || (vblkdev->config.blk_config.req_ops_supported & VS_BLK_ERASE_OP_F))
+	  && vblkdev->config.phys_dev == VSC_DEV_UFS)) {
 #if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
 		blk_queue_flag_set(QUEUE_FLAG_DISCARD, vblkdev->queue);
 #endif
@@ -1182,11 +1225,6 @@ static void setup_device(struct vblk_dev *vblkdev)
 			vblkdev->config.blk_config.max_erase_blks_per_io);
 		vblkdev->queue->limits.discard_granularity =
 			vblkdev->config.blk_config.hardblk_size;
-#if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
-		if (vblkdev->config.blk_config.req_ops_supported &
-			VS_BLK_SECURE_ERASE_OP_F)
-			blk_queue_flag_set(QUEUE_FLAG_SECERASE, vblkdev->queue);
-#endif
 	}
 
 	/* And the gendisk structure. */
