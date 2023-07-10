@@ -437,6 +437,7 @@ static bool complete_bio_req(struct vblk_dev *vblkdev)
 		dev_err(vblkdev->device,
 			"VSC request %d has null bio request!\n",
 			vsc_req->id);
+		goto bio_null;
 	}
 
 	if ((!vblkdev->config.blk_config.use_vm_address && READ_WRITE_OR_IOCTL_OP)
@@ -448,6 +449,7 @@ static bool complete_bio_req(struct vblk_dev *vblkdev)
 		vblkdev->mempool_free = vblkdev->mempool_free + vsc_req->__data_len;
 	}
 
+bio_null:
 	vblk_put_req(vsc_req);
 
 complete_bio_exit:
