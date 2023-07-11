@@ -3,6 +3,8 @@
 
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
+subdir-ccflags-y += -Werror
+
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)
 subdir-ccflags-y += -DCONFIG_TEGRA_VIRTUALIZATION
 endif
