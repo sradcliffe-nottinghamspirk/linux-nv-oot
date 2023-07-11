@@ -19,7 +19,7 @@ struct oc_soc_data {
 struct tegra234_oc_event {
 	struct device *hwmon;
 	struct tegra_bpmp *bpmp;
-	struct oc_soc_data *soc_data;
+	const struct oc_soc_data *soc_data;
 };
 
 static ssize_t throt_en_show(struct device *dev, struct device_attribute *attr,
