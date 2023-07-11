@@ -1226,7 +1226,7 @@ static int __exit nvdla_remove(struct platform_device *pdev)
 	int i;
 	struct kobj_attribute *attr = NULL;
 
-	if (&pdata->clk_cap_kobj) {
+	if (pdata->clk_cap_attrs) {
 		for (i = 0; i < pdata->num_clks; i++) {
 			attr = &pdata->clk_cap_attrs[i];
 			sysfs_remove_file(&pdata->clk_cap_kobj, &attr->attr);
