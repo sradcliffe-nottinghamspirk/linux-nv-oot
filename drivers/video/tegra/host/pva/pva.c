@@ -1363,7 +1363,7 @@ static int __exit pva_remove(struct platform_device *pdev)
 #if !IS_ENABLED(CONFIG_TEGRA_GRHOST)
 	struct kobj_attribute *attr = NULL;
 
-	if (&pdata->clk_cap_kobj) {
+	if (pdata->clk_cap_attrs) {
 		for (i = 0; i < pdata->num_clks; i++) {
 			attr = &pdata->clk_cap_attrs[i];
 			sysfs_remove_file(&pdata->clk_cap_kobj, &attr->attr);
