@@ -6,6 +6,10 @@ ccflags-y += -Wno-implicit-fallthrough
 ifdef CONFIG_TEGRA_HOST1X
 obj-m += tegra-se-nvhost.o
 obj-m += tegra-hv-vse-safety.o
-obj-m += tegra-nvvse-cryptodev.o
 endif
 obj-m += tegra-se-nvrng.o
+
+ifdef CONFIG_TEGRA_HOST1X
+ccflags-y += -Werror=frame-larger-than=2560
+obj-m += tegra-nvvse-cryptodev.o
+endif
