@@ -331,7 +331,7 @@ int host1x_actmon_register(struct host1x_client *client)
 	struct host1x_actmon_module *module;
 	struct host1x_actmon *actmon;
 	unsigned long flags;
-	int i, err;
+	int i;
 
 	if (!host->actmon_regs || !host->actmon_clk)
 		return -ENODEV;
