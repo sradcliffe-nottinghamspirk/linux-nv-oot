@@ -49,7 +49,7 @@ int ether_get_tx_ts(struct ether_priv_data *pdata)
 
 	if (!atomic_inc_and_test(&pdata->tx_ts_ref_cnt)) {
 		/* Tx time stamp consumption already going on either from workq or func */
-		return 0;
+		return -1;
 	}
 
 	if (list_empty(&pdata->tx_ts_skb_head)) {
