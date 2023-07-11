@@ -1031,7 +1031,6 @@ static int f75308_get_devid(struct i2c_client *client, enum chip *chipid)
 
 static int f75308_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
-	struct i2c_adapter *adapter = client->adapter;
 	enum chip chipid;
 	const char *name;
 	int status;
