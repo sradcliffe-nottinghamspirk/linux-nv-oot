@@ -1760,6 +1760,7 @@ verify_hwseq_blob(struct pva_submit_task *task,
 	struct pva_hwseq_priv_s *hwseq_info = &task->hwseq_info[ch_num - 1];
 	struct pva_dma_hwseq_desc_entry_s *desc_entries = &task->desc_entries[ch_num - 1][0];
 	s8 *desc_block_height_log2 = task->desc_block_height_log2;
+	int hwgen = task->pva->version;
 
 	u32 end = user_ch->hwseqEnd * 4;
 	u32 start = user_ch->hwseqStart * 4;
@@ -1815,7 +1816,7 @@ verify_hwseq_blob(struct pva_submit_task *task,
 	}
 
 	cr_count = (blob->f_header.no_cr + 1U);
-	if (cr_count > PVA_HWSEQ_COL_ROW_LIMIT) {
+	if ((cr_count > PVA_HWSEQ_COL_ROW_LIMIT) && (hwgen <= PVA_HW_GEN2)) {
 		pr_err("number of col/row headers is greater than %d",
 			PVA_HWSEQ_COL_ROW_LIMIT);
 		err = -EINVAL;
