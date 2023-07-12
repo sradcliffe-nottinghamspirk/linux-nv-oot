@@ -272,6 +272,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 	int32_t err = 0;
 	uint64_t addr_base = 0;
 	struct pva_dma_task_buffer_info_s *buff_info = &task->task_buff_info[desc_id];
+	int hwgen = task->pva->version;
 
 	nvpva_dbg_fn(task->pva, "");
 
@@ -410,9 +411,12 @@ patch_dma_desc_address(struct pva_submit_task *task,
 		task->src_surf_base_addr = addr_base;
 		buff_info->src_buffer_size = mem->size;
 
-		/** If BL format selected, set addr bit 39 to indicate */
-		/* XBAR_RAW swizzling is required */
-		addr_base |= (u64)umd_dma_desc->srcFormat << 39U;
+		/* If BL format selected, set addr bit 39 to indicate
+		 * XBAR_RAW swizzling is required for PVA_HW_GEN2 and
+		 * older generations.
+		 */
+		if (hwgen <= PVA_HW_GEN2)
+			addr_base |= (u64)umd_dma_desc->srcFormat << 39U;
 
 		break;
 	}
@@ -594,9 +598,13 @@ patch_dma_desc_address(struct pva_submit_task *task,
 		task->dst_surf_base_addr = addr_base;
 		buff_info->dst_buffer_size = mem->size;
 
-		/* If BL format selected, set addr bit 39 to indicate */
-		/* XBAR_RAW swizzling is required */
-		addr_base |= (u64)umd_dma_desc->dstFormat << 39U;
+		/* If BL format selected, set addr bit 39 to indicate
+		 * XBAR_RAW swizzling is required for PVA_HW_GEN2
+		 * and older generations.
+		 */
+		if (hwgen <= PVA_HW_GEN2)
+			addr_base |= (u64)umd_dma_desc->dstFormat << 39U;
+
 		break;
 	}
 	case DMA_DESC_DST_XFER_R5TCM:
