@@ -2,7 +2,7 @@
 /*
  * Syncpoint dma_fence implementation
  *
- * Copyright (c) 2020, NVIDIA Corporation.
+ * Copyright (c) 2020-2023, NVIDIA Corporation.
  */
 
 #include <linux/dma-fence.h>
@@ -28,6 +28,13 @@ static const char *host1x_syncpt_fence_get_timeline_name(struct dma_fence *f)
 static struct host1x_syncpt_fence *to_host1x_fence(struct dma_fence *f)
 {
 	return container_of(f, struct host1x_syncpt_fence, base);
+}
+
+static bool host1x_syncpt_fence_signaled(struct dma_fence *f)
+{
+	struct host1x_syncpt_fence *sf = to_host1x_fence(f);
+
+	return host1x_syncpt_is_expired(sf->sp, sf->threshold) || f->error;
 }
 
 static bool host1x_syncpt_fence_enable_signaling(struct dma_fence *f)
@@ -70,6 +77,7 @@ const struct dma_fence_ops host1x_syncpt_fence_ops = {
 	.get_driver_name = host1x_syncpt_fence_get_driver_name,
 	.get_timeline_name = host1x_syncpt_fence_get_timeline_name,
 	.enable_signaling = host1x_syncpt_fence_enable_signaling,
+	.signaled = host1x_syncpt_fence_signaled,
 };
 
 void host1x_fence_signal(struct host1x_syncpt_fence *f, ktime_t ts)
