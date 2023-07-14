@@ -6,12 +6,7 @@
 GCOV_PROFILE := y
 
 ccflags-y += -I$(srctree.nvidia-oot)/drivers/platform/tegra/dce/include
-ccflags-y += -Wno-multichar
 ccflags-y += -Werror
-ccflags-y += -Wno-error=cpp
-ifeq ($(VERSION),4)
-ccflags-y += -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
-endif
 
 obj-m += tegra-dce.o
 tegra-dce-objs += \
