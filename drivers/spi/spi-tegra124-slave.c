@@ -314,7 +314,11 @@ struct tegra_spi_data {
 	bool					variable_length_transfer;
 
 	/* Slave Ready Polarity (true: Active High, false: Active Low) */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	int					gpio_slave_ready;
+#else
+	struct gpio_desc			*gpio_slave_ready;
+#endif
 	bool					slave_ready_active_high;
 
 	struct completion			rx_dma_complete;
@@ -811,8 +815,13 @@ static inline void tegra_spi_slave_busy(struct tegra_spi_data *tspi)
 		deassert_val = 1;
 
 	/* Deassert ready line to indicate Busy */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	if (gpio_is_valid(tspi->gpio_slave_ready))
 		gpio_set_value(tspi->gpio_slave_ready, deassert_val);
+#else
+	if (tspi->gpio_slave_ready)
+		gpiod_set_value(tspi->gpio_slave_ready, deassert_val);
+#endif
 }
 
 static inline void tegra_spi_slave_ready(struct tegra_spi_data *tspi)
@@ -825,8 +834,13 @@ static inline void tegra_spi_slave_ready(struct tegra_spi_data *tspi)
 		assert_val = 0;
 
 	/* Assert ready line to indicate Ready */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	if (gpio_is_valid(tspi->gpio_slave_ready))
 		gpio_set_value(tspi->gpio_slave_ready, assert_val);
+#else
+	if (tspi->gpio_slave_ready)
+		gpiod_set_value(tspi->gpio_slave_ready, assert_val);
+#endif
 }
 
 static inline int tegra_spi_ext_clk_enable(bool enable,
@@ -2026,33 +2040,43 @@ static int tegra_spi_probe(struct platform_device *pdev)
 	tspi->chip_data = chip_data;
 	tspi->gpio_slave_ready = pdata->gpio_slave_ready;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	if (gpio_is_valid(tspi->gpio_slave_ready))
 		if (gpio_cansleep(tspi->gpio_slave_ready)) {
-			dev_err(&pdev->dev, "Slave Ready GPIO %d is unusable as it can sleep\n",
-					tspi->gpio_slave_ready);
+#else
+	if (tspi->gpio_slave_ready)
+		if (gpiod_cansleep(tspi->gpio_slave_ready)) {
+#endif
+			dev_err(&pdev->dev,
+				"Slave Ready GPIO is unusable as it can sleep\n");
 			ret = -EINVAL;
 			goto exit_free_master;
 		}
 
 	tspi->slave_ready_active_high = pdata->slave_ready_active_high;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	if (gpio_is_valid(tspi->gpio_slave_ready)) {
 		ret = devm_gpio_request(&pdev->dev,
 			    tspi->gpio_slave_ready, "gpio-spi-slave-ready");
-		if (!ret) {
-			if (tspi->slave_ready_active_high)
-				deassert_val = 0;
-			else
-				deassert_val = 1;
-
-			gpio_direction_output(tspi->gpio_slave_ready,
-					deassert_val);
-		} else {
+		if (ret) {
 			dev_err(&pdev->dev, "Slave Ready GPIO %d is busy\n",
 					tspi->gpio_slave_ready);
 			goto exit_free_master;
 		}
 	}
+#endif
+
+	if (tspi->slave_ready_active_high)
+		deassert_val = 0;
+	else
+		deassert_val = 1;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
+	gpio_direction_output(tspi->gpio_slave_ready, deassert_val);
+#else
+	gpiod_direction_output(tspi->gpio_slave_ready, deassert_val);
+#endif
 
 	spin_lock_init(&tspi->lock);
 
