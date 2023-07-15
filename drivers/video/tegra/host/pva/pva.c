@@ -1372,8 +1372,13 @@ static int pva_probe(struct platform_device *pdev)
 
 	mutex_init(&pva->pva_auth.allow_list_lock);
 	mutex_init(&pva->pva_auth_sys.allow_list_lock);
-	pva->pva_auth.pva_auth_enable = true;
-	pva->pva_auth_sys.pva_auth_enable = true;
+	if (pdata->version <= PVA_HW_GEN2) {
+		pva->pva_auth.pva_auth_enable = true;
+		pva->pva_auth_sys.pva_auth_enable = true;
+	} else {
+		pva->pva_auth.pva_auth_enable = false;
+		pva->pva_auth_sys.pva_auth_enable = false;
+	}
 
 #ifdef CONFIG_DEBUG_FS
 	pva_debugfs_init(pdev);
