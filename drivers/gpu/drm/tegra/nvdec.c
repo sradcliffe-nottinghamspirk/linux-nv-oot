@@ -785,15 +785,10 @@ static int nvdec_probe(struct platform_device *pdev)
 	}
 
 	nvdec->icc_write = devm_of_icc_get(dev, "write");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 	if (IS_ERR(nvdec->icc_write)) {
 		dev_err(&pdev->dev, "failed to get icc write handle\n");
 		return PTR_ERR(nvdec->icc_write);
 	}
-#else
-	if (IS_ERR(nvdec->icc_write))
-		nvdec->icc_write = NULL;
-#endif
 
 	platform_set_drvdata(pdev, nvdec);
 

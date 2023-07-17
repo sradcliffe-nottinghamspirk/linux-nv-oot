@@ -638,15 +638,10 @@ static int nvjpg_probe(struct platform_device *pdev)
 		return err;
 
 	nvjpg->icc_write = devm_of_icc_get(dev, "write");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 	if (IS_ERR(nvjpg->icc_write)) {
 		dev_err(&pdev->dev, "failed to get icc write handle\n");
 		return PTR_ERR(nvjpg->icc_write);
 	}
-#else
-	if (IS_ERR(nvjpg->icc_write))
-		nvjpg->icc_write = NULL;
-#endif
 
 	platform_set_drvdata(pdev, nvjpg);
 
