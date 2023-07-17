@@ -316,8 +316,12 @@ static int tegra_hv_add_ivc(struct tegra_hv_data *hvd,
 
 	INFO("adding ivc%u: rx_base=%lx tx_base = %lx size=%x irq = %d (%lu)\n",
 			qd->id, rx_base, tx_base, qd->size, ivc->irq, d->hwirq);
-	tegra_ivc_init(&ivc->ivc, NULL, (void *)rx_base, 0, (void *)tx_base, 0, qd->nframes, qd->frame_size,
-			ivc_raise_irq, ivc);
+	ret = tegra_ivc_init(&ivc->ivc, NULL, (void *)rx_base, 0, (void *)tx_base, 0, qd->nframes,
+				qd->frame_size, ivc_raise_irq, ivc);
+	if (ret != 0) {
+		ERR("failed to init ivc queue #%u\n", qd->id);
+		return  ret;
+	}
 
 	/* We may have rebooted, so the channel could be active. */
 	ret = tegra_ivc_channel_sync(&ivc->ivc);
