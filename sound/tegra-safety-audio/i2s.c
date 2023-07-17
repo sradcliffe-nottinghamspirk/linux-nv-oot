@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -90,6 +90,9 @@ unsigned int i2s_enable_tx(unsigned int id)
 {
 	unsigned int val;
 
+	if (is_i2s_tx_enabled(id))
+		return 0;
+
 	val = readl(I2S_BASE(id) + T234_I2S_TX_ENABLE);
 	val |= T234_I2S_TX_EN;
 	writel(val, I2S_BASE(id) + T234_I2S_TX_ENABLE);
@@ -109,6 +112,9 @@ static unsigned int is_i2s_rx_enabled(unsigned int id)
 unsigned int i2s_enable_rx(unsigned int id)
 {
 	unsigned int val;
+
+	if (is_i2s_rx_enabled(id))
+		return 0;
 
 	val = readl(I2S_BASE(id) + T234_I2S_RX_ENABLE);
 	val |= T234_I2S_RX_EN;
@@ -150,8 +156,6 @@ unsigned int i2s_set_loopback(unsigned int id, unsigned int loopback_enable)
 		rx_enable = is_i2s_rx_enabled(id);
 		if (rx_enable)
 			i2s_disable_rx(id);
-
-		i2s_disable(id);
 	}
 
 	val = readl(I2S_BASE(id) + T234_I2S_CTRL);
@@ -160,8 +164,6 @@ unsigned int i2s_set_loopback(unsigned int id, unsigned int loopback_enable)
 	writel(val, I2S_BASE(id) + T234_I2S_CTRL);
 
 	if (enable) {
-		i2s_enable(id);
-
 		if (rx_enable)
 			i2s_enable_rx(id);
 
@@ -262,6 +264,9 @@ unsigned int i2s_disable_rx(unsigned int id)
 {
 	unsigned int val;
 
+	if (i2s_inst(id)->config.rx_always_on)
+		return 0;
+
 	val = readl(I2S_BASE(id) + T234_I2S_RX_ENABLE);
 	val &= ~T234_I2S_RX_EN;
 	writel(val, I2S_BASE(id) + T234_I2S_RX_ENABLE);
@@ -296,6 +301,9 @@ static int i2s_tx_stop(unsigned int id)
 unsigned int i2s_disable_tx(unsigned int id)
 {
 	unsigned int val;
+
+	if (i2s_inst(id)->config.tx_always_on)
+		return 0;
 
 	val = readl(I2S_BASE(id) + T234_I2S_TX_ENABLE);
 	val &= ~T234_I2S_TX_EN;
@@ -471,6 +479,8 @@ int i2s_configure(unsigned int id, struct i2s_config *config)
 	writel(fifo_ctrl, i2s_base + T234_I2S_RX_FIFO_CTRL);
 	writel(fifo_ctrl, i2s_base + T234_I2S_TX_FIFO_CTRL);
 	writel(threshold, i2s_base + T234_I2S_TX_START_THRESHOLD);
+
+	i2s_enable(id);
 
 	return 0;
 }

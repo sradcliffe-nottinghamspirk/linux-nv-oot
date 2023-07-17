@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #define pr_fmt(msg) "Safety I2S: " msg
@@ -94,6 +94,41 @@ static int loopback_control_get(struct snd_kcontrol *kctl,
 	return 0;
 }
 
+static int alwayson_control_put(struct snd_kcontrol *kctl,
+				struct snd_ctl_elem_value *uc)
+{
+	int rx = (int)kctl->private_value & 1;
+	int id = (int)kctl->private_value >> 1;
+	int enable = uc->value.integer.value[0];
+	struct i2s_config *i2s_config = &i2s[id].config;
+
+	if (rx)
+		i2s_config->rx_always_on = enable;
+	else
+		i2s_config->tx_always_on = enable;
+
+	if (enable && rx)
+		i2s_enable_rx(id);
+
+	if (enable && !rx)
+		i2s_enable_tx(id);
+	return 0;
+
+}
+
+static int alwayson_control_get(struct snd_kcontrol *kctl,
+				struct snd_ctl_elem_value *uc)
+{
+	int rx = (int)kctl->private_value & 1;
+	int id = (int)kctl->private_value >> 1;
+	struct i2s_config *i2s_config = &i2s[id].config;
+
+	if (rx)
+		return i2s_config->rx_always_on;
+
+	return i2s_config->tx_always_on;
+}
+
 static int snd_myctl_mono_info(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_info *uinfo)
 {
@@ -105,7 +140,27 @@ static int snd_myctl_mono_info(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static const struct snd_kcontrol_new controls[] = {
+static const struct snd_kcontrol_new controls_i2s7[] = {
+	{
+		.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name		= "I2S7-RX ON",
+		.index		= 0,
+		.access		= SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.put		= alwayson_control_put,
+		.get		= alwayson_control_get,
+		.info		= snd_myctl_mono_info,
+		.private_value	= 0
+	},
+	{
+		.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name		= "I2S7-TX ON",
+		.index		= 0,
+		.access		= SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.put		= alwayson_control_put,
+		.get		= alwayson_control_get,
+		.info		= snd_myctl_mono_info,
+		.private_value	= 1
+	},
 	{
 		.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
 		.name		= "I2S7 Loopback",
@@ -115,7 +170,10 @@ static const struct snd_kcontrol_new controls[] = {
 		.get		= loopback_control_get,
 		.info		= snd_myctl_mono_info,
 		.private_value	= 0
-	},
+	}
+};
+
+static const struct snd_kcontrol_new controls_i2s8[] = {
 	{
 		.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
 		.name		= "I2S8 Loopback",
@@ -125,12 +183,43 @@ static const struct snd_kcontrol_new controls[] = {
 		.get		= loopback_control_get,
 		.info		= snd_myctl_mono_info,
 		.private_value	= 1
+	},
+	{
+		.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name		= "I2S8-RX ON",
+		.index		= 0,
+		.access		= SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.put		= alwayson_control_put,
+		.get		= alwayson_control_get,
+		.info		= snd_myctl_mono_info,
+		.private_value	= 2
+	},
+	{
+		.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name		= "I2S8-TX ON",
+		.index		= 0,
+		.access		= SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.put		= alwayson_control_put,
+		.get		= alwayson_control_get,
+		.info		= snd_myctl_mono_info,
+		.private_value	= 3
 	}
 };
 
 static int safety_i2s_add_kcontrols(struct snd_card *card, int id)
 {
-	return snd_ctl_add(card, snd_ctl_new1(&controls[id], i2s));
+	int num_of_controls, i, ret;
+
+	if (id == 0) {
+		num_of_controls = ARRAY_SIZE(controls_i2s7);
+		for (i = 0; i < num_of_controls; i++)
+			ret = snd_ctl_add(card, snd_ctl_new1(&controls_i2s7[i], i2s));
+	} else if (id == 1) {
+		num_of_controls = ARRAY_SIZE(controls_i2s8);
+		for (i = 0; i < num_of_controls; i++)
+			ret = snd_ctl_add(card, snd_ctl_new1(&controls_i2s8[i], i2s));
+	}
+	return ret;
 }
 
 static int prealloc_dma_buff(struct snd_pcm *pcm, unsigned int stream, size_t size)
@@ -404,7 +493,6 @@ static void safety_i2s_start(struct snd_pcm_substream *substream)
 	else
 		i2s_enable_tx(id);
 
-	i2s_enable(id);
 	data->triggered = 1;
 }
 
@@ -715,6 +803,15 @@ static int t234_safety_audio_probe(struct platform_device *pdev)
 
 static int t234_safety_audio_remove(struct platform_device *pdev)
 {
+	int i;
+
+	for (i = 0; i < NUM_SAFETY_I2S_INST; i++) {
+		if (!enabled_i2s_mask[i])
+			continue;
+
+		i2s_disable(i);
+	}
+
 	snd_card_free(priv->card);
 
 	return 0;

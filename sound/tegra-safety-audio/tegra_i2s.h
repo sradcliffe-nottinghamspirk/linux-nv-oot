@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
 #ifndef _TEGRA_I2S_H_
@@ -61,6 +61,8 @@ struct i2s_config {
 	unsigned int pcm_mask_bits;
 	unsigned int highz_ctrl;
 	unsigned int clock_trim;
+	unsigned int tx_always_on;
+	unsigned int rx_always_on;
 };
 
 struct dma_data {
