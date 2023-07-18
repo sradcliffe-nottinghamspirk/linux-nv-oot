@@ -3318,10 +3318,10 @@ static void ether_remove_debugfs(struct ether_priv_data *pdata)
 int ether_sysfs_register(struct ether_priv_data *pdata)
 {
 	struct device *dev = pdata->dev;
-	int ret = 0;
-
 #ifndef OSI_STRIPPED_LIB
 #ifdef CONFIG_DEBUG_FS
+	int ret = 0;
+
 	if (debugfs_initialized()) {
 		ret = ether_create_debugfs(pdata);
 		if (ret < 0)
