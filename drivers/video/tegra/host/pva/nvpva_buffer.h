@@ -76,6 +76,7 @@ int nvpva_buffer_pin(struct nvpva_buffers *nvpva_buffers,
 		     struct dma_buf **dmabufs,
 		     u64 *offset,
 		     u64 *size,
+		     u64 *serial_id,
 		     u32 segment,
 		     u32 count,
 		     u32 *id,
@@ -144,6 +145,7 @@ int nvpva_buffer_submit_pin(struct nvpva_buffers *nvpva_buffers,
  * @param count			Number of memhandles in the list
  * @param paddr			Pointer to IOVA list
  * @param psize			Pointer to size of buffer to return
+ * @param serial_ids		Pointer to unique serial id to return
  * @param heap			Pointer to a list of heaps. This is
  *				filled by the routine.
  *
@@ -156,6 +158,7 @@ int nvpva_buffer_submit_pin_id(struct nvpva_buffers *nvpva_buffers,
 			       struct dma_buf **dmabuf,
 			       dma_addr_t *paddr,
 			       u64 *psize,
+			       u64 *serial_ids,
 			       enum nvpva_buffers_heap *heap);
 
 /**

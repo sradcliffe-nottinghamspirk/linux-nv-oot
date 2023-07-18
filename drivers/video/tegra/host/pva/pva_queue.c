@@ -166,9 +166,9 @@ struct pva_pinned_memory *pva_task_pin_mem(struct pva_submit_task *task,
 	mem->id = id;
 	err = nvpva_buffer_submit_pin_id(task->client->buffers, &mem->id, 1,
 					 &mem->dmabuf, &mem->dma_addr,
-					 &mem->size, &mem->heap);
+					 &mem->size, &mem->serial_id, &mem->heap);
 	if (err) {
-		task_err(task, "submit pin failed; Is the handled pinned?");
+		task_err(task, "submit pin failed; Is the handle pinned?");
 		goto err_out;
 	}
 
@@ -183,7 +183,8 @@ err_out:
 static int
 pva_task_pin_fence(struct pva_submit_task *task,
 		   struct nvpva_submit_fence *fence,
-		   dma_addr_t *addr)
+		   dma_addr_t *addr,
+		   u64 *serial_id)
 {
 	int err = 0;
 
@@ -197,6 +198,8 @@ pva_task_pin_fence(struct pva_submit_task *task,
 			err = PTR_ERR(mem);
 		} else
 			*addr = mem->dma_addr + fence->obj.sem.mem.offset;
+
+		*serial_id = mem->serial_id;
 		break;
 	}
 	case NVPVA_FENCE_OBJ_SYNCPT: {
@@ -339,6 +342,8 @@ pva_task_process_fence_actions(struct pva_submit_task *task,
 			dma_addr_t fence_addr = 0;
 			u32 fence_value;
 			dma_addr_t timestamp_addr;
+			u64 serial_id;
+
 			switch (fence_action->fence.type) {
 			case NVPVA_FENCE_OBJ_SYNCPT:
 			{
@@ -366,13 +371,16 @@ pva_task_process_fence_actions(struct pva_submit_task *task,
 			{
 				err = pva_task_pin_fence(task,
 							 &fence_action->fence,
-							 &fence_addr);
+							 &fence_addr,
+							 &serial_id);
 				if (err)
 					goto out;
+
 				task->sem_num += 1;
 				task->sem_thresh += 1;
 				fence_value = task->sem_thresh;
 				fence_action->fence.obj.sem.value = fence_value;
+				task->fence_act_serial_ids[fence_type][i] = serial_id;
 				break;
 			}
 			default:
@@ -424,7 +432,10 @@ static int pva_task_process_prefences(struct pva_submit_task *task,
 		dma_addr_t fence_addr = 0;
 		u32 fence_val;
 
-		err = pva_task_pin_fence(task, fence, &fence_addr);
+		err = pva_task_pin_fence(task,
+					 fence,
+					 &fence_addr,
+					 &task->prefences_serial_ids[i]);
 		if (err)
 			goto out;
 
@@ -812,7 +823,7 @@ out:
 
 static void
 pva_trace_log_fill_fence(struct nvdev_fence *dst_fence,
-			struct nvpva_submit_fence *src_fence)
+			 struct nvpva_submit_fence *src_fence)
 {
 	static u32 obj_type[] = {NVDEV_FENCE_TYPE_SYNCPT,
 				 NVDEV_FENCE_TYPE_SEMAPHORE,
@@ -828,7 +839,6 @@ pva_trace_log_fill_fence(struct nvdev_fence *dst_fence,
 		break;
 	case NVPVA_FENCE_OBJ_SEM:
 	case NVPVA_FENCE_OBJ_SEMAPHORE_TS:
-		dst_fence->semaphore_handle = src_fence->obj.sem.mem.pin_id;
 		dst_fence->semaphore_offset = src_fence->obj.sem.mem.offset;
 		dst_fence->semaphore_value  = src_fence->obj.sem.value;
 		break;
@@ -855,12 +865,20 @@ pva_trace_log_record_task_states(struct platform_device *pdev,
 
 	/* Record task postfences */
 	for (i = 0 ; i < task->num_pva_fence_actions[NVPVA_FENCE_POST]; i++) {
+		u64 serial_id = task->fence_act_serial_ids[NVPVA_FENCE_POST][i];
+
 		fence = &(task->pva_fence_actions[NVPVA_FENCE_POST][i].fence);
 		pva_trace_log_fill_fence(&post_fence, fence);
-		trace_job_postfence(task->id,
-				    post_fence.syncpoint_index,
-				    post_fence.syncpoint_value);
-
+		if (post_fence.type == NVDEV_FENCE_TYPE_SYNCPT)
+			trace_job_postfence(task->id,
+					    post_fence.syncpoint_index,
+					    post_fence.syncpoint_value);
+		else if ((post_fence.type == NVDEV_FENCE_TYPE_SEMAPHORE)
+			|| (post_fence.type == NVDEV_FENCE_TYPE_SEMAPHORE_TS))
+			trace_job_postfence_semaphore(task->id,
+						      serial_id,
+						      post_fence.semaphore_offset,
+						      post_fence.semaphore_value);
 	}
 
 	if (task->pva->profiling_level == 1) {
@@ -1174,11 +1192,17 @@ static int pva_task_submit(const struct pva_submit_tasks *task_header)
 				     timestamp);
 		for (j = 0; j < task->num_prefences; j++) {
 			pva_trace_log_fill_fence(&pre_fence,
-						&task->prefences[j]);
-			trace_job_prefence(task->id,
-					   pre_fence.syncpoint_index,
-					   pre_fence.syncpoint_value);
-
+						 &task->prefences[j]);
+			if (pre_fence.type == NVDEV_FENCE_TYPE_SYNCPT)
+				trace_job_prefence(task->id,
+						   pre_fence.syncpoint_index,
+						   pre_fence.syncpoint_value);
+			else if ((pre_fence.type == NVDEV_FENCE_TYPE_SEMAPHORE)
+				|| (pre_fence.type == NVDEV_FENCE_TYPE_SEMAPHORE_TS))
+				trace_job_prefence_semaphore(task->id,
+							     task->prefences_serial_ids[j],
+							     pre_fence.semaphore_offset,
+							     pre_fence.semaphore_value);
 		}
 	}
 out:

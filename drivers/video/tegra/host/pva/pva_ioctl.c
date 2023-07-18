@@ -496,6 +496,7 @@ static int pva_pin(struct pva_private *priv, void *arg)
 	struct dma_buf *dmabuf[1];
 	struct nvpva_pin_in_arg *in_arg = (struct nvpva_pin_in_arg *)arg;
 	struct nvpva_pin_out_arg *out_arg = (struct nvpva_pin_out_arg *)arg;
+	u64 serial_id = 0xFFFFFFFFFFFFFFFF;
 
 	dmabuf[0] = dma_buf_get(in_arg->pin.handle);
 	if (IS_ERR_OR_NULL(dmabuf[0])) {
@@ -509,6 +510,36 @@ static int pva_pin(struct pva_private *priv, void *arg)
 			       &dmabuf[0],
 			       &in_arg->pin.offset,
 			       &in_arg->pin.size,
+			       &serial_id,
+			       in_arg->pin.segment,
+			       1,
+			       &out_arg->pin_id,
+			       &out_arg->error_code);
+	dma_buf_put(dmabuf[0]);
+out:
+	return err;
+}
+
+static int pva_pin_ex(struct pva_private *priv, void *arg)
+{
+	int err = 0;
+	struct dma_buf *dmabuf[1];
+	struct nvpva_pin_in_arg_ex *in_arg = (struct nvpva_pin_in_arg_ex *)arg;
+	struct nvpva_pin_out_arg *out_arg = (struct nvpva_pin_out_arg *)arg;
+
+	dmabuf[0] = dma_buf_get(in_arg->pin.handle);
+	if (IS_ERR_OR_NULL(dmabuf[0])) {
+		dev_err(&priv->pva->pdev->dev, "invalid handle to pin: %u",
+			in_arg->pin.handle);
+		err = -EFAULT;
+		goto out;
+	}
+
+	err = nvpva_buffer_pin(priv->client->buffers,
+			       &dmabuf[0],
+			       &in_arg->pin.offset,
+			       &in_arg->pin.size,
+			       &in_arg->pin.serial_id,
 			       in_arg->pin.segment,
 			       1,
 			       &out_arg->pin_id,
@@ -909,6 +940,9 @@ static long pva_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 	case NVPVA_IOCTL_PIN:
 		err = pva_pin(priv, buf);
+		break;
+	case NVPVA_IOCTL_PIN_EX:
+		err = pva_pin_ex(priv, buf);
 		break;
 	case NVPVA_IOCTL_UNPIN:
 		err = pva_unpin(priv, buf);

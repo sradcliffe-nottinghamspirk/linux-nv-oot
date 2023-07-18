@@ -23,6 +23,7 @@ extern struct nvpva_queue_ops pva_queue_ops;
 
 struct pva_pinned_memory {
 	u64 size;
+	u64 serial_id;
 	dma_addr_t dma_addr;
 	struct dma_buf *dmabuf;
 	int id;
@@ -155,6 +156,9 @@ struct pva_submit_task {
 	struct nvpva_fence_action
 		pva_fence_actions[NVPVA_MAX_FENCE_TYPES]
 				 [NVPVA_TASK_MAX_FENCEACTIONS];
+	u64 fence_act_serial_ids[NVPVA_MAX_FENCE_TYPES]
+				[NVPVA_TASK_MAX_FENCEACTIONS];
+	u64 prefences_serial_ids[NVPVA_TASK_MAX_PREFENCES];
 	struct pva_hwseq_priv_s hwseq_info[NVPVA_TASK_MAX_DMA_CHANNELS_T23X];
 	int8_t desc_block_height_log2[NVPVA_TASK_MAX_DMA_DESCRIPTORS];
 	struct pva_dma_task_buffer_info_s task_buff_info[NVPVA_TASK_MAX_DMA_DESCRIPTORS];

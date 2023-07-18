@@ -157,10 +157,23 @@ struct nvpva_pin_handle {
 	uint32_t type;
 };
 
+struct nvpva_pin_handle_ex {
+	uint64_t offset;
+	uint64_t size;
+	uint64_t serial_id;
+	int32_t handle;
+	uint32_t access;
+	uint32_t segment;
+	uint32_t type;
+};
+
 struct nvpva_pin_in_arg {
 	struct nvpva_pin_handle pin;
 };
 
+struct nvpva_pin_in_arg_ex {
+	struct nvpva_pin_handle_ex pin;
+};
 struct nvpva_pin_out_arg {
 	uint32_t pin_id; /* Unique ID assigned by KMD for the Pin */
 	uint32_t error_code;
@@ -171,6 +184,11 @@ union nvpva_pin_args {
 	struct nvpva_pin_out_arg out;
 };
 
+
+union nvpva_pin_args_ex {
+	struct nvpva_pin_in_arg_ex in;
+	struct nvpva_pin_out_arg out;
+};
 struct nvpva_unpin_in_arg {
 	uint32_t pin_id;
 };
@@ -546,7 +564,10 @@ union nvpva_set_vpu_print_buffer_size_args {
 #define NVPVA_IOCTL_SET_VPU_PRINT_BUFFER_SIZE \
 	_IOW(NVPVA_IOCTL_MAGIC, 11, union nvpva_set_vpu_print_buffer_size_args)
 
-#define NVPVA_IOCTL_NUMBER_MAX 11
+#define NVPVA_IOCTL_PIN_EX \
+	_IOWR(NVPVA_IOCTL_MAGIC, 12, union nvpva_pin_args_ex)
+
+#define NVPVA_IOCTL_NUMBER_MAX 12
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NVPVA_IOCTL_MAX_SIZE                                 \

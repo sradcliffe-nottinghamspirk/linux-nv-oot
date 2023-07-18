@@ -79,12 +79,12 @@ TRACE_EVENT(pva_job_ext_event,
 		 u64 queue_begin_timestamp, u64 queue_end_timestamp,
 		 u64 prepare_begin_timestamp, u64 prepare_end_timestamp,
 		 u64 vpu_begin_timestamp, u64 vpu_end_timestamp,
-		 u64 post_begin_timestamp, u64 post_end_stamp),
+		 u64 post_begin_timestamp, u64 post_end_timestamp),
 	TP_ARGS(job_id, syncpt_id, threshold, vpu_id,
 		queue_begin_timestamp, queue_end_timestamp,
 		prepare_begin_timestamp, prepare_end_timestamp,
 		vpu_begin_timestamp, vpu_end_timestamp,
-		post_begin_timestamp, post_end_stamp),
+		post_begin_timestamp, post_end_timestamp),
 	TP_STRUCT__entry(
 		__field(u64, queue_begin_timestamp)
 		__field(u64, queue_end_timestamp)
@@ -93,7 +93,7 @@ TRACE_EVENT(pva_job_ext_event,
 		__field(u64, vpu_begin_timestamp)
 		__field(u64, vpu_end_timestamp)
 		__field(u64, post_begin_timestamp)
-		__field(u64, post_end_stamp)
+		__field(u64, post_end_timestamp)
 		__field(u32, job_id)
 		__field(u32, syncpt_id)
 		__field(u32, threshold)
@@ -111,7 +111,7 @@ TRACE_EVENT(pva_job_ext_event,
 		__entry->vpu_begin_timestamp = vpu_begin_timestamp;
 		__entry->vpu_end_timestamp = vpu_end_timestamp;
 		__entry->post_begin_timestamp = post_begin_timestamp;
-		__entry->post_end_stamp = post_end_stamp;
+		__entry->post_end_timestamp = post_end_timestamp;
 		__entry->queue_id  = (job_id >> 8);
 		__entry->vpu_id    = vpu_id;
 	),
@@ -125,7 +125,7 @@ TRACE_EVENT(pva_job_ext_event,
 		  __entry->queue_begin_timestamp, __entry->queue_end_timestamp,
 		  __entry->prepare_begin_timestamp, __entry->prepare_end_timestamp,
 		  __entry->vpu_begin_timestamp, __entry->vpu_end_timestamp,
-		  __entry->post_begin_timestamp, __entry->post_end_stamp
+		  __entry->post_begin_timestamp, __entry->post_end_timestamp
 	)
 );
 
@@ -154,6 +154,39 @@ DEFINE_EVENT(job_fence, job_prefence,
 DEFINE_EVENT(job_fence, job_postfence,
 	TP_PROTO(u32 job_id, u32 syncpt_id, u32 threshold),
 	TP_ARGS(job_id, syncpt_id, threshold));
+
+DECLARE_EVENT_CLASS(job_fence_semaphore,
+	TP_PROTO(u32 job_id, u64 semaphore_id,
+		 u32 semaphore_offset, u32 semaphore_value),
+	TP_ARGS(job_id, semaphore_id, semaphore_offset, semaphore_value),
+	TP_STRUCT__entry(
+		__field(u64, semaphore_id)
+		__field(u32, job_id)
+		__field(u32, semaphore_offset)
+		__field(u32, semaphore_value)
+	),
+	TP_fast_assign(
+		__entry->job_id = job_id;
+		__entry->semaphore_id = semaphore_id;
+		__entry->semaphore_offset = semaphore_offset;
+		__entry->semaphore_value = semaphore_value;
+	),
+	TP_printk("job_id=%u semaphore_id=%llu semaphore_offset=%u semaphore_value=%u",
+		__entry->job_id, __entry->semaphore_id,
+		__entry->semaphore_offset, __entry->semaphore_value
+	)
+);
+
+DEFINE_EVENT(job_fence_semaphore, job_prefence_semaphore,
+	TP_PROTO(u32 job_id, u64 semaphore_id,
+		 u32 semaphore_offset, u32 semaphore_value),
+	TP_ARGS(job_id, semaphore_id, semaphore_offset, semaphore_value));
+
+DEFINE_EVENT(job_fence_semaphore, job_postfence_semaphore,
+	TP_PROTO(u32 job_id, u64 semaphore_id,
+		 u32 semaphore_offset, u32 semaphore_value),
+	TP_ARGS(job_id, semaphore_id, semaphore_offset, semaphore_value));
+
 
 TRACE_EVENT(job_timestamps,
 	TP_PROTO(u32 job_id, u64 begin, u64 end),

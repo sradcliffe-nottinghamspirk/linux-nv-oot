@@ -40,6 +40,7 @@ struct nvpva_vm_buffer {
 	dma_addr_t			user_addr;
 	u64				user_offset;
 	u64				user_size;
+	u64				user_serial_id;
 	struct				rb_node rb_node;
 	struct				rb_node rb_node_id;
 	struct				list_head list_head;
@@ -221,6 +222,7 @@ nvpva_buffer_map(struct platform_device *pdev,
 		 struct dma_buf *dmabuf,
 		 u64 offset,
 		 u64 size,
+		 u64 serial_id,
 		 struct nvpva_vm_buffer *vm,
 		 bool is_user)
 {
@@ -273,6 +275,7 @@ nvpva_buffer_map(struct platform_device *pdev,
 	vm->size = dmabuf->size;
 	vm->user_offset = offset;
 	vm->user_size = size;
+	vm->user_serial_id = serial_id;
 	vm->user_map_count = 1;
 
 	if (is_user)
@@ -359,6 +362,7 @@ int nvpva_buffer_submit_pin_id(struct nvpva_buffers *nvpva_buffers,
 			       struct dma_buf **dmabuf,
 			       dma_addr_t *paddr,
 			       u64 *psize,
+			       u64 *serial_ids,
 			       enum nvpva_buffers_heap *heap)
 {
 	struct nvpva_vm_buffer *vm;
@@ -377,6 +381,7 @@ int nvpva_buffer_submit_pin_id(struct nvpva_buffers *nvpva_buffers,
 		paddr[i]  = vm->user_addr;
 		dmabuf[i] = vm->dmabuf;
 		psize[i]  = vm->user_size;
+		serial_ids[i] = vm->user_serial_id;
 
 		/* Return heap only if requested */
 		if (heap != NULL)
@@ -400,6 +405,7 @@ int nvpva_buffer_pin(struct nvpva_buffers *nvpva_buffers,
 		     struct dma_buf **dmabufs,
 		     u64 *offset,
 		     u64 *size,
+		     u64 *serial_id,
 		     u32 segment,
 		     u32 count,
 		     u32 *id,
@@ -460,6 +466,7 @@ int nvpva_buffer_pin(struct nvpva_buffers *nvpva_buffers,
 				       dmabufs[i],
 				       offset[i],
 				       size[i],
+				       serial_id[i],
 				       vm,
 				       (segment == NVPVA_SEGMENT_USER));
 		if (err) {
