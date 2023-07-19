@@ -450,7 +450,8 @@ int __nvmap_map(struct nvmap_handle *h, struct vm_area_struct *vma)
 	}
 	priv->handle = h;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)) \
+	|| (defined(NV_BUILD_KERNEL_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)))
 	vm_flags_set(vma, VM_SHARED | VM_DONTEXPAND |
 			  VM_DONTDUMP | VM_DONTCOPY |
 			  (h->heap_pgalloc ? 0 : VM_PFNMAP));

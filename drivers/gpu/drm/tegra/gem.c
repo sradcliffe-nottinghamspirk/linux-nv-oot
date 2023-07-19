@@ -3,7 +3,7 @@
  * NVIDIA Tegra DRM GEM helper functions
  *
  * Copyright (C) 2012 Sascha Hauer, Pengutronix
- * Copyright (C) 2013-2015 NVIDIA CORPORATION, All rights reserved.
+ * Copyright (C) 2013-2023 NVIDIA CORPORATION, All rights reserved.
  *
  * Based on the GEM/CMA helpers
  *
@@ -584,7 +584,8 @@ int __tegra_gem_mmap(struct drm_gem_object *gem, struct vm_area_struct *vma)
 		 * and set the vm_pgoff (used as a fake buffer offset by DRM)
 		 * to 0 as we want to map the whole buffer.
 		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)) \
+		|| (defined(NV_BUILD_KERNEL_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)))
 		vm_flags_clear(vma, VM_PFNMAP);
 #else
 		vma->vm_flags &= ~VM_PFNMAP;
@@ -602,7 +603,8 @@ int __tegra_gem_mmap(struct drm_gem_object *gem, struct vm_area_struct *vma)
 	} else {
 		pgprot_t prot = vm_get_page_prot(vma->vm_flags);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)) \
+		|| (defined(NV_BUILD_KERNEL_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)))
 		vm_flags_set(vma, VM_MIXEDMAP);
 		vm_flags_clear(vma, VM_PFNMAP);
 #else
