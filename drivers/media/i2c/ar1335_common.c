@@ -341,8 +341,12 @@ static int cam_g_input_status(struct v4l2_subdev *sd, u32 * status)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct cam *priv = (struct cam *)s_data->priv;
+	struct cam *priv;
 	struct camera_common_power_rail *pw;
+
+	if (!s_data)
+		return -EINVAL;
+	priv = (struct cam *)s_data->priv;
 
 	if (!priv || !priv->pdata)
 		return -EINVAL;
@@ -373,12 +377,17 @@ static int cam_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_state *cfg,
 	int ret;
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct cam *priv = (struct cam *)s_data->priv;
+	struct cam *priv;
 	int flag = 0, err = 0, mode = 0, retry = 10;
 	mode = s_data->mode;
 
+	if (!s_data)
+		return -EINVAL;
+	priv = (struct cam *)s_data->priv;
+
 	if (!priv || !priv->pdata)
 		return -EINVAL;
+
 	switch (format->format.code) {
 	case MEDIA_BUS_FMT_UYVY8_1X16:
 		priv->format_fourcc = V4L2_PIX_FMT_UYVY;
@@ -787,13 +796,17 @@ static int mcu_stream_config(struct i2c_client *client, uint32_t format,
 				 int mode, int frate_index)
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct cam *priv = (struct cam *)s_data->priv;
+	struct cam *priv;
 
 	uint32_t payload_len = 0;
 
 	uint16_t cmd_status = 0, index = 0xFFFF;
 	uint8_t retcode = 0, cmd_id = 0;
 	int loop = 0, ret = 0, err = 0, retry=1000;
+
+	if (!s_data)
+		return -EINVAL;
+	priv = (struct cam *)s_data->priv;
 
 	/* lock semaphore */
 	mutex_lock(&mcu_i2c_mutex);
@@ -938,13 +951,17 @@ static int mcu_get_ctrl(struct i2c_client *client, uint32_t arg_ctrl_id,
 			uint8_t * ctrl_type, int32_t * curr_val)
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct cam *priv = (struct cam *)s_data->priv;
+	struct cam *priv;
 
 	uint32_t payload_len = 0;
 	uint16_t index = 0xFFFF;
 	int loop = 0, ret = 0;
 
 	uint32_t ctrl_id = 0;
+
+	if (!s_data)
+		return -EINVAL;
+	priv = (struct cam *)s_data->priv;
 
 	/* lock semaphore */
 	mutex_lock(&mcu_i2c_mutex);
@@ -1009,13 +1026,17 @@ static int mcu_set_ctrl(struct i2c_client *client, uint32_t arg_ctrl_id,
 			uint8_t ctrl_type, int32_t curr_val)
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct cam *priv = (struct cam *)s_data->priv;
+	struct cam *priv;
 	uint32_t payload_len = 0;
 
 	uint16_t cmd_status = 0, index = 0xFFFF;
 	uint8_t retcode = 0, cmd_id = 0;
 	int loop = 0, ret = 0, err = 0;
 	uint32_t ctrl_id = 0;
+
+	if (!s_data)
+		return -EINVAL;
+	priv = (struct cam *)s_data->priv;
 
 	/* lock semaphore */
 	mutex_lock(&mcu_i2c_mutex);
@@ -2764,10 +2785,21 @@ static void cam_remove(struct i2c_client *client)
 #endif
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct cam *priv = (struct cam *)s_data->priv;
+	struct cam *priv;
 	struct device_node *node = client->dev.of_node;
 	int loop = 0;
 	int reset_gpio = 0, pwdn_gpio = 0;
+
+	if (!s_data) {
+		dev_err(&client->dev, "camera common data is NULL\n");
+#if (KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE)
+		return -EINVAL;
+#else
+		return;
+#endif
+	}
+	priv = (struct cam *)s_data->priv;
+
 	/* Release the Gpios */
 	reset_gpio = of_get_named_gpio(node, "reset-gpios", 0);
 	if (reset_gpio < 0) {

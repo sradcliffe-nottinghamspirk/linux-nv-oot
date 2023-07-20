@@ -787,7 +787,17 @@ static int imx477_remove(struct i2c_client *client)
 #endif
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct imx477 *priv = (struct imx477 *)s_data->priv;
+	struct imx477 *priv;
+
+	if (!s_data) {
+		dev_err(&client->dev, "camera common data is NULL\n");
+#if KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE
+		return -EINVAL;
+#else
+		return;
+#endif
+	}
+	priv = (struct imx477 *)s_data->priv;
 
 	tegracam_v4l2subdev_unregister(priv->tc_dev);
 	tegracam_device_unregister(priv->tc_dev);

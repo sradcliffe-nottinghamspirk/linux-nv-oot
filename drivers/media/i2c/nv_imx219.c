@@ -257,9 +257,8 @@ static int imx219_set_exposure(struct tegracam_device *tc_dev, s64 val)
 
 	if (mode->signal_properties.pixel_clock.val == 0 ||
 		mode->control_properties.exposure_factor == 0 ||
-		mode->image_properties.line_length)
+		mode->image_properties.line_length == 0)
 		return -EINVAL;
-
 
 	fine_integ_time_factor = priv->fine_integ_time *
 		mode->control_properties.exposure_factor /
@@ -762,7 +761,17 @@ static int imx219_remove(struct i2c_client *client)
 #endif
 {
 	struct camera_common_data *s_data = to_camera_common_data(&client->dev);
-	struct imx219 *priv = (struct imx219 *)s_data->priv;
+	struct imx219 *priv;
+
+	if (!s_data) {
+		dev_err(&client->dev, "camera common data is NULL\n");
+#if KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE
+		return -EINVAL;
+#else
+		return;
+#endif
+	}
+	priv = (struct imx219 *)s_data->priv;
 
 	tegracam_v4l2subdev_unregister(priv->tc_dev);
 	tegracam_device_unregister(priv->tc_dev);
