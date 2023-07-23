@@ -609,9 +609,6 @@ ioctl_submit_copy_request(struct stream_ext_ctx_t *ctx,
 		ret = -EIO;
 		atomic_dec(&ctx->transfer_count);
 		release_copy_request_handles(cr);
-		/* Scheduling edma job failed. Update edma error and Notify user. */
-		(void)pci_client_set_edma_error(ctx->pci_client_h, ctx->ep_id,
-						NVSCIC2C_PCIE_EDMA_XFER_ERROR);
 		goto reclaim_cr;
 	}
 
