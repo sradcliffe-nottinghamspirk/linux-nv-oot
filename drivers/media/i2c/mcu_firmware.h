@@ -92,6 +92,6 @@ static unsigned char g_bload_buf[MAX_BUF_LEN] = { 0 };
 static unsigned short int g_bload_crc16;
 
 static const char g_mcu_fw_buf[] =
-#include "e-CAM130A_CUXVR_mcu_fw.bin"
+#include "e-CAM130_CUOAGX_mcu_fw.bin"
 ;
 #endif //_MCU_FIRMWARE_H
