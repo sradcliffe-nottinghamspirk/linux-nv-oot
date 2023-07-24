@@ -45,9 +45,7 @@ CONFIG_DYNAMIC_ASPM = y
 ENABLE_USE_FIRMWARE_FILE = n
 CONFIG_CTAP_SHORT_OFF = n
 
-ifeq ($(VERSION).$(PATCHLEVEL),5.15)
 obj-m += r8168.o
-endif
 
 r8168-objs += r8168_n.o r8168_asf.o rtl_eeprom.o rtltool.o
 ifeq ($(CONFIG_SOC_LAN), y)
