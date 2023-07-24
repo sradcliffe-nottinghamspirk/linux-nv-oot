@@ -1267,7 +1267,7 @@ static int pva_probe(struct platform_device *pdev)
 #ifdef CONFIG_PVA_CO_DISABLED
 	pva->boot_from_file = true;
 #else
-	if (pdata->version == PVA_HW_GEN1)
+	if ((pdata->version == PVA_HW_GEN1) || (pdata->version == PVA_HW_GEN3))
 		pva->boot_from_file = true;
 	else
 		pva->boot_from_file = false;
