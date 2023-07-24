@@ -1439,7 +1439,7 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 		ret = -ENODEV;
 		goto fail;
 	}
-
+	tegra_hv_ivc_channel_reset(vblkdev->ivck);
 	vblkdev->initialized = false;
 
 	vblkdev->wq = alloc_workqueue("vblk_req_wq%d",
@@ -1478,7 +1478,6 @@ static int tegra_hv_vblk_probe(struct platform_device *pdev)
 	}
 
 	mutex_lock(&vblkdev->ivc_lock);
-	tegra_hv_ivc_channel_reset(vblkdev->ivck);
 	if (vblk_send_config_cmd(vblkdev)) {
 		dev_err(dev, "Failed to send config cmd\n");
 		ret = -EACCES;
@@ -1558,11 +1557,6 @@ static int tegra_hv_vblk_suspend(struct device *dev)
 		disable_irq(vblkdev->ivck->irq);
 
 		flush_workqueue(vblkdev->wq);
-
-		/* Reset the channel */
-		mutex_lock(&vblkdev->ivc_lock);
-		tegra_hv_ivc_channel_reset(vblkdev->ivck);
-		mutex_unlock(&vblkdev->ivc_lock);
 	}
 
 	return 0;
