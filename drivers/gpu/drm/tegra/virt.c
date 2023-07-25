@@ -115,12 +115,30 @@ static int virt_engine_can_use_memory_ctx(struct tegra_drm_client *client, bool 
 	return 0;
 }
 
+static int virt_engine_has_job_timestamping(struct tegra_drm_client *client, bool *supported)
+{
+	struct virt_engine *virt = to_virt_engine(client);
+
+	switch (virt->client.base.class) {
+	case HOST1X_CLASS_NVJPG:
+	case HOST1X_CLASS_NVJPG1:
+		*supported = false;
+		break;
+	default:
+		*supported = true;
+		break;
+	}
+
+	return 0;
+}
+
 static const struct tegra_drm_client_ops virt_engine_ops = {
 	.open_channel = virt_engine_open_channel,
 	.close_channel = virt_engine_close_channel,
 	.submit = tegra_drm_submit,
 	.get_streamid_offset = tegra_drm_get_streamid_offset_thi,
 	.can_use_memory_ctx = virt_engine_can_use_memory_ctx,
+	.has_job_timestamping = virt_engine_has_job_timestamping,
 };
 
 static int virt_engine_setup_ivc(struct virt_engine *virt)
