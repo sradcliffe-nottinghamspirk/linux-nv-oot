@@ -5676,7 +5676,6 @@ static int ether_parse_dt(struct ether_priv_data *pdata)
 				   &pdata->common_isr_cpu_id);
 	if (ret < 0) {
 		pdata->common_isr_cpu_id = ETHER_COMMON_IRQ_DEFAULT_CPU;
-		ret = 0;
 	}
 
 	/* any other invalid promiscuous mode DT value */
