@@ -1027,8 +1027,12 @@ static int cdi_mgr_des_power(
 	u8 val;
 
 	/* if runtime_pwrctrl_off is not true, power on all here */
-	if (!cdi_mgr->pdata->runtime_pwrctrl_off)
-		cdi_mgr_power_up(cdi_mgr, 0xffffffff);
+	if (!cdi_mgr->pdata->runtime_pwrctrl_off) {
+		if (enable)
+			cdi_mgr_power_up(cdi_mgr, 0xffffffff);
+		else
+			cdi_mgr_power_down(cdi_mgr, 0xffffffff);
+	}
 
 	cdi_mgr_mcdi_ctrl(cdi_mgr, enable);
 
