@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/module.h>
@@ -709,6 +708,11 @@ int cdi_mgr_power_up(struct cdi_mgr_priv *cdi_mgr, unsigned long arg)
 		dev_dbg(cdi_mgr->pdev, "  - %d, %d\n",
 			pd->pwr_gpios[i], PW_ON(pd->pwr_flags[i]));
 		gpio_set_value(pd->pwr_gpios[i], PW_ON(pd->pwr_flags[i]));
+		/* SW WAR for platform issue */
+		/* Add 5ms delay between two gpio toggles */
+		/* Bug 4125801*/
+		if (cdi_mgr->isP3898)
+			mdelay(5);
 		cdi_mgr->pwr_state |= BIT(i);
 	}
 
@@ -1739,6 +1743,8 @@ static int cdi_mgr_probe(struct platform_device *pdev)
 	struct cam_gpio_config *pin = NULL;
 	struct device_node *child = NULL;
 	struct device_node *child_tca9539 = NULL;
+	struct device_node *root_node = NULL;
+	const char *model;
 
 	dev_info(&pdev->dev, "%sing...\n", __func__);
 
@@ -1776,6 +1782,15 @@ static int cdi_mgr_probe(struct platform_device *pdev)
 	} else {
 		dev_err(&pdev->dev, "%s No platform data.\n", __func__);
 		return -EFAULT;
+	}
+
+	cdi_mgr->isP3898 = false;
+	root_node = of_root;
+	if (root_node) {
+		model = of_get_property(root_node, "model", NULL);
+		dev_info(&pdev->dev, "platform name: %s\n", model);
+		if (!strcmp(model, "p3898-0010"))
+			cdi_mgr->isP3898 = true;
 	}
 
 	if (of_property_read_bool(pdev->dev.of_node, "pwms")) {

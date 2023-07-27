@@ -78,6 +78,7 @@ struct cdi_mgr_priv {
 	u8 cim_ver; /* 1 - P3714 A01, 2 - P3714 A02/A03 */
 	u32 cim_frsync[3]; /* FRSYNC source selection for each muxer */
 	u8 pre_suspend_tca9539_regvals[CDI_MGR_TCA9539_REGISTER_COUNT];
+	bool isP3898;
 };
 
 int cdi_mgr_power_up(struct cdi_mgr_priv *cdi_mgr, unsigned long arg);
