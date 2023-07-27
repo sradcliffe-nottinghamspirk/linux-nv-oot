@@ -40,25 +40,32 @@ struct fsi_hsp {
 	struct device dev;
 };
 
+struct fsi_dev_ctx {
+	struct platform_device *pdev;
+	struct list_head list;
+};
+
 static int device_file_major_number;
 static const char device_name[] = "fsicom-client";
 
 static struct platform_device *pdev_local;
-static struct dma_buf_attachment *attach;
-static struct sg_table *sgt;
-static struct dma_buf *dmabuf;
 
 /* Signaling to Application */
 static struct task_struct *task;
-
-static struct fsi_hsp *fsi_hsp_v;
+static struct fsi_hsp *fsi_hsp_v[MAX_FSI_CORE];
 
 static bool enable_deinit_notify;
+
+static int sgMaxCore;
+
+static LIST_HEAD(fsi_dev_list);
+static DEFINE_MUTEX(fsi_dev_list_mutex);
 
 static int fsicom_fsi_pm_notify(u32 state)
 {
 	uint32_t pdata[4] = {0};
 	int ret = 0;
+	int8_t lCoreId;
 
 	pdata[0] = state;
 	pdata[1] = state;
@@ -66,8 +73,10 @@ static int fsicom_fsi_pm_notify(u32 state)
 	pdata[3] = PM_STATE_UNI_CODE;
 
 	/* send pm state to fsi */
-	ret = mbox_send_message(fsi_hsp_v->tx.chan,
-		(void *)pdata);
+	for (lCoreId = sgMaxCore - 1; lCoreId >= 0; lCoreId--) {
+		ret = mbox_send_message(fsi_hsp_v[lCoreId]->tx.chan,
+				(void *)pdata);
+	}
 	return ret < 0 ? ret : 0;
 }
 
@@ -77,8 +86,8 @@ static void fsicom_send_signal(int sig, int32_t data)
 
 	memset(&info, 0, sizeof(struct siginfo));
 	info.si_signo = sig;
-	info.si_code = SI_QUEUE;
-	info.si_int  = (u32) (unsigned long) data;
+	info.si_code  = SI_QUEUE;
+	info.si_int   = (u32) (unsigned long) data;
 
 	/* Sending signal to app */
 	if (task != NULL)
@@ -101,93 +110,130 @@ static void tegra_hsp_tx_empty_notify(struct mbox_client *cl,
 static int tegra_hsp_mb_init(struct device *dev)
 {
 	int err;
+	uint8_t lCoreId;
+	char lTxStr[100] = {0};
+	char lRxStr[100] = {0};
 
-	fsi_hsp_v = devm_kzalloc(dev, sizeof(*fsi_hsp_v), GFP_KERNEL);
-	if (!fsi_hsp_v)
-		return -ENOMEM;
+	for (lCoreId = 0; lCoreId < sgMaxCore; lCoreId++) {
+		fsi_hsp_v[lCoreId] = devm_kzalloc(dev, sizeof(*fsi_hsp_v[lCoreId]), GFP_KERNEL);
+		if (!fsi_hsp_v[lCoreId])
+			return -ENOMEM;
 
-	if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32)))
-		dev_err(dev, "FsiCom: setting DMA MASK failed!\n");
+		if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32)))
+			dev_err(dev, "FsiCom: setting DMA MASK failed!\n");
 
-	fsi_hsp_v->tx.client.dev = dev;
-	fsi_hsp_v->rx.client.dev = dev;
-	fsi_hsp_v->tx.client.tx_block = true;
-	fsi_hsp_v->tx.client.tx_tout = TIMEOUT;
-	fsi_hsp_v->rx.client.rx_callback = tegra_hsp_rx_notify;
-	fsi_hsp_v->tx.client.tx_done = tegra_hsp_tx_empty_notify;
+		fsi_hsp_v[lCoreId]->tx.client.dev = dev;
+		fsi_hsp_v[lCoreId]->rx.client.dev = dev;
+		fsi_hsp_v[lCoreId]->tx.client.tx_block = true;
+		fsi_hsp_v[lCoreId]->tx.client.tx_tout = TIMEOUT;
+		fsi_hsp_v[lCoreId]->rx.client.rx_callback = tegra_hsp_rx_notify;
+		fsi_hsp_v[lCoreId]->tx.client.tx_done = tegra_hsp_tx_empty_notify;
 
-	fsi_hsp_v->tx.chan = mbox_request_channel_byname(&fsi_hsp_v->tx.client,
-							"fsi-tx");
-	if (IS_ERR(fsi_hsp_v->tx.chan)) {
-		err = PTR_ERR(fsi_hsp_v->tx.chan);
-		dev_err(dev, "failed to get tx mailbox: %d\n", err);
-		return err;
+		snprintf(lTxStr, sizeof(lTxStr), "fsi-tx-cpu%d", lCoreId);
+		fsi_hsp_v[lCoreId]->tx.chan = mbox_request_channel_byname(
+						&fsi_hsp_v[lCoreId]->tx.client,
+						lTxStr);
+		if (IS_ERR(fsi_hsp_v[lCoreId]->tx.chan)) {
+			err = PTR_ERR(fsi_hsp_v[lCoreId]->tx.chan);
+			dev_err(dev, "failed to get tx mailbox: %d\n", err);
+			return err;
+		}
+
+		snprintf(lRxStr, sizeof(lRxStr), "fsi-rx-cpu%d", lCoreId);
+		fsi_hsp_v[lCoreId]->rx.chan = mbox_request_channel_byname(
+						&fsi_hsp_v[lCoreId]->rx.client,
+						lRxStr);
+		if (IS_ERR(fsi_hsp_v[lCoreId]->rx.chan)) {
+			err = PTR_ERR(fsi_hsp_v[lCoreId]->rx.chan);
+			dev_err(dev, "failed to get rx mailbox: %d\n", err);
+			return err;
+		}
 	}
 
-	fsi_hsp_v->rx.chan = mbox_request_channel_byname(&fsi_hsp_v->rx.client,
-							"fsi-rx");
-	if (IS_ERR(fsi_hsp_v->rx.chan)) {
-		err = PTR_ERR(fsi_hsp_v->rx.chan);
-		dev_err(dev, "failed to get rx mailbox: %d\n", err);
-		return err;
+	return 0;
+}
+
+static int smmu_buff_map(unsigned long arg)
+{
+	u32 val;
+	int ret;
+	dma_addr_t dma_addr;
+	dma_addr_t phys_addr;
+	struct rw_data input;
+	struct rw_data *user_input;
+	struct fsi_dev_ctx *ctx = NULL;
+	struct dma_buf_attachment *attach;
+	struct sg_table *sgt;
+	struct dma_buf *dmabuf;
+
+	user_input = (struct rw_data *)arg;
+	if (copy_from_user(&input, (void __user *)arg,
+				sizeof(struct rw_data)))
+		return -EACCES;
+
+	list_for_each_entry(ctx, &fsi_dev_list, list) {
+		if ((ctx != NULL) && (ctx->pdev != NULL)) {
+			ret = of_property_read_u32(ctx->pdev->dev.of_node, "smmu_inst", &val);
+			if (ret) {
+				pr_err("failed to read smmu_inst\n");
+				return -1;
+			}
+			if (val == input.coreid)
+				break;
+		}
+	}
+	if (val == input.coreid) {
+		dmabuf = dma_buf_get(input.handle);
+
+		if (IS_ERR_OR_NULL(dmabuf))
+			return PTR_ERR(dmabuf);
+		attach = dma_buf_attach(dmabuf, &ctx->pdev->dev);
+
+		if (IS_ERR_OR_NULL(attach)) {
+			pr_err("error : %lld\n", (signed long long)attach);
+			return PTR_ERR(attach);
+		}
+		sgt = dma_buf_map_attachment(attach, DMA_BIDIRECTIONAL);
+		if (IS_ERR_OR_NULL(sgt)) {
+			pr_err("error: %lld\n", (signed long long)sgt);
+			return PTR_ERR(sgt);
+		}
+		phys_addr = sg_phys(sgt->sgl);
+		dma_addr = sg_dma_address(sgt->sgl);
+		if (copy_to_user((void __user *)&user_input->pa,
+					(void *)&phys_addr, sizeof(uint64_t)))
+			return -EACCES;
+		if (copy_to_user((void __user *)&user_input->iova,
+					(void *)&dma_addr, sizeof(uint64_t)))
+			return -EACCES;
+		if (copy_to_user((void __user *)&user_input->dmabuf,
+					(void *)&dmabuf, sizeof(uint64_t)))
+			return -EACCES;
+		if (copy_to_user((void __user *)&user_input->attach,
+					(void *)&attach, sizeof(uint64_t)))
+			return -EACCES;
+		if (copy_to_user((void __user *)&user_input->sgt,
+					(void *)&sgt, sizeof(uint64_t)))
+			return -EACCES;
 	}
 
 	return 0;
 }
 
 static ssize_t device_file_ioctl(
-			struct file *fp, unsigned int cmd, unsigned long arg)
+		struct file *fp, unsigned int cmd, unsigned long arg)
 {
 	struct rw_data input;
-	dma_addr_t dma_addr;
-	dma_addr_t phys_addr;
-	struct rw_data *user_input;
 	int ret = 0;
 	uint32_t pdata[4] = {0};
 	struct iova_data ldata;
-
+	struct rw_data *user_input;
 
 	switch (cmd) {
 
 	case NVMAP_SMMU_MAP:
-		user_input = (struct rw_data *)arg;
-		if (copy_from_user(&input, (void __user *)arg,
-					sizeof(struct rw_data)))
-			return -EACCES;
-		dmabuf = dma_buf_get(input.handle);
-
-		if (IS_ERR_OR_NULL(dmabuf))
-			return -EINVAL;
-		attach = dma_buf_attach(dmabuf, &pdev_local->dev);
-
-		if (IS_ERR_OR_NULL(attach)) {
-			pr_err("error : %lld\n", (signed long long)attach);
-			return -1;
-		}
-		sgt = dma_buf_map_attachment(attach, DMA_BIDIRECTIONAL);
-		if (IS_ERR_OR_NULL(sgt)) {
-			pr_err("error: %lld\n", (signed long long)sgt);
-			return -1;
-		}
-		phys_addr = sg_phys(sgt->sgl);
-		dma_addr = sg_dma_address(sgt->sgl);
-		if (copy_to_user((void __user *)&user_input->pa,
-				(void *)&phys_addr, sizeof(uint64_t)))
-			return -EACCES;
-		if (copy_to_user((void __user *)&user_input->iova,
-				(void *)&dma_addr, sizeof(uint64_t)))
-			return -EACCES;
-		if (copy_to_user((void __user *)&user_input->dmabuf,
-				(void *)&dmabuf, sizeof(uint64_t)))
-			return -EACCES;
-		if (copy_to_user((void __user *)&user_input->attach,
-				(void *)&attach, sizeof(uint64_t)))
-			return -EACCES;
-		if (copy_to_user((void __user *)&user_input->sgt,
-				(void *)&sgt, sizeof(uint64_t)))
-			return -EACCES;
-
-	break;
+		ret = smmu_buff_map(arg);
+		break;
 
 	case NVMAP_SMMU_UNMAP:
 		if (copy_from_user(&input, (void __user *)arg,
@@ -196,22 +242,26 @@ static ssize_t device_file_ioctl(
 		dma_buf_unmap_attachment((struct dma_buf_attachment *)input.attach,
 				(struct sg_table *) input.sgt, DMA_BIDIRECTIONAL);
 		dma_buf_detach((struct dma_buf *)input.dmabuf,
-			(struct dma_buf_attachment *) input.attach);
+				(struct dma_buf_attachment *) input.attach);
 		dma_buf_put((struct dma_buf *)input.dmabuf);
-	break;
+		break;
 
 	case TEGRA_HSP_WRITE:
 		if (copy_from_user(&input, (void __user *)arg,
 					sizeof(struct rw_data)))
 			return -EACCES;
 		pdata[0] = input.handle;
-		ret = mbox_send_message(fsi_hsp_v->tx.chan,
-			(void *)pdata);
-	break;
+		ret = mbox_send_message(fsi_hsp_v[input.coreid]->tx.chan,
+				(void *)pdata);
+		break;
 
 	case TEGRA_SIGNAL_REG:
 		task = get_current();
-	break;
+		user_input = (struct rw_data *)arg;
+		if (copy_to_user((void __user *)&user_input->coreid,
+					(void *)&sgMaxCore, sizeof(uint8_t)))
+			return -EACCES;
+		break;
 
 	case TEGRA_IOVA_DATA:
 		if (copy_from_user(&ldata, (void __user *)arg,
@@ -221,14 +271,13 @@ static ssize_t device_file_ioctl(
 		pdata[1] = ldata.iova;
 		pdata[2] = ldata.chid;
 		pdata[3] = IOVA_UNI_CODE;
-		ret = mbox_send_message(fsi_hsp_v->tx.chan,
-			(void *)pdata);
-	break;
+		ret = mbox_send_message(fsi_hsp_v[ldata.coreid]->tx.chan,
+				(void *)pdata);
+		break;
 
 	default:
 		return -EINVAL;
 	}
-
 	return ret;
 }
 
@@ -286,57 +335,127 @@ MODULE_DEVICE_TABLE(of, fsicom_client_dt_match);
 static int fsicom_client_probe(struct platform_device *pdev)
 {
 	int ret = 0;
+	u32 val;
 	struct device *dev = &pdev->dev;
 	const struct device_node *np = dev->of_node;
+	struct fsi_dev_ctx *ctx;
 
-	fsicom_register_device();
-	ret = tegra_hsp_mb_init(&pdev->dev);
-	pdev_local = pdev;
+	ret = of_property_read_u32(np, "smmu_inst", &val);
+	if (ret) {
+		pr_err("failed to read smmu_inst\n");
+		return -1;
+	}
+	if (val == 0) {
+		ret = of_property_read_u32(pdev->dev.of_node, "max_fsi_core", &sgMaxCore);
+		if (ret) {
+			pr_err("failed to read smmu_inst\n");
+			return -1;
+		}
+		if (sgMaxCore > MAX_FSI_CORE)
+			return -1;
+		fsicom_register_device();
+		ret = tegra_hsp_mb_init(&pdev->dev);
+		pdev_local = pdev;
 
-	if (of_property_read_bool(np, "enable-deinit-notify"))
-		enable_deinit_notify = true;
+		if (of_property_read_bool(np, "enable-deinit-notify"))
+			enable_deinit_notify = true;
+	}
+	ctx = devm_kzalloc(&pdev->dev, sizeof(*ctx), GFP_KERNEL);
+	if (!ctx)
+		return -ENOMEM;
+	INIT_LIST_HEAD(&ctx->list);
+	ctx->pdev = pdev;
+
+	mutex_lock(&fsi_dev_list_mutex);
+	list_add_tail(&ctx->list, &fsi_dev_list);
+	mutex_unlock(&fsi_dev_list_mutex);
+
+	platform_set_drvdata(pdev, ctx);
 
 	return ret;
 }
 
 static void fsicom_client_shutdown(struct platform_device *pdev)
 {
-	if (enable_deinit_notify)
-		if (fsicom_fsi_pm_notify(PM_SHUTDOWN) < 0)
-			pr_err("Unable to send notification to fsi\n");
+	u32 val;
+	int ret;
 
-	fsicom_unregister_device();
+	ret = of_property_read_u32(pdev->dev.of_node, "smmu_inst", &val);
+	if (ret) {
+		pr_err("failed to read smmu_inst\n");
+		return;
+	}
+	if (val == 0) {
+		if (enable_deinit_notify)
+			if (fsicom_fsi_pm_notify(PM_SHUTDOWN) < 0)
+				pr_err("Unable to send notification to fsi\n");
+
+		fsicom_unregister_device();
+	}
 }
 
 static int fsicom_client_remove(struct platform_device *pdev)
 {
-	fsicom_unregister_device();
+	u32 val;
+	int ret;
+	struct fsi_dev_ctx *ctx = platform_get_drvdata(pdev);
+
+	ret = of_property_read_u32(pdev->dev.of_node, "smmu_inst", &val);
+	if (ret) {
+		pr_err("failed to read smmu_inst\n");
+		return -1;
+	}
+	if (val == 0) {
+		pr_debug("fsicom remove called");
+		fsicom_unregister_device();
+		mutex_lock(&fsi_dev_list_mutex);
+		list_del(&ctx->list);
+		mutex_unlock(&fsi_dev_list_mutex);
+	}
 	return 0;
 }
 
 static int __maybe_unused fsicom_client_suspend(struct device *dev)
 {
-	int ret = 0;
+	int ret;
+	u32 val;
 
 	dev_dbg(dev, "suspend called\n");
-	if (enable_deinit_notify)
-		ret = fsicom_fsi_pm_notify(PM_SUSPEND);
+	ret = of_property_read_u32(dev->of_node, "smmu_inst", &val);
+	if (ret) {
+		pr_err("failed to read smmu_inst\n");
+		return -1;
+	}
+	if (val == 0) {
+		if (enable_deinit_notify)
+			ret = fsicom_fsi_pm_notify(PM_SUSPEND);
+	}
 	return ret;
 }
 
 static int __maybe_unused fsicom_client_resume(struct device *dev)
 {
-	dev_dbg(dev, "resume called\n");
 
-	fsicom_send_signal(SIG_DRIVER_RESUME, 0);
+	int ret;
+	u32 val;
+
+	dev_dbg(dev, "resume called\n");
+	ret = of_property_read_u32(dev->of_node, "smmu_inst", &val);
+	if (ret) {
+		pr_err("failed to read smmu_inst\n");
+		return -1;
+	}
+	if (val == 0)
+		fsicom_send_signal(SIG_DRIVER_RESUME, 0);
+
 	return 0;
 }
 
 static SIMPLE_DEV_PM_OPS(fsicom_client_pm, fsicom_client_suspend, fsicom_client_resume);
 
 static struct platform_driver fsicom_client = {
-	.driver         = {
-	.name   = "fsicom_client",
+	.driver = {
+		.name   = "fsicom_client",
 		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
 		.of_match_table = of_match_ptr(fsicom_client_dt_match),
 		.pm = pm_ptr(&fsicom_client_pm),

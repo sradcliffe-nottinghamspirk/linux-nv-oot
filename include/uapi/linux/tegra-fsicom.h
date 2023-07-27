@@ -8,7 +8,10 @@
 
 #include <linux/ioctl.h>
 
+#define MAX_FSI_CORE 2
+
 struct rw_data {
+	uint8_t coreid;
 	uint32_t handle;
 	uint64_t pa;
 	uint64_t iova;
@@ -19,6 +22,7 @@ struct rw_data {
 
 /*Data type for sending the offset,IOVA and channel Id details to FSI */
 struct iova_data {
+	uint8_t coreid;
 	uint32_t offset;
 	uint32_t iova;
 	uint32_t chid;
