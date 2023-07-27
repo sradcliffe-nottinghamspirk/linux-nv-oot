@@ -972,6 +972,7 @@ static struct of_device_id tegra_nvdla_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, tegra_nvdla_of_match);
 
+static int gActiveInstances;
 static int nvdla_probe(struct platform_device *pdev)
 {
 	int err = 0;
@@ -1089,6 +1090,11 @@ static int nvdla_probe(struct platform_device *pdev)
 	if (err)
 		goto err_module_init;
 
+	if (gActiveInstances == 0)
+		pdev->dev.of_node->name = "nvdla0";
+	else
+		pdev->dev.of_node->name = "nvdla1";
+
 	err = nvhost_client_device_init(pdev);
 	if (err)
 		goto err_client_device_init;
@@ -1179,6 +1185,7 @@ static int nvdla_probe(struct platform_device *pdev)
 #endif
 
 	nvdla_dbg_info(pdev, "pdata:%p initialized\n", pdata);
+	gActiveInstances++;
 
 	return 0;
 
