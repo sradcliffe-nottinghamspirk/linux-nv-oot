@@ -8,6 +8,8 @@
  * platform.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/dma-buf.h>
 #include <linux/dma-mapping.h>
 #include <linux/nospec.h>
@@ -526,10 +528,10 @@ int capture_common_setup_progress_status_notifier(
 	uint32_t mem_offset)
 {
 	struct dma_buf *dmabuf;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
-	struct dma_buf_map map = {0};
-#else
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map = {0};
+#else
+	struct dma_buf_map map = {0};
 #endif
 	void *va;
 	int err = 0;
@@ -573,10 +575,10 @@ int capture_common_release_progress_status_notifier(
 {
 	struct dma_buf *dmabuf = progress_status_notifier->buf;
 	void *va = progress_status_notifier->va;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
-	struct dma_buf_map map = DMA_BUF_MAP_INIT_VADDR(va);
-#else
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map = IOSYS_MAP_INIT_VADDR(va);
+#else
+	struct dma_buf_map map = DMA_BUF_MAP_INIT_VADDR(va);
 #endif
 
 	if (dmabuf != NULL) {
@@ -629,10 +631,10 @@ int capture_common_pin_memory(
 	struct capture_common_buf *unpin_data)
 {
 	struct dma_buf *buf;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
-	struct dma_buf_map map = {0};
-#else
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map = {0};
+#else
+	struct dma_buf_map map = {0};
 #endif
 	struct dma_buf_attachment *attach;
 	struct sg_table *sgt;
@@ -682,10 +684,10 @@ EXPORT_SYMBOL_GPL(capture_common_pin_memory);
 void capture_common_unpin_memory(
 	struct capture_common_buf *unpin_data)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
-	struct dma_buf_map map = DMA_BUF_MAP_INIT_VADDR(unpin_data->va);
-#else
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map = IOSYS_MAP_INIT_VADDR(unpin_data->va);
+#else
+	struct dma_buf_map map = DMA_BUF_MAP_INIT_VADDR(unpin_data->va);
 #endif
 
 	if (unpin_data->va)

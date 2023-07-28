@@ -7,6 +7,8 @@
 
 #define pr_fmt(fmt)	"nvmap: %s() " fmt, __func__
 
+#include <nvidia/conftest.h>
+
 #include <linux/list.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
@@ -22,7 +24,7 @@
 #include <linux/of.h>
 #include <linux/version.h>
 #include <linux/iommu.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 #include <linux/iosys-map.h>
 #endif
 
@@ -499,7 +501,7 @@ static void nvmap_dmabuf_vunmap(struct dma_buf *dmabuf, void *vaddr)
 	__nvmap_munmap(info->handle, vaddr);
 }
 #else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 static int nvmap_dmabuf_vmap(struct dma_buf *dmabuf, struct iosys_map *map)
 #else
 static int nvmap_dmabuf_vmap(struct dma_buf *dmabuf, struct dma_buf_map *map)
@@ -526,7 +528,7 @@ static int nvmap_dmabuf_vmap(struct dma_buf *dmabuf, struct dma_buf_map *map)
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 static void nvmap_dmabuf_vunmap(struct dma_buf *dmabuf, struct iosys_map *map)
 #else
 static void nvmap_dmabuf_vunmap(struct dma_buf *dmabuf, struct dma_buf_map *map)

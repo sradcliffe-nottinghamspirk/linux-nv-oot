@@ -3,6 +3,8 @@
  * Copyright (c) 2020-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <asm-generic/errno-base.h>
 #include <linux/err.h>
 #include <linux/kernel.h>
@@ -48,7 +50,7 @@
 void *pva_dmabuf_vmap(struct dma_buf *dmabuf)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map = {0};
 #else
 	struct dma_buf_map map = {0};
@@ -67,7 +69,7 @@ void *pva_dmabuf_vmap(struct dma_buf *dmabuf)
 void pva_dmabuf_vunmap(struct dma_buf *dmabuf, void *addr)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map = IOSYS_MAP_INIT_VADDR(addr);
 #else
 	struct dma_buf_map map = DMA_BUF_MAP_INIT_VADDR(addr);

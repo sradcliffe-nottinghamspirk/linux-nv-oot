@@ -106,7 +106,8 @@ $(obj)/conftest/patches.h: $(NV_CONFTEST_SCRIPT)
 # corresponding #define will be generated in conftest/headers.h.
 NV_HEADER_PRESENCE_TESTS = \
   generated/autoconf.h \
-  linux/kconfig.h
+  linux/kconfig.h \
+  linux/iosys-map.h
 
 # Filename to store the define for the header in $(1); this is only consumed by
 # the rule below that concatenates all of these together.

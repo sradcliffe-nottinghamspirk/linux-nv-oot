@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 # Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
+LINUXINCLUDE += -I$(srctree.nvconftest)
 LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
 
 subdir-ccflags-y += -Werror

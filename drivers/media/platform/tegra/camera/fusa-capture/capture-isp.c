@@ -7,6 +7,8 @@
  * @brief ISP channel operations for the T186/T194 Camera RTCPU platform.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/completion.h>
 #include <linux/nospec.h>
 #include <linux/nvhost.h>
@@ -341,10 +343,10 @@ static int isp_capture_setup_inputfences(
 	void *reloc_page_addr  = NULL;
 	struct isp_capture *capture = chan->capture_data;
 	void *vmap_base = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
-	struct dma_buf_map map;
-#else
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map;
+#else
+	struct dma_buf_map map;
 #endif
 	int i = 0;
 	int err = 0;
@@ -427,10 +429,10 @@ static int isp_capture_setup_prefences(
 	void *reloc_page_addr = NULL;
 	struct isp_capture *capture = chan->capture_data;
 	void *vmap_base = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
-	struct dma_buf_map map;
-#else
+#if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
 	struct iosys_map map;
+#else
+	struct dma_buf_map map;
 #endif
 
 	/* It is valid not to have prefences for given frame capture */
