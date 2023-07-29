@@ -21,12 +21,14 @@
 #define BL_GOB_HEIGHT_LOG2      3U
 #define BL_GOB_SIZE_LOG2        (BL_GOB_WIDTH_LOG2 + BL_GOB_HEIGHT_LOG2)
 #define LOW_BITS		(0xFFFFFFFFU >> (32U - 4U))
+#define NVPVA_MAX_VALID_BLK_HGT_LG2 5U
 
-int64_t
+int
 pitch_linear_eq_offset(struct nvpva_dma_descriptor const *dma_desc,
+		       s64 *frame_buf_offset,
 		       const int64_t surf_bl_offset,
 		       const uint8_t block_ht_log2,
-		       uint8_t bppLog2,
+		       uint8_t bpp_log2,
 		       bool is_dst,
 		       bool is_dst2)
 {
@@ -34,21 +36,21 @@ pitch_linear_eq_offset(struct nvpva_dma_descriptor const *dma_desc,
 	uint64_t offset = 0ULL;
 	uint16_t line_pitch = 0U;
 	uint8_t cb_enable = 0U;
-	int64_t frame_buf_offset = 0;
 	uint32_t line_pitch_bytes;
 	int32_t offset_within_surface;
 	uint32_t x;
 	uint32_t y;
-	uint32_t blockSizeLog2;
-	uint32_t blockMask;
-	uint32_t blocksPerRop;
-	uint32_t ropSize;
-	uint32_t ropIdx;
-	uint32_t offsetToRop;
-	uint32_t offsetWithinRop;
-	uint32_t blockIdx;
-	uint32_t offsetWithinBlock;
-	uint32_t gobIdx;
+	uint32_t block_size_log2;
+	uint32_t block_mask;
+	uint32_t blocks_per_rop;
+	uint32_t rop_size;
+	uint32_t rop_idx;
+	uint32_t offset_to_rop;
+	uint32_t offset_within_rop;
+	uint32_t block_idx;
+	uint32_t offset_within_block;
+	uint32_t gob_idx;
+	int err = 0;
 
 	if (is_dst) {
 		format = dma_desc->dstFormat;
@@ -68,23 +70,32 @@ pitch_linear_eq_offset(struct nvpva_dma_descriptor const *dma_desc,
 	}
 
 	if (format == 0U) {
-		frame_buf_offset = offset;
+		*frame_buf_offset = offset;
 		goto done;
 	}
 
-	line_pitch_bytes = (line_pitch << bppLog2);
+	if (block_ht_log2 > NVPVA_MAX_VALID_BLK_HGT_LG2) {
+		err = -EINVAL;
+		goto done;
+	}
+
+	line_pitch_bytes = (line_pitch << bpp_log2);
 
 	if (cb_enable != 0) {
 		pr_err("circular buffer not allowed for BL");
+		err = -EINVAL;
 		goto done;
 	}
 
 	if ((line_pitch_bytes & BL_GOB_WIDTH_LOG2_ALIGNMASK) != 0) {
 		pr_err("frame line pitch not a multiple of GOB width in BL");
+		err = -EINVAL;
 		goto done;
 	}
+
 	if (offset % 64U != 0) {
 		pr_err("block linear access offsets are misaligned ");
+		err = -EINVAL;
 		goto done;
 	}
 
@@ -110,24 +121,23 @@ pitch_linear_eq_offset(struct nvpva_dma_descriptor const *dma_desc,
 	 * Calculate the block idx and the GOB idx
 	 * so we can find offset to the GOB within the ROP
 	 */
-	blockSizeLog2	= BL_GOB_SIZE_LOG2 + block_ht_log2;
-	blockMask	= (0xFFFFFFFFU >> (32U - blockSizeLog2));
-	blocksPerRop	= line_pitch_bytes >> BL_GOB_WIDTH_LOG2;
-	ropSize		= blocksPerRop << blockSizeLog2;
-	ropIdx		= offset_within_surface / ropSize;
-	offsetToRop	= ropIdx * ropSize;
-	offsetWithinRop	= offset_within_surface - offsetToRop;
-	blockIdx	= offsetWithinRop >> blockSizeLog2;
-	offsetWithinBlock = offset_within_surface & blockMask;
-	gobIdx		= offsetWithinBlock >> BL_GOB_SIZE_LOG2;
+	block_size_log2	= BL_GOB_SIZE_LOG2 + block_ht_log2;
+	block_mask	= (0xFFFFFFFFU >> (32U - block_size_log2));
+	blocks_per_rop	= line_pitch_bytes >> BL_GOB_WIDTH_LOG2;
+	rop_size	= blocks_per_rop << block_size_log2;
+	rop_idx		= offset_within_surface / rop_size;
+	offset_to_rop	= rop_idx * rop_size;
+	offset_within_rop	= offset_within_surface - offset_to_rop;
+	block_idx	= offset_within_rop >> block_size_log2;
+	offset_within_block = offset_within_surface & block_mask;
+	gob_idx		= offset_within_block >> BL_GOB_SIZE_LOG2;
 
-	x += blockIdx << BL_GOB_WIDTH_LOG2;
-	y += gobIdx << BL_GOB_HEIGHT_LOG2;
+	x += block_idx << BL_GOB_WIDTH_LOG2;
+	y += gob_idx << BL_GOB_HEIGHT_LOG2;
 
-	frame_buf_offset = surf_bl_offset + offsetToRop + y * line_pitch_bytes + x;
-
+	*frame_buf_offset = surf_bl_offset + offset_to_rop + y * line_pitch_bytes + x;
 done:
-	return frame_buf_offset;
+	return err;
 }
 
 static int32_t check_address_range(struct nvpva_dma_descriptor const *desc,
@@ -170,11 +180,6 @@ static int32_t check_address_range(struct nvpva_dma_descriptor const *desc,
 	start = min((s[0]*bppSize), 0LL);
 	end = max(((s[0]*bppSize) + (bppSize - 1)), 0LL);
 	if (src_dst) {
-		if ((desc->dstFormat == 1U) && (block_height_log2 == -1)) {
-			pr_err("Invalid block height for BL format");
-			return -EINVAL;
-		}
-
 		/* 2nd destination dim */
 		s[1] = (int64_t)desc->dstLinePitch * last_ty;
 		if (desc->dstCbEnable == 1U) {
@@ -188,11 +193,15 @@ static int32_t check_address_range(struct nvpva_dma_descriptor const *desc,
 		}
 
 
-		offset = pitch_linear_eq_offset(desc, desc->surfBLOffset,
+		err = pitch_linear_eq_offset(desc,  &offset, desc->surfBLOffset,
 			block_height_log2, desc->bytePerPixel, true, false);
+		if (err)
+			goto out;
 
-		offset2 = pitch_linear_eq_offset(desc, desc->surfBLOffset,
+		err = pitch_linear_eq_offset(desc, &offset2, desc->surfBLOffset,
 			block_height_log2, desc->bytePerPixel, false, true);
+		if (err)
+			goto out;
 
 		/* 3rd destination dim */
 		s[2] = ((int64_t)desc->dstAdv1 * (int64_t)desc->dstRpt1);
@@ -201,11 +210,6 @@ static int32_t check_address_range(struct nvpva_dma_descriptor const *desc,
 		/* 5th destination dim */
 		s[4] = ((int64_t)desc->dstAdv3 * (int64_t)desc->dstRpt3);
 	} else {
-		if ((desc->srcFormat == 1U) && (block_height_log2 == -1)) {
-			pr_err("Invalid block height for BL format");
-			return -EINVAL;
-		}
-
 		/* 2nd source dim */
 		s[1] = (int64_t)desc->srcLinePitch * last_ty;
 		if (desc->srcCbEnable == 1U) {
@@ -217,8 +221,11 @@ static int32_t check_address_range(struct nvpva_dma_descriptor const *desc,
 				return -EINVAL;
 		}
 
-		offset = pitch_linear_eq_offset(desc, desc->surfBLOffset,
+		err = pitch_linear_eq_offset(desc, &offset, desc->surfBLOffset,
 			block_height_log2, desc->bytePerPixel, false, false);
+		if (err)
+			goto out;
+
 		/* 3rd source dim */
 		s[2] = ((int64_t)desc->srcAdv1 * (int64_t)desc->srcRpt1);
 		/* 4th source dim */
@@ -1657,11 +1664,13 @@ int validate_dma_boundaries(struct pva_hwseq_priv_s *hwseq)
 	dump_grid_info(hwseq, &grid_info);
 	dump_frame_info(hwseq, &frame_info);
 	frame_line_pitch = sequencing_to_vmem ? head_desc->srcLinePitch : head_desc->dstLinePitch;
-	frame_buffer_offset = pitch_linear_eq_offset(head_desc,
-						     head_desc->surfBLOffset,
-						     hwseq->dma_ch->blockHeight,
-						     head_desc->bytePerPixel,
-						     !sequencing_to_vmem, false);
+	err = pitch_linear_eq_offset(head_desc, &frame_buffer_offset,
+				     head_desc->surfBLOffset,
+				     hwseq->dma_ch->blockHeight,
+				     head_desc->bytePerPixel,
+				     !sequencing_to_vmem, false);
+	if (err)
+		goto out;
 
 	if (validate_head_desc_transfer_fmt(hwseq, frame_line_pitch, frame_buffer_offset) != 0) {
 		pr_err("Error in validating head Descriptor");
@@ -1684,7 +1693,7 @@ int validate_dma_boundaries(struct pva_hwseq_priv_s *hwseq)
 		pr_err("sequencer address validation failed");
 		return -EINVAL;
 	}
-
+out:
 	return err;
 }
 
@@ -1877,6 +1886,7 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 	struct nvpva_dma_descriptor *decriptors = task->dma_descriptors;
 	u32 adb_limit;
 	int err = 0;
+	u8 block_height_log2 =  user_ch->blockHeight;
 
 	nvpva_dbg_fn(task->pva, "");
 
@@ -1905,11 +1915,18 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 	/* DMA_CHANNEL_CNTL0_CHVMEMOREQ */
 	ch->cntl0 |= ((user_ch->vdbSize & 0xFFU) << 8U);
 
-	/* DMA_CHANNEL_CNTL0_CHBH */
 	ch->cntl0 |= ((user_ch->adbSize & 0x1FFU) << 16U);
 
-	/* DMA_CHANNEL_CNTL0_CHAXIOREQ */
-	ch->cntl0 |= ((user_ch->blockHeight & 7U) << 25U);
+	/* DMA_CHANNEL_CNTL0_CHBH */
+	if (block_height_log2 == U8_MAX) {
+		block_height_log2 = 0;
+	} else if (block_height_log2 > NVPVA_MAX_VALID_BLK_HGT_LG2) {
+		pr_err("ERR: Invalid block height");
+		err = -EINVAL;
+		goto out;
+	}
+
+	ch->cntl0 |= ((block_height_log2 & 7U) << 25U);
 
 	/* DMA_CHANNEL_CNTL0_CHPREF */
 	ch->cntl0 |= ((user_ch->prefetchEnable & 1U) << 30U);
@@ -1986,11 +2003,11 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	u32 j;
 	u32 mask;
 	struct pva_dma_info_s *hw_task_dma_info;
-	s8 *desc_block_height_log2 = task->desc_block_height_log2;
+	u8 *desc_block_height_log2 = task->desc_block_height_log2;
 
 	nvpva_dbg_fn(task->pva, "");
 
-	memset(task->desc_block_height_log2, -1, sizeof(task->desc_block_height_log2));
+	memset(task->desc_block_height_log2, U8_MAX, sizeof(task->desc_block_height_log2));
 	memset(task->hwseq_info, 0, sizeof(task->hwseq_info));
 
 	hw_task_dma_info = &hw_task->dma_info_and_params_list.dma_info;
@@ -2051,18 +2068,6 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 		struct nvpva_dma_channel *user_ch = &task->dma_channels[i];
 		struct nvpva_dma_descriptor *decriptors = task->dma_descriptors;
 
-		if ((user_ch->hwseqEnable == 0U)
-		&&  (user_ch->blockHeight != U8_MAX)) {
-			u8 did = user_ch->descIndex + 1U;
-
-			while ((did != 0U)
-			&& (desc_block_height_log2[did - 1U] == -1)) {
-				desc_block_height_log2[did - 1U] =
-						user_ch->blockHeight;
-				did = decriptors[did - 1U].linkDescId;
-			}
-		}
-
 		ch_num = i + 1; /* Channel 0 can't use */
 		err = nvpva_task_dma_channel_mapping(
 			task,
@@ -2102,6 +2107,17 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 
 			(*trig) |= (((mask >> 15) & 1U) << ch_num);
 			(*trig) |= (((mask >> 16) & 1U) << (ch_num + 16U));
+		}
+
+		if ((user_ch->hwseqEnable == 0U)
+		&&  (user_ch->blockHeight != U8_MAX)) {
+			u8 did = user_ch->descIndex + 1U;
+			while ((did != 0U)
+			&& (desc_block_height_log2[did - 1U] == U8_MAX)) {
+				desc_block_height_log2[did - 1U] =
+						user_ch->blockHeight;
+				did = decriptors[did - 1U].linkDescId;
+			 }
 		}
 	}
 
