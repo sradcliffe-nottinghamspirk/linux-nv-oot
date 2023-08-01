@@ -71,7 +71,6 @@
 
 struct nvvse_devnode {
 	struct miscdevice *g_misc_devices;
-	bool is_node_open;
 	bool sha_init_done;
 } nvvse_devnode[MAX_NUMBER_MISC_DEVICES];
 
@@ -1815,11 +1814,6 @@ static int tnvvse_crypto_dev_open(struct inode *inode, struct file *filp)
 		return -EINVAL;
 	}
 
-	if (nvvse_devnode[node_id].is_node_open) {
-		pr_err("%s: Trying to open already opened node. node_id %u\n", __func__, node_id);
-		return -EAGAIN;
-	}
-
 	ctx = kzalloc(sizeof(struct tnvvse_crypto_ctx), GFP_KERNEL);
 	if (!ctx) {
 		return -ENOMEM;
@@ -1843,7 +1837,6 @@ static int tnvvse_crypto_dev_open(struct inode *inode, struct file *filp)
 	}
 
 	filp->private_data = ctx;
-	nvvse_devnode[node_id].is_node_open = true;
 
 	return ret;
 
@@ -1863,7 +1856,6 @@ static int tnvvse_crypto_dev_release(struct inode *inode, struct file *filp)
 	mutex_destroy(&ctx->lock);
 	kfree(ctx->sha_result);
 	kfree(ctx->rng_buff);
-	nvvse_devnode[ctx->node_id].is_node_open = false;
 	kfree(ctx);
 	filp->private_data = NULL;
 
