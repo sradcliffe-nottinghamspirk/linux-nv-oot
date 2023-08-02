@@ -5,18 +5,21 @@
  * PVA Debug Information file
  */
 
+#include <linux/debugfs.h>
+#include <linux/dma-mapping.h>
+#include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/debugfs.h>
-#include <linux/platform_device.h>
-#include <linux/interrupt.h>
 #include <linux/nvhost.h>
-#include <linux/uaccess.h>
-#include <linux/dma-mapping.h>
-#include <linux/types.h>
+#include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
 #include <linux/slab.h>
-#include "pva.h"
+#include <linux/types.h>
+#include <linux/uaccess.h>
+
 #include <uapi/linux/nvpva_ioctl.h>
+
+#include "pva.h"
 #include "pva_vpu_ocd.h"
 #include "pva-fw-address-map.h"
 
@@ -249,8 +252,13 @@ static void update_vpu_stats(struct pva *pva, bool stats_enabled)
 		pva->vpu_util_info.stats_fw_buffer_va;
 	u64 *vpu_stats = pva->vpu_util_info.vpu_stats;
 
-	if (vpu_stats == 0)
-		goto err_out;
+#ifdef CONFIG_PM
+	if (pm_runtime_suspended(&pva->pdev->dev)) {
+		vpu_stats[0] = 0;
+		vpu_stats[1] = 0;
+		return;
+	}
+#endif
 
 	err = nvhost_module_busy(pva->pdev);
 	if (err < 0) {
