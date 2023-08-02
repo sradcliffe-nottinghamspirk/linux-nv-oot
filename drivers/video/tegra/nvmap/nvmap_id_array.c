@@ -7,7 +7,6 @@
 #include <linux/dma-buf.h>
 #include "nvmap_priv.h"
 
-#define XA_START (U32_MAX / 2)
 /*
  * Initialize xarray mapping
  */
@@ -29,11 +28,34 @@ void nvmap_id_array_exit(struct xarray *id_arr)
  */
 int nvmap_id_array_id_alloc(struct xarray *id_arr, u32 *id, struct dma_buf *dmabuf)
 {
+	static u32 xa_start = U32_MAX / 2;
+	int e;
+
 	if (!id_arr || !dmabuf)
 		return -EINVAL;
 
-	return xa_alloc(id_arr, id, dmabuf,
-		       XA_LIMIT(XA_START, U32_MAX), GFP_KERNEL);
+alloc_from_start:
+	e = xa_alloc(id_arr, id, dmabuf,
+		       XA_LIMIT(xa_start, U32_MAX), GFP_KERNEL);
+
+	xa_lock(id_arr);
+	if (!e) {
+		if (*id == U32_MAX)
+			xa_start = U32_MAX / 2;
+		else
+			xa_start = *id + 1;
+	} else if (e == -EBUSY && xa_start != U32_MAX / 2) {
+		/*
+		 * xa_alloc returns -EBUSY if there are no free entries.
+		 * In this case we will give one more try by resetting xa_start.
+		 */
+		xa_start = U32_MAX / 2;
+		xa_unlock(id_arr);
+		goto alloc_from_start;
+	}
+	xa_unlock(id_arr);
+
+	return e;
 }
 
 /*
