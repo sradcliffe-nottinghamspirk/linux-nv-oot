@@ -641,12 +641,12 @@ static const struct tegra_bpmp_soc tegra186_hv_soc = {
 		.cpu_tx = {
 			.offset = 3,
 			.count = 1,
-			.timeout = 60 * USEC_PER_SEC,
+			.timeout = 30 * USEC_PER_SEC,
 		},
 		.thread = {
 			.offset = 0,
 			.count = 3,
-			.timeout = 600 * USEC_PER_SEC,
+			.timeout = 30 * USEC_PER_SEC,
 		},
 		.cpu_rx = {
 			.offset = 13,
@@ -663,12 +663,12 @@ static const struct tegra_bpmp_soc t194_safe_hv_soc = {
 		.cpu_tx = {
 			.offset = 3,
 			.count = 1,
-			.timeout = 60 * USEC_PER_SEC,
+			.timeout = 30 * USEC_PER_SEC,
 		},
 		.thread = {
 			.offset = 0,
 			.count = 3,
-			.timeout = 600 * USEC_PER_SEC,
+			.timeout = 30 * USEC_PER_SEC,
 		},
 	},
 	.ops = &tegra186_bpmp_hv_ops,
