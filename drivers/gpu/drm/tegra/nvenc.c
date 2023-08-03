@@ -701,7 +701,6 @@ static int nvenc_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&nvenc->falcon);
-	icc_put(nvenc->icc_write);
 
 	return err;
 }
@@ -728,8 +727,6 @@ static int nvenc_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&nvenc->falcon);
-
-	icc_put(nvenc->icc_write);
 
 	return 0;
 }

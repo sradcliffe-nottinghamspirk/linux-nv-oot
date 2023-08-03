@@ -688,7 +688,6 @@ static int nvjpg_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&nvjpg->falcon);
-	icc_put(nvjpg->icc_write);
 
 	return err;
 }
@@ -715,8 +714,6 @@ static int nvjpg_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&nvjpg->falcon);
-
-	icc_put(nvjpg->icc_write);
 
 	return 0;
 }

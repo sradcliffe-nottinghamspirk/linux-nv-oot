@@ -835,7 +835,6 @@ static int nvdec_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&nvdec->falcon);
-	icc_put(nvdec->icc_write);
 
 	return err;
 }
@@ -862,8 +861,6 @@ static int nvdec_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&nvdec->falcon);
-
-	icc_put(nvdec->icc_write);
 
 	return 0;
 }

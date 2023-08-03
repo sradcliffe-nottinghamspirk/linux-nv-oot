@@ -770,7 +770,6 @@ static int vic_probe(struct platform_device *pdev)
 
 exit_falcon:
 	falcon_exit(&vic->falcon);
-	icc_put(vic->icc_write);
 
 	return err;
 }
@@ -797,8 +796,6 @@ static int vic_remove(struct platform_device *pdev)
 	}
 
 	falcon_exit(&vic->falcon);
-
-	icc_put(vic->icc_write);
 
 	return 0;
 }
