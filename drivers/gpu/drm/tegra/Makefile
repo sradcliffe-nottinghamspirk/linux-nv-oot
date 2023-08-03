@@ -3,6 +3,7 @@
 
 ccflags-$(CONFIG_DRM_TEGRA_DEBUG) += -DDEBUG
 ccflags-y += -I$(srctree.nvidia-oot)/drivers/gpu/drm/tegra/include
+ccflags-y += -I$(srctree.hwpm)/include
 
 tegra-drm-next-y := \
 	drm.o \
