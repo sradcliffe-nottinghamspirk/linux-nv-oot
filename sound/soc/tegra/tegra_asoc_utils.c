@@ -3,7 +3,7 @@
  * tegra_asoc_utils.c - Harmony machine ASoC driver
  *
  * Author: Stephen Warren <swarren@nvidia.com>
- * Copyright (c) 2010-2022 NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2010-2023 NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/clk.h>
@@ -364,9 +364,9 @@ int tegra_asoc_utils_init(struct tegra_asoc_utils_data *data,
 		return PTR_ERR(data->clk_pll_a);
 	}
 
-	data->clk_pll_a_out0 = devm_clk_get(dev, "pll_a_out0");
+	data->clk_pll_a_out0 = devm_clk_get(dev, "plla_out0");
 	if (IS_ERR(data->clk_pll_a_out0)) {
-		dev_err(data->dev, "Can't retrieve clk pll_a_out0\n");
+		dev_err(data->dev, "Can't retrieve clk plla_out0\n");
 		return PTR_ERR(data->clk_pll_a_out0);
 	}
 
