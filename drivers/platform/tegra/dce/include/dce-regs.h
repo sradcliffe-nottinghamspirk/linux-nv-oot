@@ -12,6 +12,6 @@
 #include <hw/hw_hsp_dce.h>
 #include <hw/hw_pm_dce.h>
 
-#define DCE_MAX_HSP	2
+#define DCE_MAX_HSP	3
 
 #endif /* DCE_REGS_H */
