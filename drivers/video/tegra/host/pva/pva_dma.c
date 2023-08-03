@@ -2128,8 +2128,8 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	}
 
 	if (task->hwseq_config.hwseqBuf.pin_id != 0U) {
-		if (hwgen != PVA_HW_GEN2) {
-			/* HW sequencer is supported only in HW_GEN2 */
+		if (hwgen == PVA_HW_GEN1) {
+			/* HW sequencer is not supported in HW_GEN1 */
 			err = -EINVAL;
 			goto out;
 		}
