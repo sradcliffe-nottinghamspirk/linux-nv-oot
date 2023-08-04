@@ -194,6 +194,16 @@ static int do_cache_maint(struct cache_maint_op *cache_work)
 		goto out;
 	}
 
+	if (!h->vaddr) {
+		if (__nvmap_mmap(h))
+			__nvmap_munmap(h, h->vaddr);
+		else
+			goto per_page_phy_cache_maint;
+	}
+	inner_cache_maint(op, h->vaddr + pstart, pend - pstart);
+	goto out;
+
+per_page_phy_cache_maint:
 	pstart += h->carveout->base;
 	pend += h->carveout->base;
 
