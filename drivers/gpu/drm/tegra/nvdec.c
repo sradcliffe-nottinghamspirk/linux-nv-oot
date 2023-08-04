@@ -577,11 +577,13 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 			goto disable;
 	}
 
+	err = devfreq_resume_device(nvdec->devfreq);
+	if (err < 0)
+		goto disable;
+
 	nvdec_actmon_reg_init(nvdec);
 
 	host1x_actmon_enable(&nvdec->client.base);
-
-	devfreq_resume_device(nvdec->devfreq);
 
 	return 0;
 
@@ -595,21 +597,29 @@ static __maybe_unused int nvdec_runtime_suspend(struct device *dev)
 	struct nvdec *nvdec = dev_get_drvdata(dev);
 	int err;
 
-	devfreq_suspend_device(nvdec->devfreq);
-
-	host1x_actmon_disable(&nvdec->client.base);
-
-	host1x_channel_stop(nvdec->channel);
-
-	clk_bulk_disable_unprepare(nvdec->num_clks, nvdec->clks);
+	err = devfreq_suspend_device(nvdec->devfreq);
+	if (err < 0)
+		return err;
 
 	if (nvdec->icc_write) {
 		err = icc_set_bw(nvdec->icc_write, 0, 0);
-		if (err)
+		if (err) {
 			dev_warn(nvdec->dev, "failed to set icc bw: %d\n", err);
+			goto devfreq_resume;
+		}
 	}
 
+	clk_bulk_disable_unprepare(nvdec->num_clks, nvdec->clks);
+
+	host1x_channel_stop(nvdec->channel);
+
+	host1x_actmon_disable(&nvdec->client.base);
+
 	return 0;
+
+devfreq_resume:
+	devfreq_resume_device(nvdec->devfreq);
+	return err;
 }
 
 static int nvdec_open_channel(struct tegra_drm_client *client,

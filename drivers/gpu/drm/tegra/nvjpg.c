@@ -466,11 +466,13 @@ static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
+	err = devfreq_resume_device(nvjpg->devfreq);
+	if (err < 0)
+		goto disable;
+
 	nvjpg_actmon_reg_init(nvjpg);
 
 	host1x_actmon_enable(&nvjpg->client.base);
-
-	devfreq_resume_device(nvjpg->devfreq);
 
 	return 0;
 
@@ -484,21 +486,29 @@ static __maybe_unused int nvjpg_runtime_suspend(struct device *dev)
 	struct nvjpg *nvjpg = dev_get_drvdata(dev);
 	int err;
 
-	devfreq_suspend_device(nvjpg->devfreq);
-
-	host1x_actmon_disable(&nvjpg->client.base);
-
-	host1x_channel_stop(nvjpg->channel);
-
-	clk_disable_unprepare(nvjpg->clk);
+	err = devfreq_suspend_device(nvjpg->devfreq);
+	if (err < 0)
+		return err;
 
 	if (nvjpg->icc_write) {
 		err = icc_set_bw(nvjpg->icc_write, 0, 0);
-		if (err)
+		if (err) {
 			dev_warn(nvjpg->dev, "failed to set icc bw: %d\n", err);
+			goto devfreq_resume;
+		}
 	}
 
+	clk_disable_unprepare(nvjpg->clk);
+
+	host1x_channel_stop(nvjpg->channel);
+
+	host1x_actmon_disable(&nvjpg->client.base);
+
 	return 0;
+
+devfreq_resume:
+	devfreq_resume_device(nvjpg->devfreq);
+	return err;
 }
 
 static int nvjpg_open_channel(struct tegra_drm_client *client,

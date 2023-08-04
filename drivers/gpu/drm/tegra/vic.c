@@ -524,18 +524,19 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto assert;
 
+	err = devfreq_resume_device(vic->devfreq);
+	if (err < 0)
+		goto assert;
+
 	vic_actmon_reg_init(vic);
 
 	host1x_actmon_enable(&vic->client.base);
-
-	devfreq_resume_device(vic->devfreq);
 
 	return 0;
 
 assert:
 	reset_control_assert(vic->rst);
 disable:
-	devfreq_suspend_device(vic->devfreq);
 	clk_disable_unprepare(vic->clk);
 	return err;
 }
@@ -545,27 +546,35 @@ static int __maybe_unused vic_runtime_suspend(struct device *dev)
 	struct vic *vic = dev_get_drvdata(dev);
 	int err;
 
-	devfreq_suspend_device(vic->devfreq);
+	err = devfreq_suspend_device(vic->devfreq);
+	if (err < 0)
+		return err;
 
-	host1x_actmon_disable(&vic->client.base);
-
-	host1x_channel_stop(vic->channel);
+	if (vic->icc_write) {
+		err = icc_set_bw(vic->icc_write, 0, 0);
+		if (err) {
+			dev_warn(vic->dev, "failed to set icc bw: %d\n", err);
+			goto devfreq_resume;
+		}
+	}
 
 	err = reset_control_assert(vic->rst);
 	if (err < 0)
-		return err;
+		goto devfreq_resume;
 
 	usleep_range(2000, 4000);
 
 	clk_disable_unprepare(vic->clk);
 
-	if (vic->icc_write) {
-		err = icc_set_bw(vic->icc_write, 0, 0);
-		if (err)
-			dev_warn(vic->dev, "failed to set icc bw: %d\n", err);
-	}
+	host1x_channel_stop(vic->channel);
+
+	host1x_actmon_disable(&vic->client.base);
 
 	return 0;
+
+devfreq_resume:
+	devfreq_resume_device(vic->devfreq);
+	return err;
 }
 
 static int vic_open_channel(struct tegra_drm_client *client,

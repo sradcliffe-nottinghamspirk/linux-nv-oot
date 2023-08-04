@@ -467,11 +467,13 @@ static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
+	err = devfreq_resume_device(nvenc->devfreq);
+	if (err < 0)
+		goto disable;
+
 	nvenc_actmon_reg_init(nvenc);
 
 	host1x_actmon_enable(&nvenc->client.base);
-
-	devfreq_resume_device(nvenc->devfreq);
 
 	return 0;
 
@@ -485,21 +487,29 @@ static __maybe_unused int nvenc_runtime_suspend(struct device *dev)
 	struct nvenc *nvenc = dev_get_drvdata(dev);
 	int err;
 
-	devfreq_suspend_device(nvenc->devfreq);
-
-	host1x_actmon_disable(&nvenc->client.base);
-
-	host1x_channel_stop(nvenc->channel);
-
-	clk_disable_unprepare(nvenc->clk);
+	err = devfreq_suspend_device(nvenc->devfreq);
+	if (err < 0)
+		return err;
 
 	if (nvenc->icc_write) {
 		err = icc_set_bw(nvenc->icc_write, 0, 0);
-		if (err)
+		if (err) {
 			dev_warn(nvenc->dev, "failed to set icc bw: %d\n", err);
+			goto devfreq_resume;
+		}
 	}
 
+	clk_disable_unprepare(nvenc->clk);
+
+	host1x_channel_stop(nvenc->channel);
+
+	host1x_actmon_disable(&nvenc->client.base);
+
 	return 0;
+
+devfreq_resume:
+	devfreq_resume_device(nvenc->devfreq);
+	return err;
 }
 
 static int nvenc_open_channel(struct tegra_drm_client *client,
