@@ -337,7 +337,10 @@ static int tsec_module_init(struct platform_device *dev)
 	clk_set_rate(pdata->clk[TSEC_CLK_INDEX],
 		clk_round_rate(pdata->clk[TSEC_CLK_INDEX],
 		pdata->rate[TSEC_CLK_INDEX]));
-	clk_prepare_enable(pdata->clk[TSEC_CLK_INDEX]);
+	if (clk_prepare_enable(pdata->clk[TSEC_CLK_INDEX]) != 0) {
+		dev_err(&dev->dev, "failed to enable %s clk", TSEC_CLK_NAME);
+		return -ENXIO;
+	}
 
 	/* get EFUSE_CLK and enable it */
 	pdata->clk[EFUSE_CLK_INDEX] = devm_clk_get(&dev->dev, EFUSE_CLK_NAME);
@@ -349,7 +352,11 @@ static int tsec_module_init(struct platform_device *dev)
 	clk_set_rate(pdata->clk[EFUSE_CLK_INDEX],
 		clk_round_rate(pdata->clk[EFUSE_CLK_INDEX],
 		pdata->rate[EFUSE_CLK_INDEX]));
-	clk_prepare_enable(pdata->clk[EFUSE_CLK_INDEX]);
+	if (clk_prepare_enable(pdata->clk[EFUSE_CLK_INDEX]) != 0) {
+		dev_err(&dev->dev, "failed to enable %s clk", EFUSE_CLK_NAME);
+		clk_disable_unprepare(pdata->clk[TSEC_CLK_INDEX]);
+		return -ENXIO;
+	}
 
 	/* get TSEC_PKA_CLK and enable it */
 	pdata->clk[TSEC_PKA_CLK_INDEX] = devm_clk_get(&dev->dev, TSEC_PKA_CLK_NAME);
@@ -362,7 +369,12 @@ static int tsec_module_init(struct platform_device *dev)
 	clk_set_rate(pdata->clk[TSEC_PKA_CLK_INDEX],
 		clk_round_rate(pdata->clk[TSEC_PKA_CLK_INDEX],
 		pdata->rate[TSEC_PKA_CLK_INDEX]));
-	clk_prepare_enable(pdata->clk[TSEC_PKA_CLK_INDEX]);
+	if (clk_prepare_enable(pdata->clk[TSEC_PKA_CLK_INDEX]) != 0) {
+		dev_err(&dev->dev, "failed to enable %s clk", TSEC_PKA_CLK_NAME);
+		clk_disable_unprepare(pdata->clk[EFUSE_CLK_INDEX]);
+		clk_disable_unprepare(pdata->clk[TSEC_CLK_INDEX]);
+		return -ENXIO;
+	}
 
 	/* get reset_control and reset the module */
 	pdata->reset_control = devm_reset_control_get_exclusive_released(
