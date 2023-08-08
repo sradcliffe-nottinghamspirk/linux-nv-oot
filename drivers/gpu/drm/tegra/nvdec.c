@@ -91,10 +91,8 @@ static inline void nvdec_writel(struct nvdec *nvdec, u32 value,
 
 static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 {
-	const struct nvdec_config *config = nvdec->config;
-	struct host1x_client *client = &nvdec->client.base;
 	unsigned long dev_rate;
-	u32 weight, emc_kbps;
+	u32 emc_kbps;
 	int err;
 
 	err = clk_set_rate(nvdec->clks[0].clk, rate);
@@ -111,20 +109,6 @@ static int nvdec_set_rate(struct nvdec *nvdec, unsigned long rate)
 		err = icc_set_bw(nvdec->icc_write, kbps_to_icc(emc_kbps), 0);
 		if (err)
 			dev_warn(nvdec->dev, "failed to set icc bw: %d\n", err);
-	}
-
-	host1x_actmon_update_client_rate(client, dev_rate, &weight);
-
-	if (!weight)
-		return 0;
-
-	if (!config->has_riscv) {
-		nvdec_writel(nvdec, weight, NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT);
-	} else {
-		nvdec_writel(nvdec,
-			     NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_WEIGHT,
-			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
-		nvdec_writel(nvdec, weight, NVDEC_FALCON_UCLASS_METHOD_DATA);
 	}
 
 	return 0;
@@ -552,6 +536,27 @@ static void nvdec_actmon_reg_init(struct nvdec *nvdec)
 	}
 }
 
+static void nvdec_count_weight_init(struct nvdec *nvdec, unsigned long rate)
+{
+	const struct nvdec_config *config = nvdec->config;
+	struct host1x_client *client = &nvdec->client.base;
+	u32 weight;
+
+	host1x_actmon_update_client_rate(client, rate, &weight);
+
+	if (!weight)
+		return;
+
+	if (!config->has_riscv) {
+		nvdec_writel(nvdec, weight, NVDEC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+	} else {
+		nvdec_writel(nvdec,
+			     NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_WEIGHT,
+			     NVDEC_FALCON_UCLASS_METHOD_OFFSET);
+		nvdec_writel(nvdec, weight, NVDEC_FALCON_UCLASS_METHOD_DATA);
+	}
+}
+
 static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 {
 	struct nvdec *nvdec = dev_get_drvdata(dev);
@@ -582,6 +587,8 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 		goto disable;
 
 	nvdec_actmon_reg_init(nvdec);
+
+	nvdec_count_weight_init(nvdec, nvdec->devfreq->resume_freq);
 
 	host1x_actmon_enable(&nvdec->client.base);
 
