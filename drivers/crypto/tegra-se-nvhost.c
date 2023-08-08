@@ -1370,7 +1370,7 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 			se_dev->pdev, syncpt_id, job->syncpt_end,
 			tegra_se_aes_complete_callback, priv);
 		if (err) {
-			dev_warn(se_dev->dev,
+			dev_dbg(se_dev->dev,
 				"add nvhost interrupt action failed (%d) for AES\n", err);
 			tegra_se_aes_complete_callback(priv, 0);
 			err = 0;
@@ -1391,7 +1391,7 @@ static int tegra_se_channel_submit_gather(struct tegra_se_dev *se_dev,
 			se_dev->pdev, syncpt_id, job->syncpt_end,
 			tegra_se_sha_complete_callback, priv);
 		if (err) {
-			dev_warn(se_dev->dev,
+			dev_dbg(se_dev->dev,
 				"add nvhost interrupt action failed for SHA\n");
 			tegra_se_sha_complete_callback(priv, 0);
 			err = 0;
@@ -7441,7 +7441,8 @@ static int tegra_se_probe(struct platform_device *pdev)
 
 	tegra_se_fill_se_dev_info(se_dev);
 
-	if (is_algo_supported(node, "aes") || is_algo_supported(node, "drbg")) {
+	if (is_algo_supported(node, "aes") || is_algo_supported(node, "drbg")
+			|| is_algo_supported(node, "sha")) {
 		err = tegra_init_key_slot(se_dev);
 		if (err) {
 			dev_err(se_dev->dev, "init_key_slot failed\n");
