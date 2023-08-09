@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/*
- * Copyright (c) 2019-2023, NVIDIA CORPORATION. All rights reserved.
- */
+// Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 /*
  * This is NvSciIpc kernel driver. At present its only use is to support
@@ -31,9 +29,9 @@
 
 #include "nvsciipc.h"
 
-#if defined(CONFIG_ANDROID)
+#if defined(CONFIG_ANDROID) || defined(CONFIG_TEGRA_SYSTEM_TYPE_ACK)
 #define SYSTEM_GID 1000
-#endif /* CONFIG_ANDROID */
+#endif /* CONFIG_ANDROID || CONFIG_TEGRA_SYSTEM_TYPE_ACK */
 
 /* enable it to debug auth API via ioctl.
  * enable LINUX_DEBUG_KMD_API in test_nvsciipc_nvmap tool either.
@@ -420,7 +418,7 @@ static int nvsciipc_ioctl_set_db(struct nvsciipc *ctx, unsigned int cmd,
 
 	INFO("set_db start\n");
 
-#if defined(CONFIG_ANDROID)
+#if defined(CONFIG_ANDROID) || defined(CONFIG_TEGRA_SYSTEM_TYPE_ACK)
 	if ((current_cred()->uid.val != SYSTEM_GID) &&
 	(current_cred()->uid.val != 0)) {
 		ERR("no permission to set db\n");
@@ -432,7 +430,7 @@ static int nvsciipc_ioctl_set_db(struct nvsciipc *ctx, unsigned int cmd,
 		ERR("no permission to set db\n");
 		return -EPERM;
 	}
-#endif /* CONFIG_ANDROID */
+#endif /* CONFIG_ANDROID || CONFIG_TEGRA_SYSTEM_TYPE_ACK */
 
 	if (copy_from_user(&user_db, (void __user *)arg, _IOC_SIZE(cmd))) {
 		ERR("copying user db failed\n");
