@@ -17,8 +17,7 @@
 #include <linux/fs.h>
 #include <linux/poll.h>
 #include <linux/uaccess.h>
-
-#include <linux/tegra-ivc.h>
+#include <soc/tegra/virt/hv-ivc.h>
 
 #include <uapi/linux/virtio_mmio.h>
 #include <uapi/linux/virtio_ring.h>
@@ -26,8 +25,6 @@
 #include <soc/tegra/virt/syscalls.h>
 
 #include <asm/io.h>
-
-#include "tegra_hv.h"
 
 /* flag to enable read-write loopback in this driver */
 static bool nvvc_enable_driver_loopback = false;
