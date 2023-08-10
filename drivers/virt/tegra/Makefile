@@ -8,10 +8,6 @@
 LINUX_VERSION := $(shell expr $(VERSION) \* 256 + $(PATCHLEVEL))
 LINUX_VERSION_6_2 := $(shell expr 6 \* 256 + 2)
 
-ifneq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
-ccflags-$(CONFIG_TEGRA_VIRTUALIZATION) += -DCONFIG_TEGRA_VIRTUALIZATION
-endif
-
 # tegra_hv is currently broken for Linux v6.2 and so skip for Linux v6.2+
 ifeq ($(shell test $(LINUX_VERSION) -lt $(LINUX_VERSION_6_2); echo $$?),0)
 ifdef CONFIG_TEGRA_VIRTUALIZATION
