@@ -7,10 +7,6 @@ subdir-ccflags-y += -Werror
 
 include $(srctree.nvidia-oot)/drivers/video/tegra/nvmap/Makefile.memory.configs
 
-ifneq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
-ccflags-$(CONFIG_TEGRA_VIRTUALIZATION) += -DCONFIG_TEGRA_VIRTUALIZATION
-endif
-
 ifeq ($(NVMAP_CONFIG), y)
 # Build NvMap only when NVMAP_CONFIG is set to y
 nvmap-y := nvmap_core.o \
