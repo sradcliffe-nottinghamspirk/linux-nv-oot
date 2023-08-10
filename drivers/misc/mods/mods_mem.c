@@ -551,6 +551,9 @@ static int restore_cache_one_chunk(struct page *p_page, u8 order)
 
 		if (likely(!final_err))
 			final_err = err;
+
+		/* Avoid superficial lockups */
+		cond_resched();
 	}
 
 	return final_err;
@@ -2479,7 +2482,8 @@ static void clear_contiguous_cache(struct mods_client *client,
 		asm volatile("dc civac, %0" : : "r" (cur) : "memory");
 
 		/* Avoid superficial lockups */
-		cond_resched();
+		if (!(cur & ((1U << 16) - 1U)))
+			cond_resched();
 	} while (cur += d_size, cur < end);
 	asm volatile("dsb sy" : : : "memory");
 

@@ -24,10 +24,6 @@
 #   include <asm/msr.h>
 #endif
 
-#ifndef IS_BUILTIN
-#   define IS_BUILTIN(c) 0
-#endif
-
 /***********************************************************************
  * mods_krnl_* functions, driver interfaces called by the Linux kernel *
  ***********************************************************************/
@@ -548,7 +544,7 @@ static int __init mods_init_module(void)
 #endif
 #endif
 
-#if IS_BUILTIN(CONFIG_ARM_FFA_TRANSPORT)
+#if defined(MODS_HAS_ARM_FFA)
 	rc = mods_ffa_abi_register();
 	if (rc < 0)
 		mods_warning_printk("error on mods_ffa_abi_register returned %d\n", rc);
@@ -599,7 +595,7 @@ static void __exit mods_exit_module(void)
 	mods_shutdown_clock_api();
 #endif
 
-#if IS_BUILTIN(CONFIG_ARM_FFA_TRANSPORT)
+#if defined(MODS_HAS_ARM_FFA)
 	mods_ffa_abi_unregister();
 #endif
 	mods_info_printk("driver unloaded\n");
@@ -2753,11 +2749,14 @@ static long mods_krnl_ioctl(struct file  *fp,
 
 #endif
 
-#if IS_BUILTIN(CONFIG_ARM_FFA_TRANSPORT)
 	case MODS_ESC_FFA_CMD:
+#if defined(MODS_HAS_ARM_FFA)
 		MODS_IOCTL(MODS_ESC_FFA_CMD, esc_mods_arm_ffa_cmd, MODS_FFA_PARAMS);
-		break;
+#else
+		cl_debug(DEBUG_IOCTL, "ioctl(MODS_ESC_FFA_CMD is not supported)\n");
+		err = -EINVAL;
 #endif
+		break;
 
 	case MODS_ESC_ACQUIRE_ACCESS_TOKEN:
 		MODS_IOCTL(MODS_ESC_ACQUIRE_ACCESS_TOKEN,

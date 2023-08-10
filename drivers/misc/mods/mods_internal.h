@@ -677,8 +677,8 @@ int esc_mods_invoke_optee_ta(struct mods_client *client,
 #endif
 
 /* MODS SP call */
-#if defined(CONFIG_ARM_FFA_TRANSPORT)
-int esc_mods_arm_ffa_cmd(struct mods_client *client,
+#if defined(MODS_HAS_ARM_FFA)
+int esc_mods_arm_ffa_cmd(struct mods_client     *client,
 			 struct MODS_FFA_PARAMS *p);
 #endif
 
@@ -722,7 +722,7 @@ int mods_bpmpipc_init(struct mods_client *client,
 void mods_bpmpipc_cleanup(void);
 #endif
 
-#if defined(CONFIG_ARM_FFA_TRANSPORT)
+#if defined(MODS_HAS_ARM_FFA)
 int mods_ffa_abi_register(void);
 void mods_ffa_abi_unregister(void);
 #endif
