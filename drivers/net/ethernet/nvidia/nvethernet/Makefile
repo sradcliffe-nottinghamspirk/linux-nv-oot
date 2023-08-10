@@ -15,7 +15,7 @@ endif
 
 ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
 # These CFLAGS must not be shared/used in OSI. These are local to Linux
-ccflags-y += -DLINUX_OS -DNET30 -DNVPKCS_MACSEC -DLINUX_IVC -mno-outline-atomics -Werror=frame-larger-than=4096 \
+ccflags-y += -DLINUX_OS -DNET30 -DNVPKCS_MACSEC -DLINUX_IVC -mno-outline-atomics -Werror=frame-larger-than=2048 \
 	     -I$(srctree.nvidia-oot)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/include \
 	     -I$(srctree.nvidia-oot)/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm/osi/common/include
 else

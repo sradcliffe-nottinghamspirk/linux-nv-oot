@@ -6460,7 +6460,7 @@ static int ether_probe(struct platform_device *pdev)
 	unsigned int num_dma_chans, mac, num_mtl_queues, chan;
 	struct osi_core_priv_data *osi_core;
 	struct osi_dma_priv_data *osi_dma;
-	struct osi_ioctl ioctl_data = {};
+	struct osi_ioctl *ioctl_data;
 	struct net_device *ndev;
 	int ret = 0, i;
 	const char *if_name;
@@ -6558,14 +6558,20 @@ static int ether_probe(struct platform_device *pdev)
 		goto err_init_res;
 	}
 
-	ioctl_data.cmd = OSI_CMD_GET_HW_FEAT;
-	ret = osi_handle_ioctl(osi_core, &ioctl_data);
+	ioctl_data = devm_kzalloc(&pdev->dev, sizeof(struct osi_ioctl),
+				  GFP_KERNEL);
+	if (ioctl_data == NULL) {
+		ret = -ENOMEM;
+		goto err_kzalloc;
+	}
+	ioctl_data->cmd = OSI_CMD_GET_HW_FEAT;
+	ret = osi_handle_ioctl(osi_core, ioctl_data);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to get HW features\n");
 		goto err_dma_mask;
 	}
-	osi_core->mac_ver = ioctl_data.arg1_u32;
-	memcpy(&pdata->hw_feat, &ioctl_data.hw_feat,
+	osi_core->mac_ver = ioctl_data->arg1_u32;
+	memcpy(&pdata->hw_feat, &ioctl_data->hw_feat,
 	       sizeof(struct osi_hw_features));
 
 	ret = ether_get_mac_address(pdata);
@@ -6721,6 +6727,7 @@ err_init_res:
 err_parse_dt:
 err_core_ops:
 err_dma_ops:
+err_kzalloc:
 	ether_stop_ivc(pdata);
 	free_netdev(ndev);
 	return ret;
