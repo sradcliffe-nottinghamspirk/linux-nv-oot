@@ -150,11 +150,11 @@ static phys_addr_t nvmap_alloc_mem(struct nvmap_heap *h, size_t len,
 		err = nvmap_dma_alloc_attrs(dev, len, &pa,
 				GFP_KERNEL, DMA_ATTR_ALLOC_EXACT_SIZE);
 		/*
-		 * In case of Compression carveout, try to allocate the entire granule in physically
+		 * In case of Gpu carveout, try to allocate the entire granule in physically
 		 * contiguous manner. If it returns error, then try to allocate the memory in
 		 * granules of specified granule size.
 		 */
-		if (h->is_compression_co && IS_ERR(err)) {
+		if (h->is_gpu_co && IS_ERR(err)) {
 			err = nvmap_dma_alloc_attrs(dev, len, &pa,
 				GFP_KERNEL, DMA_ATTR_ALLOC_EXACT_SIZE |
 				DMA_ATTR_ALLOC_SINGLE_PAGES);
@@ -222,7 +222,7 @@ static void nvmap_free_mem(struct nvmap_heap *h, phys_addr_t base,
 			        (void *)(uintptr_t)base,
 			        (dma_addr_t)base, DMA_ATTR_ALLOC_EXACT_SIZE);
 #else
-		if (h->is_compression_co && handle->pgalloc.pages) {
+		if (h->is_gpu_co && handle->pgalloc.pages) {
 			/* In case of pages, we need to pass pointer to array of pages */
 			nvmap_dma_free_attrs(dev, len,
 				     (void *)handle->pgalloc.pages,
@@ -482,7 +482,7 @@ struct nvmap_heap *nvmap_heap_create(struct device *parent,
 				DMA_MEMORY_NOMAP);
 #else
 		err = nvmap_dma_declare_coherent_memory(h->dma_dev, 0, base, len,
-				DMA_MEMORY_NOMAP, co->is_compression_co, co->granule_size);
+				DMA_MEMORY_NOMAP, co->is_gpu_co, co->granule_size);
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		if (!err) {
@@ -505,7 +505,7 @@ struct nvmap_heap *nvmap_heap_create(struct device *parent,
 	h->base = base;
 	h->can_alloc = !!co->can_alloc;
 	h->is_ivm = co->is_ivm;
-	h->is_compression_co = co->is_compression_co;
+	h->is_gpu_co = co->is_gpu_co;
 	h->granule_size = co->granule_size;
 	h->len = len;
 	h->free_size = len;
@@ -639,7 +639,7 @@ int nvmap_flush_heap_block(struct nvmap_client *client,
 		struct list_block *b = container_of(block, struct list_block, block);
 
 		/*
-		 * For Compression carveout with physically discontiguous granules,
+		 * For Gpu carveout with physically discontiguous granules,
 		 * iterate over granules and do cache maint for it.
 		 */
 		page_count = h->size >> PAGE_SHIFT;

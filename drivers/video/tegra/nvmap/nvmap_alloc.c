@@ -717,7 +717,7 @@ static void alloc_handle(struct nvmap_client *client,
 					void *cpu_addr;
 
 					if (h->pgalloc.pages &&
-					    h->heap_type == NVMAP_HEAP_CARVEOUT_COMPRESSION) {
+					    h->heap_type == NVMAP_HEAP_CARVEOUT_GPU) {
 						unsigned long page_count;
 						u32 granule_size = 0;
 						int i;

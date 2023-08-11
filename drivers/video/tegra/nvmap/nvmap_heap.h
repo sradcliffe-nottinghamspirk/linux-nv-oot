@@ -31,7 +31,7 @@ struct nvmap_heap {
 	struct device *cma_dev;
 	struct device *dma_dev;
 	bool is_ivm;
-	bool is_compression_co;
+	bool is_gpu_co;
 	u32 granule_size;
 	bool can_alloc; /* Used only if is_ivm == true */
 	unsigned int peer; /* Used only if is_ivm == true */

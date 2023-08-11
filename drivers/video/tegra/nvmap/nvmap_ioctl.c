@@ -207,13 +207,13 @@ int nvmap_ioctl_alloc(struct file *filp, void __user *arg)
 		return -EINVAL;
 
 	/*
-	 * In case of Compression carveout, the handle size needs to be aligned to granule.
+	 * In case of Gpu carveout, the handle size needs to be aligned to granule.
 	 */
-	if (op.heap_mask & NVMAP_HEAP_CARVEOUT_COMPRESSION) {
+	if (op.heap_mask & NVMAP_HEAP_CARVEOUT_GPU) {
 		u32 granule_size = 0;
 
 		for (i = 0; i < nvmap_dev->nr_carveouts; i++)
-			if (nvmap_dev->heaps[i].heap_bit & NVMAP_HEAP_CARVEOUT_COMPRESSION)
+			if (nvmap_dev->heaps[i].heap_bit & NVMAP_HEAP_CARVEOUT_GPU)
 				granule_size = nvmap_dev->heaps[i].carveout->granule_size;
 		handle->size = ALIGN_GRANULE_SIZE(handle->size, granule_size);
 		page_sz = granule_size;
@@ -1148,9 +1148,9 @@ int nvmap_ioctl_get_handle_parameters(struct file *filp, void __user *arg)
 	/*
 	 * Check handle is allocated or not while setting contig.
 	 * If heap type is IOVMM, check if it has flag set for contiguous memory
-	 * allocation request. Otherwise, if handle belongs to any carveout except compression
+	 * allocation request. Otherwise, if handle belongs to any carveout except gpu
 	 * carveout then all allocations are contiguous, hence set contig flag to true.
-	 * In case of compression carveout, if allocation is page based then set contig flag to
+	 * In case of gpu carveout, if allocation is page based then set contig flag to
 	 * false otherwise true.
 	 */
 	if (handle->alloc &&
@@ -1359,7 +1359,7 @@ int nvmap_ioctl_query_heap_params(struct file *filp, void __user *arg)
 				heap = nvmap_dev->heaps[i].carveout;
 				op.total = nvmap_query_heap_size(heap);
 				op.free = heap->free_size;
-				if (nvmap_dev->heaps[i].carveout->is_compression_co)
+				if (nvmap_dev->heaps[i].carveout->is_gpu_co)
 					op.granule_size = nvmap_dev->heaps[i].carveout->granule_size;
 				break;
 			}

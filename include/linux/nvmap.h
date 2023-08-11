@@ -21,7 +21,7 @@
 #define NVMAP_HEAP_CARVEOUT_VPR     (1ul<<28)
 #define NVMAP_HEAP_CARVEOUT_TSEC    (1ul<<27)
 #define NVMAP_HEAP_CARVEOUT_VIDMEM  (1ul<<26)
-#define NVMAP_HEAP_CARVEOUT_COMPRESSION (1ul << 3)
+#define NVMAP_HEAP_CARVEOUT_GPU (1ul << 3)
 #define NVMAP_HEAP_CARVEOUT_FSI   (1ul<<2)
 #define NVMAP_HEAP_CARVEOUT_IVM     (1ul<<1)
 #define NVMAP_HEAP_CARVEOUT_GENERIC (1ul<<0)
@@ -94,8 +94,8 @@ struct nvmap_platform_carveout {
 	bool no_cpu_access; /* carveout can't be accessed from cpu at all */
 	bool init_done;	/* FIXME: remove once all caveouts use reserved-memory */
 	struct nvmap_pm_ops pm_ops;
-	bool is_compression_co; /* Compression carveout is treated differently */
-	u32 granule_size; /* Granule size for compression carveout */
+	bool is_gpu_co; /* Gpu carveout is treated differently */
+	u32 granule_size; /* Granule size for gpu carveout */
 };
 
 struct nvmap_platform_data {
