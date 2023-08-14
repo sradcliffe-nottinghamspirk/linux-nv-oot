@@ -972,7 +972,28 @@ static struct of_device_id tegra_nvdla_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, tegra_nvdla_of_match);
 
-static int gActiveInstances;
+static uint32_t num_enabled_dla_instances(uint32_t soft_fuse_ret,
+					int hw_reg_fuse_ret)
+{
+	uint32_t num_active_modules = 0U;
+
+	if ((soft_fuse_ret & SOFT_SKU_OVERRIDE_ENABLE_MASK) != 0U) {
+		if ((soft_fuse_ret & FUSE_OPT_DLA_0_DISABLED_SOFT) == 0U)
+			num_active_modules++;
+
+		if ((soft_fuse_ret & FUSE_OPT_DLA_1_DISABLED_SOFT) == 0U)
+			num_active_modules++;
+	} else {
+		if ((hw_reg_fuse_ret & FUSE_OPT_DLA_0_DISABLED) == 0U)
+			num_active_modules++;
+
+		if ((hw_reg_fuse_ret & FUSE_OPT_DLA_1_DISABLED) == 0U)
+			num_active_modules++;
+	}
+
+	return num_active_modules;
+}
+
 static int nvdla_probe(struct platform_device *pdev)
 {
 	int err = 0;
@@ -1090,10 +1111,11 @@ static int nvdla_probe(struct platform_device *pdev)
 	if (err)
 		goto err_module_init;
 
-	if (gActiveInstances == 0)
-		pdev->dev.of_node->name = "nvdla0";
-	else
-		pdev->dev.of_node->name = "nvdla1";
+	if (pdata->version == FIRMWARE_ENCODE_VERSION(T23X)) {
+		if (num_enabled_dla_instances(soft_fuse_ret, fuse_register_ret) == 1) {
+			pdev->dev.of_node->name = "nvdla0";
+		}
+	}
 
 	err = nvhost_client_device_init(pdev);
 	if (err)
@@ -1185,7 +1207,6 @@ static int nvdla_probe(struct platform_device *pdev)
 #endif
 
 	nvdla_dbg_info(pdev, "pdata:%p initialized\n", pdata);
-	gActiveInstances++;
 
 	return 0;
 
