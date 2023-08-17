@@ -118,6 +118,23 @@ static struct host1x_channel *acquire_unused_channel(struct host1x *host)
 }
 
 /**
+ * host1x_channel_list_stop() - disable cdma on allocated channels
+ * @chlist: list of host1x channels
+ *
+ * Stop DMA on the allocated channels during suspend
+ */
+void host1x_channel_list_stop(struct host1x_channel_list *chlist)
+{
+	struct host1x *host = container_of(chlist, struct host1x, channel_list);
+	int i;
+	for (i = 0; i < host->info->nb_channels; i++) {
+		if (!test_bit(i, chlist->allocated_channels))
+			continue;
+		host1x_channel_stop(&chlist->channels[i]);
+	}
+}
+
+/**
  * host1x_channel_request() - Allocate a channel
  * @client: Host1x client this channel will be used to send commands to
  *
