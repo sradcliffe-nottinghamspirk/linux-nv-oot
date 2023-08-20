@@ -16,5 +16,8 @@ tegra234-aon-objs += \
     ../tegra-ivc.o \
     tegra-aon-mail.o \
     tegra-aon-module.o \
-    aon-hsp-mbox-client.o \
-    tegra-aon-debug.o
+    aon-hsp-mbox-client.o
+
+ifeq ($(CONFIG_DEBUG_FS), y)
+tegra234-aon-objs += tegra-aon-debug.o
+endif

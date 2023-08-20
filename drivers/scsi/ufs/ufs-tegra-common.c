@@ -36,6 +36,7 @@
 #include "ufs-tegra.h"
 #include "ufs-provision.h"
 
+#ifdef CONFIG_DEBUG_FS
 static void ufs_tegra_init_debugfs(struct ufs_hba *hba)
 {
 	struct dentry *device_root;
@@ -46,6 +47,7 @@ static void ufs_tegra_init_debugfs(struct ufs_hba *hba)
 	if (ufs_tegra->enable_ufs_provisioning)
 		debugfs_provision_init(hba, device_root);
 }
+#endif
 
 static void ufs_tegra_set_clk_div(struct ufs_hba *hba, u32 divider_val)
 {

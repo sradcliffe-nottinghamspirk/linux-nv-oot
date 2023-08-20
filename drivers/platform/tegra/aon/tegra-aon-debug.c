@@ -787,7 +787,6 @@ clean:
 	return PTR_ERR(d);
 }
 
-#if defined(CONFIG_DEBUG_FS)
 int tegra_aon_debugfs_create(struct tegra_aon *aon)
 {
 	struct tegra_aondbg *aondbg = &aondbg_dev;
@@ -867,4 +866,3 @@ void tegra_aon_debugfs_remove(struct tegra_aon *aon)
 	mbox_free_channel(aondbg->mbox);
 	debugfs_remove_recursive(aondbg->aon_root);
 }
-#endif
