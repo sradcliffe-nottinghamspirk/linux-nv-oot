@@ -538,7 +538,6 @@ static int imx185_power_get(struct tegracam_device *tc_dev)
 	struct camera_common_pdata *pdata = s_data->pdata;
 	const char *mclk_name;
 	struct clk *parent;
-	int err = 0;
 
 	mclk_name = pdata->mclk_name ?
 		    pdata->mclk_name : "extperiph1";
@@ -552,15 +551,14 @@ static int imx185_power_get(struct tegracam_device *tc_dev)
 	if (IS_ERR(parent))
 		dev_err(dev, "devm_clk_get failed for pllp_grtba");
 	else {
-		err = clk_set_parent(pw->mclk, parent);
-		if (err < 0)
-			dev_dbg(dev, "%s failed to set parent clock %d\n", __func__, err);
+		if (clk_set_parent(pw->mclk, parent) < 0)
+			dev_dbg(dev, "%s failed to set parent clock\n", __func__);
 	}
 
 	pw->reset_gpio = pdata->reset_gpio;
 
 	pw->state = SWITCH_OFF;
-	return err;
+	return 0;
 }
 
 static int imx185_power_put(struct tegracam_device *tc_dev)
