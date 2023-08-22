@@ -112,9 +112,8 @@ static int vic_boot(struct vic *vic)
 
 static int vic_set_rate(struct vic *vic, unsigned long rate)
 {
-	struct host1x_client *client = &vic->client.base;
 	unsigned long dev_rate;
-	u32 weight, emc_kbps;
+	u32 emc_kbps;
 	int err;
 
 	err = clk_set_rate(vic->clk, rate);
@@ -125,11 +124,6 @@ static int vic_set_rate(struct vic *vic, unsigned long rate)
 		return 0;
 
 	dev_rate = clk_get_rate(vic->clk);
-
-	host1x_actmon_update_client_rate(client, dev_rate, &weight);
-
-	if (weight)
-		vic_writel(vic, weight, NV_PVIC_TFBIF_ACTMON_ACTIVE_WEIGHT);
 
 	if (vic->icc_write) {
 		emc_kbps = dev_rate * VIC_AXI_RW_BANDWIDTH / 1024;
@@ -499,6 +493,17 @@ static void vic_actmon_reg_init(struct vic *vic)
 		   NV_PVIC_TFBIF_ACTMON_ACTIVE_BORPS);
 }
 
+static void vic_count_weight_init(struct vic *vic, unsigned long rate)
+{
+	struct host1x_client *client = &vic->client.base;
+	u32 weight = 0;
+
+	host1x_actmon_update_client_rate(client, rate, &weight);
+
+	if (weight)
+		vic_writel(vic, weight, NV_PVIC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+}
+
 static int __maybe_unused vic_runtime_resume(struct device *dev)
 {
 	struct vic *vic = dev_get_drvdata(dev);
@@ -529,6 +534,8 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 		goto assert;
 
 	vic_actmon_reg_init(vic);
+
+	vic_count_weight_init(vic, vic->devfreq->resume_freq);
 
 	host1x_actmon_enable(&vic->client.base);
 
