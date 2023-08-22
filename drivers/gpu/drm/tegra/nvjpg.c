@@ -73,9 +73,8 @@ static inline void nvjpg_writel(struct nvjpg *nvjpg, u32 value, unsigned int off
 
 static int nvjpg_set_rate(struct nvjpg *nvjpg, unsigned long rate)
 {
-	struct host1x_client *client = &nvjpg->client.base;
 	unsigned long dev_rate;
-	u32 weight, emc_kbps;
+	u32 emc_kbps;
 	int err;
 
 	err = clk_set_rate(nvjpg->clk, rate);
@@ -86,11 +85,6 @@ static int nvjpg_set_rate(struct nvjpg *nvjpg, unsigned long rate)
 		return 0;
 
 	dev_rate = clk_get_rate(nvjpg->clk);
-
-	host1x_actmon_update_client_rate(client, dev_rate, &weight);
-
-	if (weight)
-		nvjpg_writel(nvjpg, weight, NVJPG_TFBIF_ACTMON_ACTIVE_WEIGHT);
 
 	if (nvjpg->icc_write) {
 		emc_kbps = dev_rate * NVJPG_AXI_RW_BANDWIDTH / 1024;
@@ -447,6 +441,17 @@ static void nvjpg_actmon_reg_init(struct nvjpg *nvjpg)
 		     NVJPG_TFBIF_ACTMON_ACTIVE_BORPS);
 }
 
+static void nvjpg_count_weight_init(struct nvjpg *nvjpg, unsigned long rate)
+{
+	struct host1x_client *client = &nvjpg->client.base;
+	u32 weight = 0;
+
+	host1x_actmon_update_client_rate(client, rate, &weight);
+
+	if (weight)
+		nvjpg_writel(nvjpg, weight, NVJPG_TFBIF_ACTMON_ACTIVE_WEIGHT);
+}
+
 static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 {
 	struct nvjpg *nvjpg = dev_get_drvdata(dev);
@@ -471,6 +476,8 @@ static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 		goto disable;
 
 	nvjpg_actmon_reg_init(nvjpg);
+
+	nvjpg_count_weight_init(nvjpg, nvjpg->devfreq->resume_freq);
 
 	host1x_actmon_enable(&nvjpg->client.base);
 
