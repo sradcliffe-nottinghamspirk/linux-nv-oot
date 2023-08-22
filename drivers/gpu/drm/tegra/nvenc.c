@@ -74,9 +74,8 @@ static inline void nvenc_writel(struct nvenc *nvenc, u32 value, unsigned int off
 
 static int nvenc_set_rate(struct nvenc *nvenc, unsigned long rate)
 {
-	struct host1x_client *client = &nvenc->client.base;
 	unsigned long dev_rate;
-	u32 weight, emc_kbps;
+	u32 emc_kbps;
 	int err;
 
 	err = clk_set_rate(nvenc->clk, rate);
@@ -87,11 +86,6 @@ static int nvenc_set_rate(struct nvenc *nvenc, unsigned long rate)
 		return 0;
 
 	dev_rate = clk_get_rate(nvenc->clk);
-
-	host1x_actmon_update_client_rate(client, dev_rate, &weight);
-
-	if (weight)
-		nvenc_writel(nvenc, weight, NVENC_TFBIF_ACTMON_ACTIVE_WEIGHT);
 
 	if (nvenc->icc_write) {
 		emc_kbps = dev_rate * NVENC_AXI_RW_BANDWIDTH / 1024;
@@ -448,6 +442,17 @@ static void nvenc_actmon_reg_init(struct nvenc *nvenc)
 		     NVENC_TFBIF_ACTMON_ACTIVE_BORPS);
 }
 
+static void nvenc_count_weight_init(struct nvenc *nvenc, unsigned long rate)
+{
+	struct host1x_client *client = &nvenc->client.base;
+	u32 weight = 0;
+
+	host1x_actmon_update_client_rate(client, rate, &weight);
+
+	if (weight)
+		nvenc_writel(nvenc, weight, NVENC_TFBIF_ACTMON_ACTIVE_WEIGHT);
+}
+
 static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 {
 	struct nvenc *nvenc = dev_get_drvdata(dev);
@@ -472,6 +477,8 @@ static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 		goto disable;
 
 	nvenc_actmon_reg_init(nvenc);
+
+	nvenc_count_weight_init(nvenc, nvenc->devfreq->resume_freq);
 
 	host1x_actmon_enable(&nvenc->client.base);
 
