@@ -585,7 +585,7 @@ int __tegra_gem_mmap(struct drm_gem_object *gem, struct vm_area_struct *vma)
 		 * to 0 as we want to map the whole buffer.
 		 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)) \
-		|| (defined(NV_BUILD_KERNEL_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)))
+		|| (defined(CONFIG_TEGRA_SYSTEM_TYPE_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)))
 		vm_flags_clear(vma, VM_PFNMAP);
 #else
 		vma->vm_flags &= ~VM_PFNMAP;
@@ -604,7 +604,7 @@ int __tegra_gem_mmap(struct drm_gem_object *gem, struct vm_area_struct *vma)
 		pgprot_t prot = vm_get_page_prot(vma->vm_flags);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)) \
-		|| (defined(NV_BUILD_KERNEL_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)))
+		|| (defined(CONFIG_TEGRA_SYSTEM_TYPE_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)))
 		vm_flags_set(vma, VM_MIXEDMAP);
 		vm_flags_clear(vma, VM_PFNMAP);
 #else

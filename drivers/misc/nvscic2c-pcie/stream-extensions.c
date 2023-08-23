@@ -27,7 +27,7 @@
 #include "stream-extensions.h"
 #include "vmap.h"
 
-#ifdef NV_BUILD_KERNEL_ACK
+#if defined(CONFIG_TEGRA_SYSTEM_TYPE_ACK)
 MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
 #endif
 
@@ -294,7 +294,7 @@ fops_mmap(struct file *filep, struct vm_area_struct *vma)
 	memaddr = stream_obj->aper;
 
 	vma->vm_pgoff  = 0;
-#if defined(NV_BUILD_KERNEL_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+#if defined(CONFIG_TEGRA_SYSTEM_TYPE_ACK) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
 	vm_flags_set(vma, VM_DONTCOPY);
 #else
 	vma->vm_flags |= (VM_DONTCOPY);

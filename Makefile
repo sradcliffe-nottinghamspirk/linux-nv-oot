@@ -10,7 +10,7 @@ subdir-ccflags-y += -DCONFIG_TEGRA_VIRTUALIZATION
 endif
 
 ifeq ($(CONFIG_TEGRA_SYSTEM_TYPE_ACK),y)
-subdir-ccflags-y += -DNV_BUILD_KERNEL_ACK
+subdir-ccflags-y += -DCONFIG_TEGRA_SYSTEM_TYPE_ACK
 subdir-ccflags-y += -Wno-sometimes-uninitialized
 subdir-ccflags-y += -Wno-parentheses-equality
 subdir-ccflags-y += -Wno-enum-conversion
