@@ -14,3 +14,4 @@ ifneq ($(CONFIG_TEGRA_GPIO_LEGACY_DISABLE),y)
 obj-m += bluedroid_pm.o
 endif
 obj-m += nvscic2c-pcie/
+obj-m += ioctl_example.o
