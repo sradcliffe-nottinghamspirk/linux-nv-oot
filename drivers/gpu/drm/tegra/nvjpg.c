@@ -477,7 +477,7 @@ static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 
 	nvjpg_actmon_reg_init(nvjpg);
 
-	nvjpg_count_weight_init(nvjpg, nvjpg->devfreq->resume_freq);
+	nvjpg_count_weight_init(nvjpg, nvjpg->devfreq->scaling_max_freq);
 
 	host1x_actmon_enable(&nvjpg->client.base);
 

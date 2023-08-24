@@ -535,7 +535,7 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 
 	vic_actmon_reg_init(vic);
 
-	vic_count_weight_init(vic, vic->devfreq->resume_freq);
+	vic_count_weight_init(vic, vic->devfreq->scaling_max_freq);
 
 	host1x_actmon_enable(&vic->client.base);
 

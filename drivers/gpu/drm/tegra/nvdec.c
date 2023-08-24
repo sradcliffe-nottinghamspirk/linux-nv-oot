@@ -588,7 +588,7 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 
 	nvdec_actmon_reg_init(nvdec);
 
-	nvdec_count_weight_init(nvdec, nvdec->devfreq->resume_freq);
+	nvdec_count_weight_init(nvdec, nvdec->devfreq->scaling_max_freq);
 
 	host1x_actmon_enable(&nvdec->client.base);
 

@@ -478,7 +478,7 @@ static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 
 	nvenc_actmon_reg_init(nvenc);
 
-	nvenc_count_weight_init(nvenc, nvenc->devfreq->resume_freq);
+	nvenc_count_weight_init(nvenc, nvenc->devfreq->scaling_max_freq);
 
 	host1x_actmon_enable(&nvenc->client.base);
 
