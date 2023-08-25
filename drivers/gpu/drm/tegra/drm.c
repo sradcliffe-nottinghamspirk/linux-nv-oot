@@ -1297,13 +1297,15 @@ static int host1x_drm_probe(struct host1x_device *dev)
 
 	drm_mode_config_reset(drm);
 
+	if (drm->mode_config.num_crtc > 0) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
-	err = drm_aperture_remove_framebuffers(false, &tegra_drm_driver);
+		err = drm_aperture_remove_framebuffers(false, &tegra_drm_driver);
 #else
-	err = drm_aperture_remove_framebuffers(false, "tegradrmfb");
+		err = drm_aperture_remove_framebuffers(false, "tegradrmfb");
 #endif
-	if (err < 0)
-		goto hub;
+		if (err < 0)
+			goto hub;
+	}
 
 	err = tegra_drm_fb_init(drm);
 	if (err < 0)
