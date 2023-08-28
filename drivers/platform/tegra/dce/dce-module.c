@@ -254,6 +254,14 @@ static int tegra_dce_probe(struct platform_device *pdev)
 		}
 	}
 
+	/**
+	 * FIXME: Allow tegra_dce.ko unloading.
+	 */
+	if (!try_module_get(THIS_MODULE)) {
+		dce_info(d, "Failed to get lock of DCE Module.\n");
+		dce_info(d, "modprobe --remove of kernel modules depending on tegra_dce.ko will fail.\n");
+	}
+
 	return 0;
 
 req_intr_err:
