@@ -181,10 +181,11 @@ static ssize_t nvvc_write(struct file *f, const char *buf, size_t buf_size, loff
 			err = kfifo_from_user(&nvvcdev->nvvc_rx_fifo, buf, buf_size, &copied);
 			if (err) {
 				write_size = err;
-			} else if (copied != buf_size) {
-				pr_debug("nvvc: partial write done (%u)\n", copied);
+			} else {
+				write_size = copied;
+				pr_debug("nvvc: wrote %u bytes out of %ld bytes\n",
+						copied, buf_size);
 			}
-			write_size = copied;
 		}
 	} else {
 		if (kfifo_is_full(&nvvcdev->nvvc_tx_fifo)) {
@@ -201,11 +202,11 @@ static ssize_t nvvc_write(struct file *f, const char *buf, size_t buf_size, loff
 			err = kfifo_from_user(&nvvcdev->nvvc_tx_fifo, buf, buf_size, &copied);
 			if (err) {
 				write_size = err;
-			} else if (copied != buf_size) {
-				pr_debug("nvvc: partial write done (%u)\n", copied);
+			} else {
+				write_size = copied;
+				pr_debug("nvvc: wrote %u bytes out of %ld bytes\n",
+						copied, buf_size);
 			}
-			write_size = copied;
-			pr_debug("Write nvvc: wrote %d bytes\n", write_size);
 		}
 	}
 
@@ -586,7 +587,7 @@ static void nvvc_work(struct work_struct *work)
 {
 	struct nvvc_dev *nvvcdev = container_of(work, struct nvvc_dev, work);
 	uint32_t ivc_cmd, ivc_resp;
-	int err;
+	int err = 0;
 
 	if (tegra_hv_ivc_channel_notified(nvvcdev->ivc) != 0) {
 		pr_err("nvvc_work: ivc channel not notified\n");
@@ -625,6 +626,8 @@ static void nvvc_work(struct work_struct *work)
 			nvvc_received_rxdataavaiable = true;
 
 			err = nvvc_process_rxdataavaiable();
+			if (err < 0)
+				pr_debug("nvvc_process_rxdataavaiable failed: err %d\n", err);
 			break;
 		default:
 			pr_err("ivc read invalid command: 0x%x\n", ivc_cmd);
