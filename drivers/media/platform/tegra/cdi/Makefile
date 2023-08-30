@@ -11,3 +11,6 @@ obj-m	+= cdi_mgr.o
 endif
 obj-m	+= cdi_dev.o
 obj-m	+= cdi_pwm.o
+ifeq ($(findstring ack_src,$(NV_BUILD_KERNEL_OPTIONS)),)
+obj-m   += cam_cdi_tsc.o
+endif
