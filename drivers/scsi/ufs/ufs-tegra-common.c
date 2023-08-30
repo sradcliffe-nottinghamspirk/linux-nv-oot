@@ -1517,23 +1517,6 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	if (err)
 		goto out_host_free;
 
-	if (ufs_tegra->soc->chip_id == TEGRA234) {
-		fwspec = dev_iommu_fwspec_get(dev);
-		if (fwspec == NULL) {
-			err = -ENODEV;
-			dev_err(dev, "Failed to get MC streamidd\n");
-			goto out;
-		} else {
-			ufs_tegra->streamid = fwspec->ids[0] & 0xffff;
-			writel(UFS_AUX_ADDR_VIRT_CTRL_EN,
-				ufs_tegra->ufs_virtualization_base +
-				UFS_AUX_ADDR_VIRT_CTRL_0);
-			writel(ufs_tegra->streamid,
-				ufs_tegra->ufs_virtualization_base +
-				UFS_AUX_ADDR_VIRT_REG_0);
-		}
-	}
-
 	err = ufs_tegra_enable_mphylane_clks(ufs_tegra);
 	if (err)
 		goto out_disable_ufs_clks;
@@ -1555,6 +1538,23 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	ufs_tegra_ufs_aux_prog(ufs_tegra);
 	ufs_tegra_set_clk_div(hba, UFS_VNDR_HCLKDIV_1US_TICK);
 	ufs_tegra_eq_timeout(ufs_tegra);
+
+	if (ufs_tegra->soc->chip_id == TEGRA234) {
+		fwspec = dev_iommu_fwspec_get(dev);
+		if (fwspec == NULL) {
+			err = -ENODEV;
+			dev_err(dev, "Failed to get MC streamidd\n");
+			goto out_disable_mphylane_clks;
+		} else {
+			ufs_tegra->streamid = fwspec->ids[0] & 0xffff;
+			writel(UFS_AUX_ADDR_VIRT_CTRL_EN,
+				ufs_tegra->ufs_virtualization_base +
+				UFS_AUX_ADDR_VIRT_CTRL_0);
+			writel(ufs_tegra->streamid,
+				ufs_tegra->ufs_virtualization_base +
+				UFS_AUX_ADDR_VIRT_REG_0);
+		}
+	}
 
 #ifdef CONFIG_DEBUG_FS
 	ufs_tegra_init_debugfs(hba);
