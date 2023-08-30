@@ -23,16 +23,20 @@ static struct max96712 *global_priv[4];
 int max96712_write_reg_Dser(int slaveAddr, int channel, u16 addr, u8 val);
 int max96712_read_reg_Dser(int slaveAddr, int channel, u16 addr, unsigned int *val);
 
+struct mutex max96712_rw;
+
 int max96712_write_reg_Dser(int slaveAddr, int channel,
 				u16 addr, u8 val)
 {
 	struct i2c_client *i2c_client = NULL;
 	int bak = 0;
-	int err;
+	int err = 0;
 	/* unsigned int ival = 0; */
 
 	if (channel > 3 || channel < 0 || global_priv[channel] == NULL)
 		return -1;
+
+	mutex_lock(&max96712_rw);
 	i2c_client = global_priv[channel]->i2c_client;
 	bak = i2c_client->addr;
 
@@ -43,9 +47,9 @@ int max96712_write_reg_Dser(int slaveAddr, int channel,
 	if (err) {
 		dev_err(&i2c_client->dev, "%s: addr = 0x%x, val = 0x%x\n",
 				__func__, addr, val);
-		return -1;
 	}
-	return 0;
+	mutex_unlock(&max96712_rw);
+	return err;
 }
 EXPORT_SYMBOL(max96712_write_reg_Dser);
 
@@ -55,11 +59,12 @@ int max96712_read_reg_Dser(int slaveAddr, int channel,
 {
 	struct i2c_client *i2c_client = NULL;
 	int bak = 0;
-	int err;
+	int err = 0;
 
 	if (channel > 3 || channel < 0 || global_priv[channel] == NULL)
 		return -1;
 
+	mutex_lock(&max96712_rw);
 	i2c_client = global_priv[channel]->i2c_client;
 	bak = i2c_client->addr;
 	i2c_client->addr = slaveAddr / 2;
@@ -69,10 +74,9 @@ int max96712_read_reg_Dser(int slaveAddr, int channel,
 	if (err) {
 		dev_err(&i2c_client->dev, "%s: addr = 0x%x, val = 0x%x\n",
 				__func__, addr, *val);
-		return -1;
 	}
-	return 0;
-
+	mutex_unlock(&max96712_rw);
+	return err;
 }
 EXPORT_SYMBOL(max96712_read_reg_Dser);
 
@@ -223,6 +227,7 @@ static int max96712_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
+	mutex_init(&max96712_rw);
 	err = max96712_debugfs_init(NULL, NULL, NULL, priv);
 	if (err)
 		return err;
