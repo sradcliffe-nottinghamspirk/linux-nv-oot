@@ -11,6 +11,9 @@
 #include <linux/debugfs.h>
 #include <media/camera_common.h>
 #include <linux/module.h>
+#include <linux/gpio.h>
+#include <linux/of.h>
+#include <linux/of_gpio.h>
 
 
 struct max96712 {
@@ -148,6 +151,24 @@ static const struct file_operations max96712_debugfs_fops = {
 	.release = single_release,
 };
 
+static int  max96712_power_on(struct max96712 *priv)
+{
+	struct i2c_client *i2c_client = priv->i2c_client;
+	struct device_node *np = i2c_client->dev.of_node;
+	unsigned int pwdn_gpio = 0;
+
+	if(np) {
+		pwdn_gpio = of_get_named_gpio(np, "pwdn-gpios", 0);
+		dev_info(&i2c_client->dev,"%s: pwdn_gpio = %d\n",__func__,pwdn_gpio);
+	}
+	if (pwdn_gpio > 0) {
+		gpio_direction_output(pwdn_gpio, 1);
+		gpio_set_value(pwdn_gpio, 1);
+		msleep(100);
+	}
+	return 0;
+}
+
 static int max96712_debugfs_init(const char *dir_name,
 				struct dentry **d_entry,
 				struct dentry **f_entry,
@@ -228,6 +249,13 @@ static int max96712_probe(struct i2c_client *client,
 	}
 
 	mutex_init(&max96712_rw);
+
+	err = max96712_power_on(priv);
+	if (err) {
+		dev_err(&client->dev, "Failed to power on err =%d\n",err);
+		return err;
+	}
+
 	err = max96712_debugfs_init(NULL, NULL, NULL, priv);
 	if (err)
 		return err;
