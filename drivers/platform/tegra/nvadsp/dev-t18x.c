@@ -5,6 +5,7 @@
 
 #include <linux/version.h>
 #include <soc/tegra/fuse.h>
+#include <soc/tegra/virt/hv-ivc.h>
 #include <linux/platform_device.h>
 #include <linux/tegra_nvadsp.h>
 #include <linux/reset.h>

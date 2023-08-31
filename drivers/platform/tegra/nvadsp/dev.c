@@ -16,11 +16,11 @@
 #include <linux/tegra_nvadsp.h>
 #include <linux/version.h>
 #include <soc/tegra/fuse.h>
+#include <soc/tegra/virt/hv-ivc.h>
 #include <linux/pm_runtime.h>
 #include <linux/clk/tegra.h>
 #include <linux/delay.h>
 #include <asm/arch_timer.h>
-#include <linux/irqchip/tegra-agic.h>
 
 #include "dev.h"
 #include "os.h"
@@ -28,7 +28,6 @@
 #include "ape_actmon.h"
 #include "aram_manager.h"
 
-#include "dev-t21x.h"
 #include "dev-t18x.h"
 
 static struct nvadsp_drv_data *nvadsp_drv_data;
@@ -501,31 +500,6 @@ static int nvadsp_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_OF
-static struct nvadsp_chipdata tegra210_adsp_chipdata = {
-	.hwmb = {
-		.reg_idx = AMISC,
-		.hwmbox0_reg = 0x58,
-		.hwmbox1_reg = 0X5C,
-		.hwmbox2_reg = 0x60,
-		.hwmbox3_reg = 0x64,
-	},
-	.adsp_state_hwmbox = 0,
-	.adsp_thread_hwmbox = 0,
-	.adsp_irq_hwmbox = 0,
-	.adsp_shared_mem_hwmbox = 0,
-	.adsp_os_config_hwmbox = 0,
-	.reset_init = nvadsp_reset_t21x_init,
-	.os_init = nvadsp_os_t21x_init,
-#ifdef CONFIG_PM
-	.pm_init = nvadsp_pm_t21x_init,
-#endif
-	.wdt_irq = INT_T210_ADSP_WDT,
-	.start_irq = INT_T210_AGIC_START,
-	.end_irq = INT_T210_AGIC_END,
-
-	.amc_err_war = true,
-};
-
 static struct nvadsp_chipdata tegrat18x_adsp_chipdata = {
 	.hwmb = {
 		.reg_idx = AHSP,
@@ -550,9 +524,6 @@ static struct nvadsp_chipdata tegrat18x_adsp_chipdata = {
 #ifdef CONFIG_PM
 	.pm_init = nvadsp_pm_t18x_init,
 #endif
-	.wdt_irq = INT_T18x_ATKE_WDT_IRQ,
-	.start_irq = INT_T18x_AGIC_START,
-	.end_irq = INT_T18x_AGIC_END,
 
 	.amc_err_war = true,
 };
@@ -581,9 +552,6 @@ static struct nvadsp_chipdata tegra239_adsp_chipdata = {
 #ifdef CONFIG_PM
 	.pm_init = nvadsp_pm_t18x_init,
 #endif
-	.wdt_irq = INT_T18x_ATKE_WDT_IRQ,
-	.start_irq = INT_T18x_AGIC_START,
-	.end_irq   = INT_T18x_AGIC_END,
 
 	.amc_err_war = false,
 
@@ -593,9 +561,6 @@ static struct nvadsp_chipdata tegra239_adsp_chipdata = {
 
 static const struct of_device_id nvadsp_of_match[] = {
 	{
-		.compatible = "nvidia,tegra210-adsp",
-		.data = &tegra210_adsp_chipdata,
-	}, {
 		.compatible = "nvidia,tegra18x-adsp",
 		.data = &tegrat18x_adsp_chipdata,
 	}, {
@@ -604,6 +569,7 @@ static const struct of_device_id nvadsp_of_match[] = {
 	}, {
 	},
 };
+MODULE_DEVICE_TABLE(of, nvadsp_of_match);
 #endif
 
 static struct platform_driver nvadsp_driver __refdata = {
@@ -616,21 +582,9 @@ static struct platform_driver nvadsp_driver __refdata = {
 	.probe		= nvadsp_probe,
 	.remove		= nvadsp_remove,
 };
-
-static int __init nvadsp_init(void)
-{
-	return platform_driver_register(&nvadsp_driver);
-}
-
-static void __exit nvadsp_exit(void)
-{
-	platform_driver_unregister(&nvadsp_driver);
-}
-
-module_init(nvadsp_init);
-module_exit(nvadsp_exit);
+module_platform_driver(nvadsp_driver);
 
 MODULE_AUTHOR("NVIDIA");
 MODULE_DESCRIPTION("Tegra Host ADSP Driver");
-MODULE_VERSION("1.0");
-MODULE_LICENSE("Dual BSD/GPL");
+MODULE_VERSION("6.0");
+MODULE_LICENSE("GPL v2");

@@ -11,17 +11,19 @@
 #include <linux/iommu.h>
 #include <linux/delay.h>
 #include <linux/dma-buf.h>
+#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
 #include <linux/dma-iommu.h>
+#endif
 #include <linux/dma-mapping.h>
 #include <linux/firmware.h>
 #include <linux/tegra_nvadsp.h>
 #include <linux/version.h>
 #include <soc/tegra/fuse.h>
+#include <soc/tegra/virt/hv-ivc.h>
 #include <linux/elf.h>
 #include <linux/device.h>
 #include <linux/clk.h>
 #include <linux/clk/tegra.h>
-#include <linux/irqchip/tegra-agic.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
 #include <linux/pm_runtime.h>
@@ -115,6 +117,9 @@ struct nvadsp_mappings {
 	void *va;
 	int len;
 };
+
+extern u8 tegra_get_major_rev(void);
+extern u8 tegra_get_minor_rev(void);
 
 static struct nvadsp_mappings adsp_map[NM_LOAD_MAPPINGS];
 static int map_idx;
@@ -601,6 +606,7 @@ static int nvadsp_os_elf_load(const struct firmware *fw)
 	return ret;
 }
 
+#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
 /**
  * Allocate a dma buffer and map it to a specified iova
  * Return valid cpu virtual address on success or NULL on failure
@@ -695,6 +701,7 @@ fail_dma_alloc:
 
 	return NULL;
 }
+#endif
 
 static int allocate_memory_for_adsp_os(void)
 {
@@ -818,12 +825,20 @@ static int __nvadsp_os_secload(struct platform_device *pdev)
 			return -ENOMEM;
 		}
 	} else {
+#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
 		dram_va = nvadsp_dma_alloc_and_map_at(pdev, size, addr,
 								GFP_KERNEL);
 		if (dram_va == NULL) {
 			dev_err(dev, "unable to allocate shared region\n");
 			return -ENOMEM;
 		}
+#else
+		dram_va = ioremap((phys_addr_t)addr, size);
+		if (dram_va == NULL) {
+			dev_err(dev, "remap failed on shared region\n");
+			return -ENOMEM;
+		}
+#endif
 	}
 
 	drv_data->shared_adsp_os_data_iova = addr;
@@ -1021,6 +1036,7 @@ static int nvadsp_load_multi_fw(struct platform_device *pdev)
 		mfw_smem_iova[i] = shrd_mem_iova;
 		mfw_hsp_va[i]    = hsp_va;
 
+#ifdef CONFIG_AGIC_EXT_APIS
 		/*
 		 * Interrupt routing of AHSP1-3 is only for the
 		 * sake of completion; CCPLEX<->ADSP communication
@@ -1057,6 +1073,7 @@ static int nvadsp_load_multi_fw(struct platform_device *pdev)
 				break;
 			}
 		}
+#endif // CONFIG_AGIC_EXT_APIS
 
 		if (j == 8)
 			dev_info(dev, "Setup done for core %d FW\n", (i + 1));
@@ -1526,6 +1543,7 @@ static void dump_adsp_logs(void)
 
 static void print_agic_irq_states(void)
 {
+#ifdef CONFIG_AGIC_EXT_API
 	struct nvadsp_drv_data *drv_data = platform_get_drvdata(priv.pdev);
 	int start_irq = drv_data->chip_data->start_irq;
 	int end_irq = drv_data->chip_data->end_irq;
@@ -1539,6 +1557,7 @@ static void print_agic_irq_states(void)
 		tegra_agic_irq_is_active(i) ?
 			"active" : "not active");
 	}
+#endif // CONFIG_AGIC_EXT_APIS
 }
 
 static void print_arm_mode_regs(void)
@@ -2278,6 +2297,7 @@ EXPORT_SYMBOL(nvadsp_os_suspend);
 
 static void nvadsp_os_restart(struct work_struct *work)
 {
+#ifdef CONFIG_AGIC_EXT_APIS
 	struct nvadsp_os_data *data =
 		container_of(work, struct nvadsp_os_data, restart_os_work);
 	struct nvadsp_drv_data *drv_data = platform_get_drvdata(data->pdev);
@@ -2313,6 +2333,7 @@ static void nvadsp_os_restart(struct work_struct *work)
 
 	if (nvadsp_os_start())
 		dev_crit(dev, "Unable to restart ADSP OS\n");
+#endif // CONFIG_AGIC_EXT_APIS
 }
 
 static irqreturn_t adsp_wfi_handler(int irq, void *arg)
@@ -2490,11 +2511,9 @@ int __init nvadsp_os_probe(struct platform_device *pdev)
 	if (adsp_create_debug_logger(drv_data->adsp_debugfs_root))
 		dev_err(dev, "unable to create adsp debug logger file\n");
 
-#ifdef CONFIG_TEGRA_ADSP_CONSOLE
 	priv.console.dev = &pdev->dev;
 	if (adsp_create_cnsl(drv_data->adsp_debugfs_root, &priv.console))
 		dev_err(dev, "unable to create adsp console file\n");
-#endif /* CONFIG_TEGRA_ADSP_CONSOLE */
 
 	if (adsp_create_os_version(drv_data->adsp_debugfs_root))
 		dev_err(dev, "unable to create adsp_version file\n");

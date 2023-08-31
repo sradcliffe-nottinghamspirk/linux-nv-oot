@@ -9,7 +9,6 @@
 #include <linux/irqdomain.h>
 #include <linux/platform_device.h>
 #include <linux/tegra_nvadsp.h>
-#include <linux/irqchip/tegra-agic.h>
 
 #include "dev.h"
 

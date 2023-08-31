@@ -4,10 +4,10 @@
  */
 
 #include <linux/tegra_nvadsp.h>
-#include <linux/irqchip/tegra-agic.h>
 #include <linux/interrupt.h>
 #include <linux/version.h>
 #include <soc/tegra/fuse.h>
+#include <soc/tegra/virt/hv-ivc.h>
 
 #include "dev.h"
 #include "amc.h"
