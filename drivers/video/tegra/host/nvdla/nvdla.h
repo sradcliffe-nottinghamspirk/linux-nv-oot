@@ -9,6 +9,7 @@
 #define __NVHOST_NVDLA_H__
 
 #include <linux/completion.h>
+#include <linux/interconnect.h>
 #include <linux/mutex.h>
 #include <uapi/linux/nvdev_fence.h>
 #include <uapi/linux/nvhost_nvdla_ioctl.h>
@@ -191,6 +192,18 @@ enum {
 #define MAX_CMD_SIZE			SZ_256
 #define NVDLA_CMD_OFFSET(index)		(MAX_CMD_SIZE * index)
 
+/*
+ * Client connectivity bandwidth
+ */
+#define AXI_READ_WIDTH		512
+#define AXI_READ_OUTSTAND	512
+#define AXI_WRITE_WIDTH		512
+#define AXI_WRITE_OUTSTAND	128
+#define AXI_WORST_LATENCY	1600
+#define NVDLA_AXI_READ_BPC	(2*AXI_READ_WIDTH * AXI_READ_OUTSTAND / AXI_WORST_LATENCY)
+#define NVDLA_AXI_WRITE_BPC	(2*AXI_WRITE_WIDTH * AXI_WRITE_OUTSTAND / AXI_WORST_LATENCY)
+#define NVDLA_AXI_DBB_BW_BPC	(NVDLA_AXI_READ_BPC + NVDLA_AXI_WRITE_BPC)
+
 /**
  * data structure to keep command memory
  *
@@ -242,6 +255,7 @@ enum nvdla_submit_mode {
 /**
  * data structure to keep per DLA engine device data
  *
+ * @dev					pointer to device
  * @pdev				pointer to platform device
  * @pool				pointer to queue table
  * @dbg_mask			debug mask for print level
@@ -267,10 +281,12 @@ enum nvdla_submit_mode {
  * @ping_lock	lock to synchronize the ping operation requests.
  */
 struct nvdla_device {
+	struct device *dev;
 	struct platform_device *pdev;
 	struct nvdla_queue_pool *pool;
 	struct completion cmd_completion;
 	struct mutex cmd_lock;
+	struct icc_path *icc_write;
 	int cmd_status;
 	int waiting;
 	u32 dbg_mask;

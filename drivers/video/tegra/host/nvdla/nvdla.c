@@ -893,12 +893,14 @@ static ssize_t clk_cap_store(struct kobject *kobj,
 {
 	struct nvhost_device_data *pdata =
 		container_of(kobj, struct nvhost_device_data, clk_cap_kobj);
+	struct nvdla_device *nvdla = pdata->private_data;
 	/* i is indeed 'index' here after type conversion */
 	int ret, i = attr - pdata->clk_cap_attrs;
 	struct clk_bulk_data *clks = &pdata->clks[i];
 	struct clk *clk = clks->clk;
 	unsigned long freq_cap;
 	long freq_cap_signed;
+	u32 emc_kbps;
 
 	ret = kstrtoul(buf, 0, &freq_cap);
 	if (ret)
@@ -922,6 +924,16 @@ static ssize_t clk_cap_store(struct kobject *kobj,
 	clk_set_rate(clks->clk, freq_cap);
 	if (ret < 0)
 		return ret;
+
+	/* Update bandwidth requirement based on dla frequency */
+	if (i == 0 && nvdla->icc_write && !pm_runtime_suspended(nvdla->dev)) {
+		freq_cap = clk_get_rate(clk);
+		emc_kbps = freq_cap * NVDLA_AXI_DBB_BW_BPC / 1024;
+		ret = icc_set_bw(nvdla->icc_write, kbps_to_icc(emc_kbps), 0);
+		if (ret)
+			dev_warn(&nvdla->pdev->dev,
+				 "failed to set icc_write bw: %d\n", ret);
+	}
 
 	return count;
 }
@@ -1093,6 +1105,13 @@ static int nvdla_probe(struct platform_device *pdev)
 		goto err_alloc_nvdla;
 	}
 
+	nvdla_dev->icc_write = devm_of_icc_get(dev, "write");
+	if (IS_ERR(nvdla_dev->icc_write)) {
+		dev_info(dev, "failed to get icc write handle\n");
+		nvdla_dev->icc_write = NULL;
+	}
+
+	nvdla_dev->dev = dev;
 	nvdla_dev->pdev = pdev;
 	pdata->pdev = pdev;
 	mutex_init(&pdata->lock);
@@ -1315,25 +1334,58 @@ static int __exit nvdla_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int nvdla_module_runtime_suspend(struct device *dev)
 {
-	if (nvhost_module_pm_ops.runtime_suspend != NULL)
-		return nvhost_module_pm_ops.runtime_suspend(dev);
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct nvdla_device *nvdla = pdata->private_data;
+	int err;
+
+	if (nvhost_module_pm_ops.runtime_suspend != NULL) {
+		err = nvhost_module_pm_ops.runtime_suspend(dev);
+		if (!err && nvdla->icc_write) {
+			err = icc_set_bw(nvdla->icc_write, 0, 0);
+			if (err)
+				dev_warn(&nvdla->pdev->dev,
+					 "failed to set icc_write bw: %d\n", err);
+
+			return 0;
+		}
+		return err;
+	}
 
 	return -EOPNOTSUPP;
 }
 
 static int nvdla_module_runtime_resume(struct device *dev)
 {
-	if (nvhost_module_pm_ops.runtime_resume != NULL)
-		return nvhost_module_pm_ops.runtime_resume(dev);
+	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
+	struct nvdla_device *nvdla = pdata->private_data;
+	struct clk *clk = pdata->clks[0].clk;
+	unsigned long rate;
+	u32 emc_kbps;
+	int err;
+
+	if (nvhost_module_pm_ops.runtime_resume != NULL) {
+		err = nvhost_module_pm_ops.runtime_resume(dev);
+		if (!err && nvdla->icc_write) {
+			rate = clk_get_rate(clk);
+			emc_kbps = rate * NVDLA_AXI_DBB_BW_BPC / 1024;
+			err = icc_set_bw(nvdla->icc_write, kbps_to_icc(emc_kbps), 0);
+			if (err)
+				dev_warn(&nvdla->pdev->dev,
+					 "failed to set icc_write bw: %d\n", err);
+
+			return 0;
+		}
+		return err;
+	}
 
 	return -EOPNOTSUPP;
 }
 
 static int nvdla_module_suspend(struct device *dev)
 {
-	int err = 0;
 	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
 	struct nvdla_device *nvdla_dev = pdata->private_data;
+	int err = 0;
 
 	if (nvhost_module_pm_ops.suspend != NULL) {
 		err = nvhost_module_pm_ops.suspend(dev);
@@ -1349,6 +1401,13 @@ static int nvdla_module_suspend(struct device *dev)
 		}
 	}
 
+	if (nvdla_dev->icc_write) {
+		err = icc_set_bw(nvdla_dev->icc_write, 0, 0);
+		if (err)
+			dev_warn(&nvdla_dev->pdev->dev,
+				 "failed to set icc_write bw: %d\n", err);
+	}
+
 	/* Mark module to be in suspend state. */
 	nvdla_dev->is_suspended = true;
 
@@ -1358,9 +1417,12 @@ fail_nvhost_module_suspend:
 
 static int nvdla_module_resume(struct device *dev)
 {
-	int err = 0;
 	struct nvhost_device_data *pdata = dev_get_drvdata(dev);
 	struct nvdla_device *nvdla_dev = pdata->private_data;
+	struct clk *clk = pdata->clks[0].clk;
+	unsigned long rate;
+	u32 emc_kbps;
+	int err;
 
 	/* Confirm if module is in suspend state. */
 	if (!nvdla_dev->is_suspended) {
@@ -1380,6 +1442,15 @@ static int nvdla_module_resume(struct device *dev)
 			dev_err(dev, "(FAIL) PM resume\n");
 			goto fail_nvhost_module_resume;
 		}
+	}
+
+	if (nvdla_dev->icc_write) {
+		rate = clk_get_rate(clk);
+		emc_kbps = rate * NVDLA_AXI_DBB_BW_BPC / 1024;
+		err = icc_set_bw(nvdla_dev->icc_write, kbps_to_icc(emc_kbps), 0);
+		if (err)
+			dev_warn(&nvdla_dev->pdev->dev,
+				 "failed to set icc_write bw: %d\n", err);
 	}
 
 	return 0;
