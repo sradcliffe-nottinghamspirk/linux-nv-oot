@@ -233,7 +233,6 @@ int nvmap_ioctl_alloc(struct file *filp, void __user *arg)
 				  0, /* no kind */
 				  op.flags & (~NVMAP_HANDLE_KIND_SPECIFIED),
 				  NVMAP_IVM_INVALID_PEER);
-	nvmap_handle_put(handle);
 	is_ro = is_nvmap_id_ro(client, op.handle);
 	dmabuf = is_ro ? handle->dmabuf_ro : handle->dmabuf;
 
@@ -242,6 +241,7 @@ int nvmap_ioctl_alloc(struct file *filp, void __user *arg)
 				atomic_read(&handle->ref),
 				atomic_long_read(&dmabuf->file->f_count),
 				is_ro ? "RO" : "RW");
+	nvmap_handle_put(handle);
 	return err;
 }
 
