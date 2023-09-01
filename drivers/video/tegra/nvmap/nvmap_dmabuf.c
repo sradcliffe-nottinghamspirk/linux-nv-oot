@@ -738,21 +738,35 @@ struct nvmap_handle *nvmap_handle_get_from_dmabuf_fd(
 	return handle;
 }
 
-bool is_nvmap_dmabuf_fd_ro(int fd)
+int is_nvmap_dmabuf_fd_ro(int fd, bool *is_ro)
 {
 	struct dma_buf *dmabuf;
 	struct nvmap_handle_info *info = NULL;
 
 	dmabuf = dma_buf_get(fd);
 	if (IS_ERR(dmabuf)) {
-		return false;
+		goto fail;
 	}
-	if (dmabuf_is_nvmap(dmabuf)) {
-		info = dmabuf->priv;
-	}
-	dma_buf_put(dmabuf);
 
-	return (info != NULL) ? info->is_ro : false;
+	if (dmabuf_is_nvmap(dmabuf))
+		info = dmabuf->priv;
+
+	if (!info) {
+		dma_buf_put(dmabuf);
+		/*
+		 * Ideally, we should return error from here,
+		 * but this is done intentionally to handle foreign buffers.
+		 */
+		return 0;
+	}
+
+	*is_ro = info->is_ro;
+	dma_buf_put(dmabuf);
+	return 0;
+
+fail:
+	pr_err("Dmabuf fd RO check failed\n");
+	return -EINVAL;
 }
 
 /*

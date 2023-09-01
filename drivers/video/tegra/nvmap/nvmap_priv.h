@@ -530,9 +530,9 @@ struct nvmap_handle_ref *nvmap_create_handle_from_va(struct nvmap_client *client
 struct nvmap_handle_ref *nvmap_dup_handle_ro(struct nvmap_client *client,
 					int fd);
 
-bool is_nvmap_dmabuf_fd_ro(int fd);
+int is_nvmap_dmabuf_fd_ro(int fd, bool *is_ro);
 
-bool is_nvmap_id_ro(struct nvmap_client *client, int id);
+int is_nvmap_id_ro(struct nvmap_client *client, int id, bool *is_ro);
 
 struct nvmap_handle_ref *nvmap_duplicate_handle(struct nvmap_client *client,
 					struct nvmap_handle *h, bool skip_val,

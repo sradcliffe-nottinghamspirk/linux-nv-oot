@@ -1142,13 +1142,13 @@ out:
 	nvmap_handle_put(h);
 }
 
-bool is_nvmap_id_ro(struct nvmap_client *client, int id)
+int is_nvmap_id_ro(struct nvmap_client *client, int id, bool *is_ro)
 {
 	struct nvmap_handle_info *info = NULL;
 	struct dma_buf *dmabuf = NULL;
 
 	if (WARN_ON(!client))
-		return ERR_PTR(-EINVAL);
+		goto fail;
 
 	if (client->ida)
 		dmabuf = nvmap_id_array_get_dmabuf_from_id(client->ida,
@@ -1157,19 +1157,32 @@ bool is_nvmap_id_ro(struct nvmap_client *client, int id)
 		dmabuf = dma_buf_get(id);
 
 	if (IS_ERR_OR_NULL(dmabuf))
-		return false;
+		goto fail;
 
 	if (dmabuf_is_nvmap(dmabuf))
 		info = dmabuf->priv;
+
+	if (!info) {
+		dma_buf_put(dmabuf);
+		/*
+		 * Ideally, we should return error from here,
+		 * but this is done intentionally to handle foreign buffers.
+		 */
+		return 0;
+	}
+
+	*is_ro = info->is_ro;
 	dma_buf_put(dmabuf);
+	return 0;
 
-	return (info != NULL) ? info->is_ro : false;
-
+fail:
+	pr_err("Handle RO check failed\n");
+	return -EINVAL;
 }
 void nvmap_free_handle_from_fd(struct nvmap_client *client,
 			       int id)
 {
-	bool is_ro = is_nvmap_id_ro(client, id);
+	bool is_ro = false;
 	struct nvmap_handle *handle;
 	struct dma_buf *dmabuf = NULL;
 	int handle_ref = 0;
@@ -1179,12 +1192,15 @@ void nvmap_free_handle_from_fd(struct nvmap_client *client,
 	if (IS_ERR_OR_NULL(handle))
 		return;
 
+	if (is_nvmap_id_ro(client, id, &is_ro) != 0) {
+		nvmap_handle_put(handle);
+		return;
+	}
+
 	if (client->ida)
 		nvmap_id_array_id_release(client->ida, id);
 
 	nvmap_free_handle(client, handle, is_ro);
-	nvmap_handle_put(handle);
-
 	if (handle) {
 		dmabuf = is_ro ? handle->dmabuf_ro : handle->dmabuf;
 		handle_ref = atomic_read(&handle->ref);
@@ -1193,6 +1209,7 @@ void nvmap_free_handle_from_fd(struct nvmap_client *client,
 
 	trace_refcount_free_handle(handle, dmabuf, handle_ref, dmabuf_ref,
 				   is_ro ? "RO" : "RW");
+	nvmap_handle_put(handle);
 }
 
 static int nvmap_assign_pages_per_handle(struct nvmap_handle *src_h,

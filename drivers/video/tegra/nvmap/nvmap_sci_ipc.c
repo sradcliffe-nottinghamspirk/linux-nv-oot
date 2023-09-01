@@ -286,9 +286,15 @@ int nvmap_get_handle_from_sci_ipc_id(struct nvmap_client *client, u32 flags,
 	if (!IS_ERR(ref)) {
 		u32 id = 0;
 
+		/*
+		 * Increase reference dup count, so that handle is not freed accidentally
+		 * due to other thread calling NvRmMemHandleFree
+		 */
+		atomic_inc(&ref->dupes);
 		dmabuf = is_ro ? h->dmabuf_ro : h->dmabuf;
 		if (client->ida) {
 			if (nvmap_id_array_id_alloc(client->ida, &id, dmabuf) < 0) {
+				atomic_dec(&ref->dupes);
 				if (dmabuf)
 					dma_buf_put(dmabuf);
 				nvmap_free_handle(client, h, is_ro);
@@ -302,6 +308,7 @@ int nvmap_get_handle_from_sci_ipc_id(struct nvmap_client *client, u32 flags,
 		} else {
 			fd = nvmap_get_dmabuf_fd(client, h, is_ro);
 			if (IS_ERR_VALUE((uintptr_t)fd)) {
+				atomic_dec(&ref->dupes);
 				if (dmabuf)
 					dma_buf_put(dmabuf);
 				nvmap_free_handle(client, h, is_ro);
@@ -340,6 +347,9 @@ unlock:
 			trace_refcount_get_handle_from_sci_ipc_id(h, dmabuf,
 				atomic_read(&h->ref),
 				is_ro ? "RO" : "RW");
+
+		if (!IS_ERR(ref))
+			atomic_dec(&ref->dupes);
 	}
 
 	return ret;

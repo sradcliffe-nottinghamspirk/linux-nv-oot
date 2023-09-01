@@ -420,11 +420,17 @@ struct nvmap_handle_ref *nvmap_create_handle_from_id(
 {
 	struct nvmap_handle *handle;
 	struct nvmap_handle_ref *ref;
+	bool is_ro = false;
 
 	if (WARN_ON(!client))
 		return ERR_PTR(-EINVAL);
 
-	if (is_nvmap_id_ro(client, id))
+	if (is_nvmap_id_ro(client, id, &is_ro) != 0) {
+		pr_err("Handle ID RO check failed\n");
+		return ERR_PTR(-EINVAL);
+	}
+
+	if (is_ro)
 		return nvmap_dup_handle_ro(client, id);
 
 	handle = nvmap_handle_get_from_id(client, id);
@@ -447,7 +453,7 @@ struct nvmap_handle_ref *nvmap_create_handle_from_fd(
 {
 	struct nvmap_handle *handle;
 	struct nvmap_handle_ref *ref;
-	bool is_ro;
+	bool is_ro = false;
 
 	if (WARN_ON(!client))
 		return ERR_PTR(-EINVAL);
@@ -456,7 +462,12 @@ struct nvmap_handle_ref *nvmap_create_handle_from_fd(
 	if (IS_ERR(handle))
 		return ERR_CAST(handle);
 
-	is_ro = is_nvmap_dmabuf_fd_ro(fd);
+	if (is_nvmap_dmabuf_fd_ro(fd, &is_ro) != 0) {
+		pr_err("Dmabuf fd RO check failed\n");
+		nvmap_handle_put(handle);
+		return ERR_PTR(-EINVAL);
+	}
+
 	if (is_ro)
 		ref = nvmap_duplicate_handle(client, handle, false, true);
 	else
