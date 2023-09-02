@@ -26,11 +26,16 @@
 #include <drivers-private/scsi/ufs/k515/ufshcd.h>
 #include <drivers-private/scsi/ufs/k515/unipro.h>
 #include <drivers-private/scsi/ufs/k515/ufshci.h>
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 #include <drivers-private/scsi/ufs/k516/ufshcd-pltfrm.h>
 #include <drivers-private/scsi/ufs/k516/ufshcd.h>
 #include <drivers-private/scsi/ufs/k516/unipro.h>
 #include <drivers-private/scsi/ufs/k516/ufshci.h>
+#else
+#include <drivers-private/scsi/ufs/k61/ufshcd-pltfrm.h>
+#include <drivers-private/scsi/ufs/k61/ufshcd.h>
+#include <drivers-private/scsi/ufs/k61/unipro.h>
+#include <drivers-private/scsi/ufs/k61/ufshci.h>
 #endif
 
 #include "ufs-tegra.h"
