@@ -231,8 +231,7 @@ static int vic_devfreq_init(struct vic *vic)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = min_rate;
-	devfreq->resume_freq = max_rate;
+	devfreq->suspend_freq = max_rate;
 	vic->devfreq = devfreq;
 
 	return 0;

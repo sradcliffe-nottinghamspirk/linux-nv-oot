@@ -213,8 +213,7 @@ static int nvenc_devfreq_init(struct nvenc *nvenc)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = min_rate;
-	devfreq->resume_freq = max_rate;
+	devfreq->suspend_freq = max_rate;
 	nvenc->devfreq = devfreq;
 
 	return 0;

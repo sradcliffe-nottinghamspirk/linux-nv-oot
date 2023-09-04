@@ -212,8 +212,7 @@ static int nvjpg_devfreq_init(struct nvjpg *nvjpg)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = min_rate;
-	devfreq->resume_freq = max_rate;
+	devfreq->suspend_freq = max_rate;
 	nvjpg->devfreq = devfreq;
 
 	return 0;

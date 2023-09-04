@@ -289,8 +289,7 @@ static int nvdec_devfreq_init(struct nvdec *nvdec)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = min_rate;
-	devfreq->resume_freq = max_rate;
+	devfreq->suspend_freq = max_rate;
 	nvdec->devfreq = devfreq;
 
 	return 0;
