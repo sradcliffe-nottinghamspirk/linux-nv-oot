@@ -607,9 +607,11 @@ static int tegra_bpmp_hv_probe(struct platform_device *pdev)
 			goto free_mrq;
 	}
 
-	err = tegra_bpmp_init_debugfs(bpmp);
-	if (err < 0)
-		dev_err(&pdev->dev, "debugfs initialization failed: %d\n", err);
+	if (tegra_sku_info.platform != TEGRA_PLATFORM_VDK) {
+		err = tegra_bpmp_init_debugfs(bpmp);
+		if (err < 0)
+			dev_err(&pdev->dev, "debugfs initialization failed: %d\n", err);
+	}
 
 	return 0;
 
