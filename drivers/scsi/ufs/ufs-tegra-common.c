@@ -143,6 +143,9 @@ static int ufs_tegra_mphy_receiver_calibration(struct ufs_tegra_host *ufs_tegra,
 	int err = 0;
 	u32 mphy_rx_vendor2_reg;
 
+	if (tegra_sku_info.platform == TEGRA_PLATFORM_VDK)
+		return 0;
+
 	if (ufs_tegra->enable_mphy_rx_calib)
 		return 0;
 
@@ -974,7 +977,7 @@ static int ufs_tegra_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 
 	ufs_tegra->ufshc_state = UFSHC_SUSPEND;
 
-	if (ufs_tegra->soc->chip_id != TEGRA234) {
+	if (ufs_tegra->soc->chip_id < TEGRA234) {
 		/*
 		 * Enable DPD for UFS
 		 */
@@ -1283,7 +1286,7 @@ static int ufs_tegra_hce_enable_notify(struct ufs_hba *hba,
 		ufs_tegra_ufs_aux_prog(ufs_tegra);
 		ufs_tegra_set_clk_div(hba, UFS_VNDR_HCLKDIV_1US_TICK);
 		clk_disable_unprepare(ufs_tegra->mphy_force_ls_mode);
-		if (ufs_tegra->soc->chip_id == TEGRA234)
+		if (ufs_tegra->soc->chip_id >= TEGRA234)
 			ufs_tegra_ufs_mmio_axi(hba);
 		break;
 	default:
@@ -1439,6 +1442,8 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	struct device *dev = hba->dev;
 	int err = 0;
 	resource_size_t ufs_aux_base_addr, ufs_aux_addr_range, mphy_addr_range;
+	resource_size_t mphy_l0_addr_base, mphy_l1_addr_base;
+	resource_size_t ufs_virt_base_addr = 0, ufs_virt_addr_range = 0;
 	struct iommu_fwspec *fwspec;
 
 	ufs_tegra = devm_kzalloc(dev, sizeof(*ufs_tegra), GFP_KERNEL);
@@ -1461,9 +1466,29 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	hba->rpm_lvl = UFS_PM_LVL_1;
 	hba->caps |= UFSHCD_CAP_INTR_AGGR;
 
-	ufs_aux_base_addr = NV_ADDRESS_MAP_T23X_UFSHC_AUX_BASE;
-	ufs_aux_addr_range = UFS_AUX_ADDR_RANGE_23X;
-	mphy_addr_range = MPHY_ADDR_RANGE_T234;
+	if (ufs_tegra->soc->chip_id > TEGRA234) {
+		ufs_aux_base_addr = NV_ADDRESS_MAP_T264_UFSHC_AUX_BASE;
+		ufs_aux_addr_range = UFS_AUX_ADDR_RANGE_264;
+		mphy_l0_addr_base = NV_ADDRESS_MAP_MPHY_L0_BASE_T264;
+		mphy_l1_addr_base = NV_ADDRESS_MAP_MPHY_L1_BASE_T264;
+		mphy_addr_range = MPHY_ADDR_RANGE_T264;
+		ufs_virt_base_addr = NV_ADDRESS_MAP_T264_UFSHC_VIRT_BASE;
+		ufs_virt_addr_range = UFS_AUX_ADDR_VIRT_RANGE_264;
+	} else if (ufs_tegra->soc->chip_id == TEGRA234) {
+		ufs_aux_base_addr = NV_ADDRESS_MAP_T23X_UFSHC_AUX_BASE;
+		ufs_aux_addr_range = UFS_AUX_ADDR_RANGE_23X;
+		mphy_l0_addr_base = NV_ADDRESS_MAP_MPHY_L0_BASE;
+		mphy_l1_addr_base = NV_ADDRESS_MAP_MPHY_L1_BASE;
+		mphy_addr_range = MPHY_ADDR_RANGE_T234;
+		ufs_virt_base_addr = NV_ADDRESS_MAP_T23X_UFSHC_VIRT_BASE;
+		ufs_virt_addr_range = UFS_AUX_ADDR_VIRT_RANGE_23X;
+	} else {
+		ufs_aux_base_addr = NV_ADDRESS_MAP_UFSHC_AUX_BASE;
+		ufs_aux_addr_range = UFS_AUX_ADDR_RANGE;
+		mphy_l0_addr_base = NV_ADDRESS_MAP_MPHY_L0_BASE;
+		mphy_l1_addr_base = NV_ADDRESS_MAP_MPHY_L1_BASE;
+		mphy_addr_range = MPHY_ADDR_RANGE;
+	}
 
 	ufs_tegra->ufs_aux_base = devm_ioremap(dev,
 			ufs_aux_base_addr, ufs_aux_addr_range);
@@ -1474,7 +1499,7 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	}
 
 	ufs_tegra->mphy_l0_base = devm_ioremap(dev,
-			NV_ADDRESS_MAP_MPHY_L0_BASE, mphy_addr_range);
+			mphy_l0_addr_base, mphy_addr_range);
 	if (!ufs_tegra->mphy_l0_base) {
 		err = -ENOMEM;
 		dev_err(dev, "mphy_l0_base ioremap failed\n");
@@ -1482,23 +1507,29 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	}
 
 	ufs_tegra->mphy_l1_base = devm_ioremap(dev,
-			NV_ADDRESS_MAP_MPHY_L1_BASE, mphy_addr_range);
+			mphy_l1_addr_base, mphy_addr_range);
 	if (!ufs_tegra->mphy_l1_base) {
 		err = -ENOMEM;
 		dev_err(dev, "mphy_l1_base ioremap failed\n");
 		goto out;
 	}
 
-	if (ufs_tegra->soc->chip_id == TEGRA234) {
+	if (ufs_tegra->soc->chip_id >= TEGRA234) {
 		ufs_tegra->ufs_virtualization_base = devm_ioremap(dev,
-				NV_ADDRESS_MAP_T23X_UFSHC_VIRT_BASE,
-				UFS_AUX_ADDR_VIRT_RANGE_23X);
+				ufs_virt_base_addr,
+				ufs_virt_addr_range);
 		if (!ufs_tegra->ufs_virtualization_base) {
 			err = -ENOMEM;
 			dev_err(dev, "UFS Virtualization failed\n");
 			goto out;
 		}
 	}
+
+	/*
+	 * Clocks are not present on VDK
+	 */
+	if (tegra_sku_info.platform == TEGRA_PLATFORM_VDK)
+		goto aux_init;
 
 	err = ufs_tegra_init_ufs_clks(ufs_tegra);
 	if (err)
@@ -1538,6 +1569,8 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 
 	ufs_tegra_ufs_deassert_reset(ufs_tegra);
 	ufs_tegra_mphy_rx_advgran(ufs_tegra);
+
+aux_init:
 	ufs_tegra_ufs_aux_ref_clk_disable(ufs_tegra);
 	ufs_tegra_aux_reset_enable(ufs_tegra);
 	ufs_tegra_ufs_aux_prog(ufs_tegra);
@@ -1638,6 +1671,12 @@ static struct ufs_tegra_soc_data tegra234_soc_data = {
 	.chip_id = TEGRA234,
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static struct ufs_tegra_soc_data tegra264_soc_data = {
+	.chip_id = TEGRA264,
+};
+#endif
+
 static const struct of_device_id ufs_tegra_of_match[] = {
 	{
 		.compatible = "tegra194,ufs_variant",
@@ -1645,6 +1684,11 @@ static const struct of_device_id ufs_tegra_of_match[] = {
 	}, {
 		.compatible = "tegra234,ufs_variant",
 		.data = &tegra234_soc_data,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	}, {
+		.compatible = "tegra264,ufs_variant",
+		.data = &tegra264_soc_data,
+#endif
 	},
 	{},
 };

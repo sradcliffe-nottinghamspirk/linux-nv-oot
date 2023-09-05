@@ -14,6 +14,20 @@
 #define MPHY_ADDR_RANGE				0x200
 #define UFS_AUX_ADDR_VIRT_RANGE_23X		0x14f
 
+#define NV_ADDRESS_MAP_MPHY_L0_BASE_T264       0xa80b910000
+#define NV_ADDRESS_MAP_MPHY_L1_BASE_T264       0xa80b920000
+#define MPHY_ADDR_RANGE_T264                   0x10000
+/* UFS AUX Base address for T264 */
+#define NV_ADDRESS_MAP_T264_UFSHC_AUX_BASE     0xa80b8e0000
+/* UFS AUX address range in T264 */
+#define UFS_AUX_ADDR_RANGE_264                 0x100
+
+
+/* UFS VIRTUALIZATION address for T264 */
+#define NV_ADDRESS_MAP_T264_UFSHC_VIRT_BASE    0xa80b8f0000
+/* UFS VIRTUALIZATION range in T264 */
+#define UFS_AUX_ADDR_VIRT_RANGE_264            0x200
+
 /* UFS AUX Base address for T194 */
 #define NV_ADDRESS_MAP_UFSHC_AUX_BASE		0x02460000
 /* UFS AUX address range in T194 */
