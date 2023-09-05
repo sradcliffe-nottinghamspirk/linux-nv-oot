@@ -130,7 +130,7 @@ static int tegra_hsp_mb_init(struct device *dev)
 		fsi_hsp_v[lCoreId]->rx.client.rx_callback = tegra_hsp_rx_notify;
 		fsi_hsp_v[lCoreId]->tx.client.tx_done = tegra_hsp_tx_empty_notify;
 
-		snprintf(lTxStr, sizeof(lTxStr), "fsi-tx-cpu%d", lCoreId);
+		(void)snprintf(lTxStr, sizeof(lTxStr), "fsi-tx-cpu%d", lCoreId);
 		fsi_hsp_v[lCoreId]->tx.chan = mbox_request_channel_byname(
 						&fsi_hsp_v[lCoreId]->tx.client,
 						lTxStr);
@@ -140,7 +140,7 @@ static int tegra_hsp_mb_init(struct device *dev)
 			return err;
 		}
 
-		snprintf(lRxStr, sizeof(lRxStr), "fsi-rx-cpu%d", lCoreId);
+		(void)snprintf(lRxStr, sizeof(lRxStr), "fsi-rx-cpu%d", lCoreId);
 		fsi_hsp_v[lCoreId]->rx.chan = mbox_request_channel_byname(
 						&fsi_hsp_v[lCoreId]->rx.client,
 						lRxStr);
@@ -156,7 +156,7 @@ static int tegra_hsp_mb_init(struct device *dev)
 
 static int smmu_buff_map(unsigned long arg)
 {
-	u32 val;
+	u32 val = 0xFF;
 	int ret;
 	dma_addr_t dma_addr;
 	dma_addr_t phys_addr;
@@ -251,6 +251,8 @@ static ssize_t device_file_ioctl(
 		if (copy_from_user(&input, (void __user *)arg,
 					sizeof(struct rw_data)))
 			return -EACCES;
+		if (input.coreid >= sgMaxCore)
+			return -ECHRNG;
 		pdata[0] = input.handle;
 		ret = mbox_send_message(fsi_hsp_v[input.coreid]->tx.chan,
 				(void *)pdata);
@@ -268,6 +270,9 @@ static ssize_t device_file_ioctl(
 		if (copy_from_user(&ldata, (void __user *)arg,
 					sizeof(struct iova_data)))
 			return -EACCES;
+		if (ldata.coreid >= sgMaxCore)
+			return -ECHRNG;
+
 		pdata[0] = ldata.offset;
 		pdata[1] = ldata.iova;
 		pdata[2] = ldata.chid;
