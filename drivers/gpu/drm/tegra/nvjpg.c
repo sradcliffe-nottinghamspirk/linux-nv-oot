@@ -212,7 +212,6 @@ static int nvjpg_devfreq_init(struct nvjpg *nvjpg)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = max_rate;
 	nvjpg->devfreq = devfreq;
 
 	return 0;
@@ -470,6 +469,8 @@ static __maybe_unused int nvjpg_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
+	/* Forcely set frequency as Fmax when device is resumed back */
+	nvjpg->devfreq->resume_freq = nvjpg->devfreq->scaling_max_freq;
 	err = devfreq_resume_device(nvjpg->devfreq);
 	if (err < 0)
 		goto disable;

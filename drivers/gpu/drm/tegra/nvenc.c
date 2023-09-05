@@ -213,7 +213,6 @@ static int nvenc_devfreq_init(struct nvenc *nvenc)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = max_rate;
 	nvenc->devfreq = devfreq;
 
 	return 0;
@@ -471,6 +470,8 @@ static __maybe_unused int nvenc_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
+	/* Forcely set frequency as Fmax when device is resumed back */
+	nvenc->devfreq->resume_freq = nvenc->devfreq->scaling_max_freq;
 	err = devfreq_resume_device(nvenc->devfreq);
 	if (err < 0)
 		goto disable;

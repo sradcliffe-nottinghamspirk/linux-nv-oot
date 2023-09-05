@@ -289,7 +289,6 @@ static int nvdec_devfreq_init(struct nvdec *nvdec)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = max_rate;
 	nvdec->devfreq = devfreq;
 
 	return 0;
@@ -581,6 +580,8 @@ static __maybe_unused int nvdec_runtime_resume(struct device *dev)
 			goto disable;
 	}
 
+	/* Forcely set frequency as Fmax when device is resumed back */
+	nvdec->devfreq->resume_freq = nvdec->devfreq->scaling_max_freq;
 	err = devfreq_resume_device(nvdec->devfreq);
 	if (err < 0)
 		goto disable;

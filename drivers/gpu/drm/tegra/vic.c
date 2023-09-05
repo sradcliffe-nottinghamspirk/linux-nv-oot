@@ -231,7 +231,6 @@ static int vic_devfreq_init(struct vic *vic)
 	if (IS_ERR(devfreq))
 		return PTR_ERR(devfreq);
 
-	devfreq->suspend_freq = max_rate;
 	vic->devfreq = devfreq;
 
 	return 0;
@@ -528,6 +527,8 @@ static int __maybe_unused vic_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto assert;
 
+	/* Forcely set frequency as Fmax when device is resumed back */
+	vic->devfreq->resume_freq = vic->devfreq->scaling_max_freq;
 	err = devfreq_resume_device(vic->devfreq);
 	if (err < 0)
 		goto assert;
