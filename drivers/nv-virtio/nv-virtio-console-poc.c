@@ -737,7 +737,11 @@ static int nvvc_register_dev(nvvc_dev_t *nvvcdev)
 		goto err;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	nvvcdev->class = class_create("nvvc");
+#else
 	nvvcdev->class = class_create(THIS_MODULE, "nvvc");
+#endif
 	if (IS_ERR(nvvcdev->class)) {
 		pr_err("class_create failed\n");
 		err = PTR_ERR(nvvcdev->class);

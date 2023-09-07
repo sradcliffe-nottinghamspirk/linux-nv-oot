@@ -434,7 +434,11 @@ static int host1x_uapi_init(struct host1x_uapi *uapi)
 	if (err)
 		return err;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0))
 	uapi->class = class_create(THIS_MODULE, "host1x-fence");
+#else
+	uapi->class = class_create("host1x-fence");
+#endif
 	if (IS_ERR(uapi->class)) {
 		err = PTR_ERR(uapi->class);
 		goto unregister_chrdev_region;

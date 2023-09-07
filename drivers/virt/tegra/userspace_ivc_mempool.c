@@ -305,7 +305,11 @@ static int __init setup_ivc_mempool(void)
 	}
 
 	/* register ivc_user class with sysfs */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	ivc_mempool_class = class_create("tegra_uivc_mpool");
+#else
 	ivc_mempool_class = class_create(THIS_MODULE, "tegra_uivc_mpool");
+#endif
 	if (IS_ERR(ivc_mempool_class)) {
 		pr_err("user_ivc_mempool: ### failed create sysfs class: %ld\n",
 				PTR_ERR(ivc_mempool_class));

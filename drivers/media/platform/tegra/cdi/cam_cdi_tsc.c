@@ -22,6 +22,7 @@
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
+#include <linux/version.h>
 
 #define DEVICE_NAME "cdi_tsc"
 #define CLASS_NAME "cdi_tsc_class"
@@ -554,7 +555,11 @@ static int cdi_tsc_probe(struct platform_device *pdev)
 		return majorNumber;
 	}
 	/*Create a class for the device*/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	tsc_charClass = class_create(CLASS_NAME);
+#else
 	tsc_charClass = class_create(THIS_MODULE, CLASS_NAME);
+#endif
 	if (IS_ERR(tsc_charClass)) {
 		unregister_chrdev(majorNumber, DEVICE_NAME);
 		dev_err(controller->dev, "Failed to create the device class\n");

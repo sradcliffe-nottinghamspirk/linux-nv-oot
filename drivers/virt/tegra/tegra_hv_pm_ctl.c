@@ -1065,7 +1065,11 @@ static int tegra_hv_pm_ctl_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	data->class = class_create(DRV_NAME);
+#else
 	data->class = class_create(THIS_MODULE, DRV_NAME);
+#endif
 	if (IS_ERR(data->class)) {
 		dev_err(data->dev, "%s: Failed to create class, %ld\n",
 			__func__, PTR_ERR(data->class));

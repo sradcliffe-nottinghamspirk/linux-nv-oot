@@ -489,7 +489,11 @@ static int __init setup_ivc(void)
 		return result;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	ivc_class = class_create("ivc");
+#else
 	ivc_class = class_create(THIS_MODULE, "ivc");
+#endif
 	if (IS_ERR(ivc_class)) {
 		ERR("failed to create ivc class: %ld\n", PTR_ERR(ivc_class));
 		return PTR_ERR(ivc_class);

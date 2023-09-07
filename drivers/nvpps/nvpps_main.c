@@ -1030,7 +1030,11 @@ static int nvpps_probe(struct platform_device *pdev)
 
 	/* character device setup */
 #ifndef NVPPS_NO_DT
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	s_nvpps_class = class_create("nvpps");
+#else
 	s_nvpps_class = class_create(THIS_MODULE, "nvpps");
+#endif
 	if (IS_ERR(s_nvpps_class)) {
 		dev_err(&pdev->dev, "failed to allocate class\n");
 		return PTR_ERR(s_nvpps_class);
@@ -1241,7 +1245,11 @@ static int __init nvpps_init(void)
 
 	printk("%s\n", __FUNCTION__);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	s_nvpps_class = class_create("nvpps");
+#else
 	s_nvpps_class = class_create(THIS_MODULE, "nvpps");
+#endif
 	if (IS_ERR(s_nvpps_class)) {
 		printk("nvpps: failed to allocate class\n");
 		return PTR_ERR(s_nvpps_class);

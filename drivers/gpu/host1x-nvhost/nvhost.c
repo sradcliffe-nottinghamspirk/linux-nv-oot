@@ -111,7 +111,11 @@ static struct device *nvhost_client_device_create(struct platform_device *pdev,
 	struct device *dev;
 	int err;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0))
 	pdata->nvhost_class = class_create(THIS_MODULE, pdev->dev.of_node->name);
+#else
+	pdata->nvhost_class = class_create(pdev->dev.of_node->name);
+#endif
 	if (IS_ERR(pdata->nvhost_class)) {
 		dev_err(&pdev->dev, "failed to create class\n");
 		return ERR_CAST(pdata->nvhost_class);

@@ -298,7 +298,11 @@ static int fsicom_register_device(void)
 		return result;
 	}
 	device_file_major_number = result;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	dev_class = class_create("fsicom_client");
+#else
 	dev_class = class_create(THIS_MODULE, "fsicom_client");
+#endif
 	if (dev_class == NULL) {
 		pr_err("%s> Could not create class for device\n", device_name);
 		goto class_fail;

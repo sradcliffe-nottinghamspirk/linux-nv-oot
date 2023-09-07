@@ -743,7 +743,11 @@ EXPORT_SYMBOL(vi_channel_drv_unregister);
  */
 int vi_channel_drv_init(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	vi_channel_class = class_create("capture-vi-channel");
+#else
 	vi_channel_class = class_create(THIS_MODULE, "capture-vi-channel");
+#endif
 	if (IS_ERR(vi_channel_class))
 		return PTR_ERR(vi_channel_class);
 

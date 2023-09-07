@@ -368,8 +368,13 @@ static int tegra_hv_vcpu_yield_probe(struct platform_device *pdev)
 	}
 
 	major = MAJOR(vcpu_yield_pdev->vcpu_yield_dev);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	vcpu_yield_class =
+		class_create("tegra_hv_vcpu_yield");
+#else
 	vcpu_yield_class =
 		class_create(THIS_MODULE, "tegra_hv_vcpu_yield");
+#endif
 	if (IS_ERR(vcpu_yield_class)) {
 		pr_err("failed to create ivc class: %ld\n", PTR_ERR(vcpu_yield_class));
 		result = PTR_ERR(vcpu_yield_class);

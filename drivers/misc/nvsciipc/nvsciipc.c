@@ -20,6 +20,7 @@
 #include <linux/cred.h>
 #include <linux/of.h>
 #include <linux/fs.h>
+#include <linux/version.h>
 
 #ifdef CONFIG_TEGRA_VIRTUALIZATION
 #include <soc/tegra/virt/syscalls.h>
@@ -695,7 +696,11 @@ static int nvsciipc_probe(struct platform_device *pdev)
 	ctx->dev = &(pdev->dev);
 	platform_set_drvdata(pdev, ctx);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	ctx->nvsciipc_class = class_create(MODULE_NAME);
+#else
 	ctx->nvsciipc_class = class_create(THIS_MODULE, MODULE_NAME);
+#endif
 	if (IS_ERR(ctx->nvsciipc_class)) {
 		ERR("failed to create class: %ld\n",
 			PTR_ERR(ctx->nvsciipc_class));

@@ -239,7 +239,11 @@ static int __init tegra_camchar_init(struct tegra_ivc_driver *drv)
 	}
 	tegra_camchar_major_number = MAJOR(start);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	tegra_camchar_class = class_create("camchar_class");
+#else
 	tegra_camchar_class = class_create(THIS_MODULE, "camchar_class");
+#endif
 	if (IS_ERR(tegra_camchar_class)) {
 		pr_alert("camchar: failed to create class\n");
 		ret = PTR_ERR(tegra_camchar_class);
