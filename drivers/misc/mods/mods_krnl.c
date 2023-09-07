@@ -1953,6 +1953,38 @@ static int esc_mods_write_msr(struct mods_client *client, struct MODS_MSR *p)
 }
 #endif
 
+#if defined(CONFIG_ARM) || defined(CONFIG_ARM64)
+static int esc_mods_idle(struct mods_client *client, struct MODS_IDLE *p)
+{
+	u32 i;
+
+	LOG_ENT();
+
+	switch (p->idle_method) {
+
+	case MODS_IDLE_METHOD_ARM_WFI:
+		dsb(st);
+		for (i = 0; i < p->num_loops; i++)
+			wfi();
+		break;
+
+	case MODS_IDLE_METHOD_ARM_WFE:
+		dsb(st);
+		for (i = 0; i < p->num_loops; i++)
+			wfe();
+		break;
+
+	default:
+		cl_error("unsupported idle method %u\n", p->idle_method);
+		LOG_EXT();
+		return -EINVAL;
+	}
+
+	LOG_EXT();
+	return OK;
+}
+#endif
+
 static int esc_mods_get_driver_stats(struct mods_client *client,
 				     struct MODS_GET_DRIVER_STATS *p)
 {
@@ -2659,6 +2691,11 @@ static long mods_krnl_ioctl(struct file  *fp,
 		MODS_IOCTL_NORETVAL(MODS_ESC_FLUSH_CPU_CACHE_RANGE,
 				    esc_mods_flush_cpu_cache_range,
 				    MODS_FLUSH_CPU_CACHE_RANGE);
+		break;
+#endif
+#if defined(CONFIG_ARM) || defined(CONFIG_ARM64)
+	case MODS_ESC_IDLE:
+		MODS_IOCTL_NORETVAL(MODS_ESC_IDLE, esc_mods_idle, MODS_IDLE);
 		break;
 #endif
 #if defined(MODS_HAS_TEGRA) && defined(CONFIG_DMA_SHARED_BUFFER)
