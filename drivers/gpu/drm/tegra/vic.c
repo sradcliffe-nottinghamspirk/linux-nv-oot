@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (C) 2015-2023 NVIDIA CORPORATION.  All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (C) 2015-2023 NVIDIA CORPORATION.  All rights reserved.
  */
 
 #include <linux/bitops.h>
@@ -28,6 +28,7 @@
 #include "falcon.h"
 #include "util.h"
 #include "vic.h"
+#include "hwpm.h"
 
 struct vic_config {
 	const char *firmware;
@@ -38,6 +39,7 @@ struct vic_config {
 
 struct vic {
 	struct falcon falcon;
+	struct tegra_drm_hwpm hwpm;
 
 	void __iomem *regs;
 	struct tegra_drm_client client;
@@ -778,6 +780,11 @@ static int vic_probe(struct platform_device *pdev)
 		goto exit_actmon;
 	}
 
+	vic->hwpm.dev = dev;
+	vic->hwpm.regs = vic->regs;
+	tegra_drm_hwpm_register(&vic->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_VIC);
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -799,6 +806,9 @@ static int vic_remove(struct platform_device *pdev)
 	struct vic *vic = platform_get_drvdata(pdev);
 
 	pm_runtime_disable(&pdev->dev);
+
+	tegra_drm_hwpm_unregister(&vic->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_VIC);
 
 	vic_devfreq_deinit(vic);
 

@@ -27,6 +27,7 @@ tegra-drm-next-y := \
 	gr2d.o \
 	gr3d.o \
 	falcon.o \
+	hwpm.o \
 	vic.o \
 	nvdec.o \
 	nvenc.o \

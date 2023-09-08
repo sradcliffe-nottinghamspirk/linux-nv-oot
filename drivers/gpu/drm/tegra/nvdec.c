@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
 #include <linux/bitops.h>
@@ -29,6 +29,7 @@
 #include "falcon.h"
 #include "riscv.h"
 #include "util.h"
+#include "hwpm.h"
 
 #define NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_MASK	0xCAU
 #define NVDEC_FW_MTHD_ADDR_ACTMON_ACTIVE_BORPS	0xCBU
@@ -58,6 +59,7 @@ struct nvdec_config {
 
 struct nvdec {
 	struct falcon falcon;
+	struct tegra_drm_hwpm hwpm;
 
 	void __iomem *regs;
 	struct tegra_drm_client client;
@@ -844,6 +846,11 @@ static int nvdec_probe(struct platform_device *pdev)
 		goto exit_actmon;
 	}
 
+	nvdec->hwpm.dev = dev;
+	nvdec->hwpm.regs = nvdec->regs;
+	tegra_drm_hwpm_register(&nvdec->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_NVDEC);
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -864,6 +871,9 @@ static int nvdec_remove(struct platform_device *pdev)
 	struct nvdec *nvdec = platform_get_drvdata(pdev);
 
 	pm_runtime_disable(&pdev->dev);
+
+	tegra_drm_hwpm_unregister(&nvdec->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_NVDEC);
 
 	nvdec_devfreq_deinit(nvdec);
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All Rights Reserved.
  */
 
 #include <linux/bitops.h>
@@ -26,6 +26,7 @@
 #include "drm.h"
 #include "falcon.h"
 #include "util.h"
+#include "hwpm.h"
 
 #define NVENC_TFBIF_TRANSCFG			0x1844
 #define NVENC_TFBIF_ACTMON_ACTIVE_MASK		0x184c
@@ -48,6 +49,7 @@ struct nvenc_config {
 
 struct nvenc {
 	struct falcon falcon;
+	struct tegra_drm_hwpm hwpm;
 
 	void __iomem *regs;
 	struct tegra_drm_client client;
@@ -710,6 +712,11 @@ static int nvenc_probe(struct platform_device *pdev)
 		goto exit_actmon;
 	}
 
+	nvenc->hwpm.dev = dev;
+	nvenc->hwpm.regs = nvenc->regs;
+	tegra_drm_hwpm_register(&nvenc->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_NVENC);
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -730,6 +737,9 @@ static int nvenc_remove(struct platform_device *pdev)
 	struct nvenc *nvenc = platform_get_drvdata(pdev);
 
 	pm_runtime_disable(&pdev->dev);
+
+	tegra_drm_hwpm_unregister(&nvenc->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_NVENC);
 
 	nvenc_devfreq_deinit(nvenc);
 

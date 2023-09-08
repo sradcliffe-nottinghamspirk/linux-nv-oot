@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022, NVIDIA Corporation.
+ * SPDX-FileCopyrightText: Copyright (c) 2021-2023, NVIDIA Corporation.
  */
 
 #include <linux/clk.h>
@@ -22,6 +22,7 @@
 #include "falcon.h"
 #include "util.h"
 #include "vic.h"
+#include "hwpm.h"
 
 #define OFA_TFBIF_TRANSCFG		0x1444
 #define OFA_SAFETY_RAM_INIT_REQ		0x3320
@@ -35,6 +36,7 @@ struct ofa_config {
 
 struct ofa {
 	struct falcon falcon;
+	struct tegra_drm_hwpm hwpm;
 
 	void __iomem *regs;
 	struct tegra_drm_client client;
@@ -368,6 +370,11 @@ static int ofa_probe(struct platform_device *pdev)
 		goto exit_falcon;
 	}
 
+	ofa->hwpm.dev = dev;
+	ofa->hwpm.regs = ofa->regs;
+	tegra_drm_hwpm_register(&ofa->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_OFA);
+
 	pm_runtime_enable(dev);
 	pm_runtime_use_autosuspend(dev);
 	pm_runtime_set_autosuspend_delay(dev, 500);
@@ -385,6 +392,9 @@ static int ofa_remove(struct platform_device *pdev)
 	struct ofa *ofa = platform_get_drvdata(pdev);
 
 	pm_runtime_disable(&pdev->dev);
+
+	tegra_drm_hwpm_unregister(&ofa->hwpm, pdev->resource[0].start,
+		TEGRA_DRM_HWPM_IP_OFA);
 
 	host1x_client_unregister(&ofa->client.base);
 
