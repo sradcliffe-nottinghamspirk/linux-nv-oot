@@ -8,34 +8,36 @@
 #include <asm/ioctls.h>
 #include <linux/debugfs.h>
 #include <linux/device.h>
-#include <linux/dma-mapping.h>
 #include <linux/dma-buf.h>
+#include <linux/dma-mapping.h>
 #include <linux/export.h>
 #include <linux/fs.h>
+#include <linux/interconnect.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_graph.h>
 #include <linux/of_irq.h>
 #include <linux/of_platform.h>
+#include <linux/platform/tegra/emc_bwmgr.h>
+#include <linux/platform/tegra/latency_allowance.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
-#include <media/fusa-capture/capture-vi-channel.h>
-#include <soc/tegra/camrtc-capture.h>
 #include <linux/version.h>
-#include <soc/tegra/fuse.h>
-#include "vi5.h"
-#include <linux/platform/tegra/emc_bwmgr.h>
-#include "capture/capture-support.h"
-#include <media/vi.h>
+#include <media/fusa-capture/capture-vi-channel.h>
 #include <media/mc_common.h>
 #include <media/tegra_camera_platform.h>
+#include <media/vi.h>
+#include <soc/tegra/camrtc-capture.h>
+#include <soc/tegra/fuse.h>
 #include <uapi/linux/nvhost_vi_ioctl.h>
-#include <linux/platform/tegra/latency_allowance.h>
+
+#include "capture/capture-support.h"
 #include "nvhost.h"
+#include "vi5.h"
 
 /* HW capability, pixels per clock */
 #define NUM_PPC		8
@@ -49,6 +51,7 @@ struct host_vi5 {
 	struct platform_device *pdev;
 	struct platform_device *vi_thi;
 	struct vi vi_common;
+	struct icc_path *icc_write;
 
 	/* Debugfs */
 	struct vi5_debug {
@@ -231,11 +234,12 @@ device_release:
 
 static int vi5_probe(struct platform_device *pdev)
 {
-	int err;
+	struct device *dev = &pdev->dev;
 	struct nvhost_device_data *pdata;
 	struct host_vi5 *vi5;
+	int err;
 
-	dev_dbg(&pdev->dev, "%s: probe %s\n", __func__, pdev->name);
+	dev_dbg(dev, "%s: probe %s\n", __func__, pdev->name);
 
 	err = vi5_priv_early_probe(pdev);
 	if (err)
@@ -243,6 +247,12 @@ static int vi5_probe(struct platform_device *pdev)
 
 	pdata = platform_get_drvdata(pdev);
 	vi5 = pdata->private_data;
+
+	vi5->icc_write = devm_of_icc_get(dev, "write");
+	if (IS_ERR(vi5->icc_write)) {
+		dev_err(dev, "failed to get icc write handle\n");
+		return PTR_ERR(vi5->icc_write);
+	}
 
 	err = nvhost_client_device_get_resources(pdev);
 	if (err)
@@ -267,7 +277,7 @@ deinit:
 put_vi:
 	platform_device_put(vi5->vi_thi);
 	if (err != -EPROBE_DEFER)
-		dev_err(&pdev->dev, "probe failed: %d\n", err);
+		dev_err(dev, "probe failed: %d\n", err);
 error:
 	return err;
 }
@@ -355,6 +365,54 @@ static const struct of_device_id tegra_vi5_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, tegra_vi5_of_match);
 
+static int vi_runtime_suspend(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct host_vi5 *vi5 = nvhost_get_private_data(pdev);
+	int err;
+
+	if (nvhost_module_pm_ops.runtime_suspend != NULL) {
+		err = nvhost_module_pm_ops.runtime_suspend(dev);
+		if (!err && vi5->icc_write) {
+			err = icc_set_bw(vi5->icc_write, 0, 0);
+			if (err)
+				dev_warn(dev,
+					 "failed to set icc_write bw: %d\n", err);
+			return 0;
+		}
+		return err;
+	}
+
+	return -EOPNOTSUPP;
+}
+
+static int vi_runtime_resume(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct host_vi5 *vi5 = nvhost_get_private_data(pdev);
+	int err;
+
+	if (nvhost_module_pm_ops.runtime_resume != NULL) {
+		err = nvhost_module_pm_ops.runtime_resume(dev);
+		if (!err && vi5->icc_write) {
+			err = icc_set_bw(vi5->icc_write, 0, UINT_MAX);
+			if (err)
+				dev_warn(dev,
+					 "failed to set icc_write bw: %d\n", err);
+			return 0;
+		}
+		return err;
+	}
+
+	return -EOPNOTSUPP;
+}
+
+const struct dev_pm_ops vi_pm_ops = {
+	SET_RUNTIME_PM_OPS(vi_runtime_suspend, vi_runtime_resume, NULL)
+	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+				pm_runtime_force_resume)
+};
+
 static struct platform_driver vi5_driver = {
 	.probe = vi5_probe,
 	.remove = vi5_remove,
@@ -365,7 +423,7 @@ static struct platform_driver vi5_driver = {
 		.of_match_table = tegra_vi5_of_match,
 #endif
 #ifdef CONFIG_PM
-		.pm = &nvhost_module_pm_ops,
+		.pm = &vi_pm_ops,
 #endif
 	},
 };
