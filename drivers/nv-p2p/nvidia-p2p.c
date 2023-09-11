@@ -147,18 +147,17 @@ int nvidia_p2p_get_pages(u64 vaddr, u64 size,
 		ret = -ENOMEM;
 		goto free_page_table;
 	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
-	down_read(&current->mm->mmap_lock);
-#else
-	down_read(&current->mm->mmap_sem);
-#endif
+
 	locked = 1;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 15, 0)
+	mmap_read_lock(&current->mm);
 	user_pages = safe_cast_s64_to_s32(get_user_pages_locked(vaddr & PAGE_MASK, nr_pages,
-					FOLL_WRITE | FOLL_FORCE, pages, &locked));
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
-	up_read(&current->mm->mmap_lock);
+					  FOLL_WRITE | FOLL_FORCE, pages, &locked));
+	if (locked)
+		mmap_read_unlock(&current->mm);
 #else
-	up_read(&current->mm->mmap_sem);
+	user_pages = safe_cast_s64_to_s32(get_user_pages_unlocked(vaddr & PAGE_MASK, nr_pages,
+					  pages, FOLL_WRITE | FOLL_FORCE));
 #endif
 	if (user_pages != nr_pages) {
 		ret = user_pages < 0 ? user_pages : -ENOMEM;
