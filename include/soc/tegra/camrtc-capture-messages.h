@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2016-2022, NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2016-2023, NVIDIA Corporation.  All rights reserved.
  */
 
 /**
@@ -25,28 +25,213 @@
  * the request message.
  */
 struct CAPTURE_MSG_HEADER {
-	/** Message identifier. */
+	/** Message identifier (See @ref CapCtrlMsgType). */
 	uint32_t msg_id;
 	/** @anon_union */
 	union {
-		/** Channel number. @anon_union_member */
+		/**
+		 * @anon_union_member
+		 * Capture channel ID [0, UINT32_MAX]. Used when the message
+		 * is related to a specific capture channel. The channel ID
+		 * must be a valid ID previously assigned by RCE FW.
+		 */
 		uint32_t channel_id;
-		/** Transaction id. @anon_union_member */
+		/**
+		 * @anon_union_member
+		 * Transaction id [0, UINT32_MAX]. Used when the message is not
+		 * related to a specific capture channel. The transaction ID in
+		 * a request message must be unique and may not collide with any
+		 * existing channel ID. The transaction in a response message
+		 * must match the transaction ID of the associated request.
+		 */
 		uint32_t transaction;
 	};
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @defgroup ViCapCtrlMsgType Message types for capture-control IVC channel messages.
+ * @defgroup CapCtrlMsgType Message types for capture-control IVC channel messages
+ *
+ * The capture-control IVC channel is established during boot using the
+ * @ref CAMRTC_HSP_CH_SETUP command. The IVC channel is bi-directional
+ * and can be used to carry out control operations on RCE firmware. Each
+ * control operation consists of a request message and an associated
+ * response message.
+ *
+ * The overall message structure is defined by @ref CAPTURE_CONTROL_MSG
+ * and the structure is the same for both requests and responses. Each control
+ * message consists of a common @ref CAPTURE_MSG_HEADER followed by message
+ * specific data.
+ *
+ * The type of a message is identified by @ref CAPTURE_MSG_HEADER::msg_id.
+ *
+ * Requests and responses may be associated with a logical channel. All
+ * requests on the same logical channel must be strictly serialized, so
+ * that only a single request may be pending at any time. Requests and
+ * responses must specify the logical channel ID in the
+ * @ref CAPTURE_MSG_HEADER::channel_id. The channel ID is assigned by
+ * RCE FW when the logical channel is created.
+ *
+ * Requests and responses that are not associated with a specific logical
+ * channel must instead specify a transaction ID in
+ * @ref CAPTURE_MSG_HEADER::transaction. The transaction ID must be unique
+ * for each request and must not collide with any existing channel ID.
+ * A response message must use the same transaction ID as the associated
+ * request message. Examples of control messages that are not associated
+ * with an existing logical channel are messages that are used to
+ * establish a new logical channel. There are also other control operations
+ * that are not specific to a logical channel.
+ *
  * @{
  */
-#define CAPTURE_CONTROL_RESERVED_10		MK_U32(0x10)
+
+/**
+ * @defgroup ViCapCtrlMsgType Message types for VI capture channel control messages
+ *
+ * Capture channel control messages are used to set up, reset, and release
+ * channels for capturing images from an imaging stream source, as well as
+ * execute other control operations on the VI capture channel.
+ *
+ * See @ref CapCtrlMsgType for more information on the message protocol.
+ *
+ * @{
+ */
+
+/**
+ * @brief VI capture channel setup request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * allocate a VI capture channel and associated resources.
+ *
+ * @pre The capture-control IVC channel has been set up during
+ *      boot using the @ref CAMRTC_HSP_CH_SETUP command.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_SETUP_REQ
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" = <em>unique ID</em>
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_SETUP_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CHANNEL_SETUP_RESP
+ */
 #define CAPTURE_CHANNEL_SETUP_REQ		MK_U32(0x1E)
+
+/**
+ * @brief VI capture channel setup response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * response to a @ref CAPTURE_CHANNEL_SETUP_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_SETUP_RESP
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" =
+ *     @ref CAPTURE_CHANNEL_SETUP_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::transaction "transaction"
+ *
+ * @par Payload
+ *  - @ref CAPTURE_CHANNEL_SETUP_RESP_MSG
+ */
 #define CAPTURE_CHANNEL_SETUP_RESP		MK_U32(0x11)
+
+/**
+ * @brief VI capture channel reset request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * reset a VI capture channel. The client must also send a @ref
+ * CAPTURE_RESET_BARRIER_IND message on the @em capture IVC channel
+ * in order to define a boundary between capture requests submitted
+ * before the reset and requests submitted after it.
+ *
+ * When RCE FW receives the @ref CAPTURE_CHANNEL_RESET_REQ message, it
+ * will cancel all capture requests in the channel queue upto the @ref
+ * CAPTURE_RESET_BARRIER_IND message. The response is sent after the
+ * RCE side channel cleanup is complete. If the reset barrier is not
+ * received within 5 ms, all requests currently in the queue will be
+ * cleared and a @ref CAPTURE_ERROR_TIMEOUT error will be reported
+ * in the response message.
+ *
+ * @pre A VI capture channel has been set up with
+ *      @ref CAPTURE_CHANNEL_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_RESET_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_RESET_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CHANNEL_RESET_RESP
+ */
 #define CAPTURE_CHANNEL_RESET_REQ		MK_U32(0x12)
+
+/**
+ * @brief VI capture channel reset response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * response to a @ref CAPTURE_CHANNEL_RESET_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_RESET_RESP
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_RESET_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_RESET_RESP_MSG
+ */
 #define CAPTURE_CHANNEL_RESET_RESP		MK_U32(0x13)
+
+/**
+ * @brief VI capture channel release request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * release a VI capture channel. Cancels all pending capture
+ * requests.
+ *
+ * @pre A VI capture channel has been set up with
+ *     @ref CAPTURE_CHANNEL_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_RELEASE_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_RELEASE_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CHANNEL_RELEASE_RESP
+ */
 #define CAPTURE_CHANNEL_RELEASE_REQ		MK_U32(0x14)
+
+/**
+ * @brief VI capture channel release response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * response to a @ref CAPTURE_CHANNEL_RELEASE_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_RELEASE_RESP
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_RELEASE_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_RELEASE_RESP_MSG
+ */
 #define CAPTURE_CHANNEL_RELEASE_RESP		MK_U32(0x15)
+/** @} */
+
+/**
+ * @defgroup ViCapCtrlMsgTypeNonsafe Message types for VI capture channel control messages (non-safety)
+ * @{
+ */
 #define CAPTURE_COMPAND_CONFIG_REQ		MK_U32(0x16)
 #define CAPTURE_COMPAND_CONFIG_RESP		MK_U32(0x17)
 #define CAPTURE_PDAF_CONFIG_REQ			MK_U32(0x18)
@@ -89,6 +274,7 @@ struct CAPTURE_MSG_HEADER {
 #define CAPTURE_ISP_RESET_BARRIER_IND		MK_U32(0x08)
 #define CAPTURE_ISP_EX_STATUS_IND		MK_U32(0x09)
 /** @} */
+/** @} */
 
 /**
  * @brief Invalid message type. This can be used to respond to an invalid request.
@@ -106,47 +292,43 @@ typedef uint32_t capture_result;
  * @defgroup CapErrorCodes Unsigned 32-bit return values for the capture-control IVC messages.
  * @{
  */
+/** Request succeeded */
 #define CAPTURE_OK				MK_U32(0)
+/** Request failed: invalid parameter */
 #define CAPTURE_ERROR_INVALID_PARAMETER		MK_U32(1)
+/** Request failed: insufficient memory */
 #define CAPTURE_ERROR_NO_MEMORY			MK_U32(2)
+/** Request failed: service busy */
 #define CAPTURE_ERROR_BUSY			MK_U32(3)
+/** Request failed: not supported */
 #define CAPTURE_ERROR_NOT_SUPPORTED		MK_U32(4)
+/** Request failed: not initialized */
 #define CAPTURE_ERROR_NOT_INITIALIZED		MK_U32(5)
+/** Request failed: overflow */
 #define CAPTURE_ERROR_OVERFLOW			MK_U32(6)
+/** Request failed: no resource available */
 #define CAPTURE_ERROR_NO_RESOURCES		MK_U32(7)
+/** Request failed: timeout */
 #define CAPTURE_ERROR_TIMEOUT			MK_U32(8)
+/** Request failed: service in invalid state */
 #define CAPTURE_ERROR_INVALID_STATE		MK_U32(9)
 /** @} */
 
-/**
- * @brief VI capture channel setup request message.
- *
- * Setup the VI Falcon channel context and initialize the
- * RCE capture channel context. The GOS tables are also configured.
- * The client shall use the transaction id field
- * in the standard message header to associate request and response.
- */
+/** Message data for @ref CAPTURE_CHANNEL_SETUP_REQ message */
 struct CAPTURE_CHANNEL_SETUP_REQ_MSG {
 	/** Capture channel configuration. */
 	struct capture_channel_config	channel_config;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief VI Capture channel setup response message.
- *
- * The transaction id field in the standard message header
- * will be copied from the associated request.
- *
- * The setup response message returns a channel_id, which
- * identifies this set of resources and is used to refer to the
- * allocated capture channel in subsequent messages.
- */
+/** Message data for @ref CAPTURE_CHANNEL_SETUP_RESP message */
 struct CAPTURE_CHANNEL_SETUP_RESP_MSG {
-	/** Capture result return value. See @ref CapErrorCodes "Return values" */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
-	/** Capture channel identifier for the new channel. */
+	/** Capture channel identifier for the new channel [0, UINT32_MAX]. */
 	uint32_t channel_id;
-	/** Bitmask of allocated VI channel(s). LSB is VI channel 0. */
+	/** 1-hot encoded bitmask indicating the allocated VI hardware
+	 *  channel [0, 0xFFFFFFFFF ]. LSB is VI channel 0.
+	 */
 	uint64_t vi_channel_mask;
 } CAPTURE_IVC_ALIGN;
 
@@ -154,58 +336,38 @@ struct CAPTURE_CHANNEL_SETUP_RESP_MSG {
  * @defgroup CapResetFlags VI Capture channel reset flags
  * @{
  */
-/** Reset the channel without waiting for FE first. */
+/** Reset the channel without waiting for frame-end first. */
 #define CAPTURE_CHANNEL_RESET_FLAG_IMMEDIATE	MK_U32(0x01)
 /** @} */
 
-/**
- * @brief Reset a VI capture channel.
- *
- * Halt the associated VI channel. Flush the request queue for the
- * channel and increment syncpoints in the request queue to their target
- * values.
- */
+/** Message data for @ref CAPTURE_CHANNEL_RESET_REQ message */
 struct CAPTURE_CHANNEL_RESET_REQ_MSG {
-	/** See @ref CapResetFlags "Reset flags" */
+	/** See @ref CapResetFlags "reset flags". */
 	uint32_t reset_flags;
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief VI capture channel reset response message.
- *
- * The response is sent after the RCE side channel cleanup is
- * complete. If the reset barrier is not received within the timeout
- * interval a CAPTURE_ERROR_TIMEOUT error is reported as the return value.
- * If the reset succeeds then the return value is CAPTURE_OK.
- */
+/** Message data for @ref CAPTURE_CHANNEL_RESET_RESP message */
 struct CAPTURE_CHANNEL_RESET_RESP_MSG {
-	/** Reset status return value. See @ref CapErrorCodes "Return values" */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Release a VI capture channel and all the associated resources.
- *
- * Halt the associated VI channel and release the channel context.
- */
+/** Message data for @ref CAPTURE_CHANNEL_RELEASE_REQ message */
 struct CAPTURE_CHANNEL_RELEASE_REQ_MSG {
-	/** Reset flags. Currently not used in release request. */
+	/** Unused */
 	uint32_t reset_flags;
+	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Capture channel release response message.
- *
- * The release is acknowledged after the channel cleanup is complete
- * and all resources have been freed on RCE.
- */
+/** Message data for @ref CAPTURE_CHANNEL_RELEASE_RESP message */
 struct CAPTURE_CHANNEL_RELEASE_RESP_MSG {
-	/** Release status return value. See @ref CapErrorCodes "Return values" */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
@@ -531,7 +693,7 @@ struct CAPTURE_CSI_STREAM_TPG_START_RATE_RESP_MSG {
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @defgroup gain ratio settings that can be set to frame generated by NVCSI TPG.
+ * @defgroup NvCsiTpgGain gain ratio settings that can be set to frame generated by NVCSI TPG.
  * @{
  */
 #define CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_EIGHT_TO_ONE		MK_U8(0) /* 8:1 gain */
@@ -541,6 +703,7 @@ struct CAPTURE_CSI_STREAM_TPG_START_RATE_RESP_MSG {
 #define CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_HALF			MK_U8(4) /* 0.5:1 gain */
 #define CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_ONE_FOURTH		MK_U8(5) /* 0.25:1 gain */
 #define CAPTURE_CSI_STREAM_TPG_GAIN_RATIO_ONE_EIGHTH		MK_U8(6) /* 0.125:1 gain */
+/** @} */
 
 /**
  * @brief Apply gain ratio on specified VC of the desired CSI stream.
@@ -636,25 +799,42 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @defgroup PhyStreamMsgType Message types for NvPhy
+ * @addtogroup CapCtrlMsgType
+ * @{
+ */
+
+/**
+ * @defgroup PhyStreamMsgType NVCSI PHY Control Message Types
  * @{
  */
 #define CAPTURE_PHY_STREAM_OPEN_REQ		MK_U32(0x36)
 #define CAPTURE_PHY_STREAM_OPEN_RESP		MK_U32(0x37)
 #define CAPTURE_PHY_STREAM_CLOSE_REQ		MK_U32(0x38)
 #define CAPTURE_PHY_STREAM_CLOSE_RESP		MK_U32(0x39)
+/** @} */
+
+/**
+ * @defgroup PhyStreamDebugMsgType NVCSI Phy Debug Message types (non-safety)
+ * @{
+ */
 #define CAPTURE_PHY_STREAM_DUMPREGS_REQ		MK_U32(0x3C)
 #define CAPTURE_PHY_STREAM_DUMPREGS_RESP	MK_U32(0x3D)
 /** @} */
 
 /**
- * @defgroup NvCsiMsgType Message types for NVCSI
+ * @defgroup NvCsiMsgType NVCSI Configuration Message Types
  * @{
  */
 #define CAPTURE_CSI_STREAM_SET_CONFIG_REQ	MK_U32(0x40)
 #define CAPTURE_CSI_STREAM_SET_CONFIG_RESP	MK_U32(0x41)
 #define CAPTURE_CSI_STREAM_SET_PARAM_REQ	MK_U32(0x42)
 #define CAPTURE_CSI_STREAM_SET_PARAM_RESP	MK_U32(0x43)
+/** @} */
+
+/**
+ * @defgroup NvCsiTpgMsgType NVCSI TPG Configuration Message Types
+ * @{
+ */
 #define CAPTURE_CSI_STREAM_TPG_SET_CONFIG_REQ	MK_U32(0x44)
 #define CAPTURE_CSI_STREAM_TPG_SET_CONFIG_RESP	MK_U32(0x45)
 #define CAPTURE_CSI_STREAM_TPG_START_REQ	MK_U32(0x46)
@@ -668,7 +848,7 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
 /** @} */
 
 /**
- * @addtogroup NvCsiMsgType Message types for NVCSI
+ * @defgroup ViEiCapCtrlMsgType VI Event Injection Message Types (non-safety)
  * @{
  */
 #define CAPTURE_CHANNEL_EI_REQ			MK_U32(0x50)
@@ -681,27 +861,58 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  * @addtogroup ViCapCtrlMsgType
  * @{
  */
+/**
+ * @brief Override VI CHANSEL safety error masks.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * override the default VI CHANSEL safety error masks on all
+ * active VI units.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" = <em>unique ID</em>
+ *
+ * @par Payload
+ * - @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP
+ */
 #define CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ	MK_U32(0x54)
+
+/**
+ * @brief Override VI CHANSEL safety error masks response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * response to a @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" =
+ *     @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::transaction "transaction"
+ *
+ * @par Payload
+ * - @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP_MSG
+ */
 #define CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP	MK_U32(0x55)
+/** @} */
 /** @} */
 
 /**
  * @addtogroup ViCapCtrlMsgs
  * @{
  */
-/**
- * @brief Set CHANSEL error mask from HSM reporting message
- */
+/** Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ message */
 struct CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ_MSG {
-	/** VI EC/HSM global CHANSEL error mask configuration */
+	/** VI CHANSEL safety error mask configuration */
 	struct vi_hsm_chansel_error_mask_config hsm_chansel_error_config;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Acknowledge CHANEL error mask request
- */
+/** Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP message */
 struct CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP_MSG {
-	/** HSM CHANSEL error mask request result. See @ref CapErrorCodes "Return values". */
+	/** Request result. See @ref CapErrorCodes "result codes". */
 	capture_result result;
 	/** Reserved */
 	uint32_t pad__;
@@ -736,134 +947,237 @@ struct CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG {
 	uint32_t channel_id;
 } CAPTURE_IVC_ALIGN;
 
-typedef struct CAPTURE_CHANNEL_RESET_REQ_MSG
+typedef struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG
 			CAPTURE_CHANNEL_ISP_RESET_REQ_MSG;
-typedef struct CAPTURE_CHANNEL_RESET_RESP_MSG
+typedef struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG
 			CAPTURE_CHANNEL_ISP_RESET_RESP_MSG;
-typedef struct CAPTURE_CHANNEL_RELEASE_REQ_MSG
+typedef struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG
 			CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG;
-typedef struct CAPTURE_CHANNEL_RELEASE_RESP_MSG
+typedef struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG
 			CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG;
 
 /**
+ * @brief Reset ISP channel request.
+ *
+ * Halt the associated ISP channel. Flush the request queue for the
+ * channel and increment syncpoints in the request queue to their target
+ * values.
+ */
+struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG {
+	/** Unused */
+	uint32_t reset_flags;
+	/** Reserved */
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+
+/**
+ * @brief Reset ISP channel response message.
+ *
+ * The response is sent after the RCE side channel cleanup is
+ * complete. If the reset barrier is not received within the timeout
+ * interval a CAPTURE_ERROR_TIMEOUT error is reported as the return value.
+ * If the reset succeeds then the return value is CAPTURE_OK.
+ */
+struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG {
+	/** Reset status return value. See @ref CapErrorCodes "Return values" */
+	capture_result result;
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+
+/**
+ * @brief Release ISP channel and all the associated resources.
+ *
+ * Halt the associated ISP channel and release the channel context.
+ */
+struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG {
+	/** Reset flags. Currently not used in release request. */
+	uint32_t reset_flags;
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+
+/**
+ * @brief ISP channel release response message.
+ *
+ * The release is acknowledged after the channel cleanup is complete
+ * and all resources have been freed on RCE.
+ */
+struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG {
+	/** Release status return value. See @ref CapErrorCodes "Return values" */
+	capture_result result;
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+
+/**
  * @brief Message frame for capture-control IVC channel.
+ *
+ * This structure describes a common message format for all capture channel
+ * IVC messages. The message format includes a message header that is common
+ * to all messages, followed by a message-specific message data.  The message
+ * data is represented as an anonymous union of message structures.
  */
 struct CAPTURE_CONTROL_MSG {
+	/** Common capture control channel message header */
 	struct CAPTURE_MSG_HEADER header;
 	/** @anon_union */
 	union {
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_SETUP_REQ message */
 		struct CAPTURE_CHANNEL_SETUP_REQ_MSG channel_setup_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_SETUP_RESP message */
 		struct CAPTURE_CHANNEL_SETUP_RESP_MSG channel_setup_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_RESET_REQ message */
 		struct CAPTURE_CHANNEL_RESET_REQ_MSG channel_reset_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_RESET_RESP message */
 		struct CAPTURE_CHANNEL_RESET_RESP_MSG channel_reset_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_RELEASE_REQ message */
 		struct CAPTURE_CHANNEL_RELEASE_REQ_MSG channel_release_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_RELEASE_RESP message */
 		struct CAPTURE_CHANNEL_RELEASE_RESP_MSG channel_release_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_COMPAND_CONFIG_REQ message (non-safety) */
 		struct CAPTURE_COMPAND_CONFIG_REQ_MSG compand_config_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_COMPAND_CONFIG_RESP message (non-safety) */
 		struct CAPTURE_COMPAND_CONFIG_RESP_MSG compand_config_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PDAF_CONFIG_REQ message (non-safety) */
 		struct CAPTURE_PDAF_CONFIG_REQ_MSG pdaf_config_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PDAF_CONFIG_RESP message (non-safety) */
 		struct CAPTURE_PDAF_CONFIG_RESP_MSG pdaf_config_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_SYNCGEN_ENABLE_REQ message (non-safety) */
 		struct CAPTURE_SYNCGEN_ENABLE_REQ_MSG syncgen_enable_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_SYNCGEN_ENABLE_RESP message (non-safety) */
 		struct CAPTURE_SYNCGEN_ENABLE_RESP_MSG syncgen_enable_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_SYNCGEN_DISABLE_REQ message (non-safety) */
 		struct CAPTURE_SYNCGEN_DISABLE_REQ_MSG syncgen_disable_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_SYNCGEN_DISABLE_RESP message (non-safety) */
 		struct CAPTURE_SYNCGEN_DISABLE_RESP_MSG syncgen_disable_resp;
 
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PHY_STREAM_OPEN_REQ message */
 		struct CAPTURE_PHY_STREAM_OPEN_REQ_MSG phy_stream_open_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PHY_STREAM_OPEN_RESP message */
 		struct CAPTURE_PHY_STREAM_OPEN_RESP_MSG phy_stream_open_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PHY_STREAM_CLOSE_REQ message */
 		struct CAPTURE_PHY_STREAM_CLOSE_REQ_MSG phy_stream_close_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PHY_STREAM_CLOSE_RESP message */
 		struct CAPTURE_PHY_STREAM_CLOSE_RESP_MSG phy_stream_close_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PHY_STREAM_DUMPREGS_REQ message (non-safety) */
 		struct CAPTURE_PHY_STREAM_DUMPREGS_REQ_MSG
 			phy_stream_dumpregs_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_PHY_STREAM_DUMPREGS_RESP message (non-safety) */
 		struct CAPTURE_PHY_STREAM_DUMPREGS_RESP_MSG
 			phy_stream_dumpregs_resp;
 
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ message */
 		struct CAPTURE_CSI_STREAM_SET_CONFIG_REQ_MSG
 			csi_stream_set_config_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_SET_CONFIG_RESP message */
 		struct CAPTURE_CSI_STREAM_SET_CONFIG_RESP_MSG
 			csi_stream_set_config_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ message */
 		struct CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG
 			csi_stream_set_param_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_SET_PARAM_RESP message */
 		struct CAPTURE_CSI_STREAM_SET_PARAM_RESP_MSG
 			csi_stream_set_param_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_SET_CONFIG_REQ message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_SET_CONFIG_REQ_MSG
 			csi_stream_tpg_set_config_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_SET_CONFIG_RESP message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_SET_CONFIG_RESP_MSG
 			csi_stream_tpg_set_config_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_START_REQ message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_START_REQ_MSG
 			csi_stream_tpg_start_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_START_RESP message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_START_RESP_MSG
 			csi_stream_tpg_start_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_STOP_REQ message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_STOP_REQ_MSG
 			csi_stream_tpg_stop_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_STOP_RESP message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_STOP_RESP_MSG
 			csi_stream_tpg_stop_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_START_RATE_REQ message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_START_RATE_REQ_MSG
 			csi_stream_tpg_start_rate_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_START_RATE_RESP message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_START_RATE_RESP_MSG
 			csi_stream_tpg_start_rate_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_APPLY_GAIN_REQ message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_APPLY_GAIN_REQ_MSG
 			csi_stream_tpg_apply_gain_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CSI_STREAM_TPG_APPLY_GAIN_RESP message (non-safety) */
 		struct CAPTURE_CSI_STREAM_TPG_APPLY_GAIN_RESP_MSG
 			csi_stream_tpg_apply_gain_resp;
 
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_EI_REQ message (non-safety) */
 		struct CAPTURE_CHANNEL_EI_REQ_MSG ei_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_EI_RESP message (non-safety) */
 		struct CAPTURE_CHANNEL_EI_RESP_MSG ei_resp;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_EI_RESET_REQ message (non-safety) */
 		struct CAPTURE_CHANNEL_EI_RESET_REQ_MSG ei_reset_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_EI_RESET_RESP message (non-safety) */
 		struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG ei_reset_resp;
 
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_REQ message */
 		struct CAPTURE_CHANNEL_ISP_SETUP_REQ_MSG channel_isp_setup_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_RESP message */
 		struct CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG channel_isp_setup_resp;
 		/** @anon_union_member */
-		CAPTURE_CHANNEL_ISP_RESET_REQ_MSG channel_isp_reset_req;
+		/** Message data for @ref CAPTURE_CHANNEL_ISP_RESET_REQ message */
+		struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG channel_isp_reset_req;
 		/** @anon_union_member */
-		CAPTURE_CHANNEL_ISP_RESET_RESP_MSG channel_isp_reset_resp;
+		/** Message data for @ref CAPTURE_CHANNEL_ISP_RESET_RESP message */
+		struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG channel_isp_reset_resp;
 		/** @anon_union_member */
-		CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG channel_isp_release_req;
+		/** Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ message */
+		struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG channel_isp_release_req;
 		/** @anon_union_member */
-		CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG channel_isp_release_resp;
+		/** Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_RESP message */
+		struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG channel_isp_release_resp;
 
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ message */
 		struct CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ_MSG hsm_chansel_mask_req;
 		/** @anon_union_member */
+		/** Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP message */
 		struct CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP_MSG hsm_chansel_mask_resp;
 	};
 } CAPTURE_IVC_ALIGN;

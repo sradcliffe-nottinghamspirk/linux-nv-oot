@@ -17,7 +17,7 @@
 #pragma GCC diagnostic error "-Wpadded"
 
 #define CAPTURE_IVC_ALIGNOF		MK_ALIGN(8)
-#define CAPTURE_DESCRIPTOR_ALIGN_BYTES (64)
+#define CAPTURE_DESCRIPTOR_ALIGN_BYTES (64)	/**< Descriptor alignment in shared memory */
 #define CAPTURE_DESCRIPTOR_ALIGNOF	MK_ALIGN(CAPTURE_DESCRIPTOR_ALIGN_BYTES)
 
 #define CAPTURE_IVC_ALIGN		CAMRTC_ALIGN(CAPTURE_IVC_ALIGNOF)
@@ -37,17 +37,20 @@ typedef uint64_t iova_t CAPTURE_IVC_ALIGN;
 typedef struct syncpoint_info {
 	/** Syncpoint ID */
 	uint32_t id;
-	/** Syncpoint threshold when storing a fence */
+	/** Syncpoint threshold when storing a fence [0, UIN32_MAX] */
 	uint32_t threshold;
-	/** Grid of Semaphores (GOS) SMMU stream id */
+	/** Grid-of-Semaphores (GoS) SMMU stream id [1, 127] (non-safety) */
 	uint8_t gos_sid;
-	/** GOS index */
+	/**
+	 * Index into a table of GoS page base pointers (see @ref
+	 * capture_channel_config::vi_gos_tables) (non-safety)
+	 */
 	uint8_t gos_index;
-	/** GOS offset */
+	/** Offset of a semaphore within a Grid-of-Semaphores [0, 63] (non-safety) */
 	uint16_t gos_offset;
 	/** Reserved */
 	uint32_t pad_;
-	/** IOVA address of the Host1x syncpoint register */
+	/** IOVA address of the Host1x syncpoint register. Must be a multiple of 4. */
 	iova_t shim_addr;
 } syncpoint_info_t CAPTURE_IVC_ALIGN;
 
@@ -375,36 +378,38 @@ typedef struct syncpoint_info {
 #define CAPTURE_CHANNEL_FLAG_PLANAR		MK_U32(0x0004)
 /** Channel supports semi-planar YUV output */
 #define CAPTURE_CHANNEL_FLAG_SEMI_PLANAR	MK_U32(0x0008)
-/** Channel supports phase-detection auto-focus */
+/** Channel supports phase-detection auto-focus (non-safety) */
 #define CAPTURE_CHANNEL_FLAG_PDAF		MK_U32(0x0010)
 /** Channel outputs sensor embedded data */
 #define CAPTURE_CHANNEL_FLAG_EMBDATA		MK_U32(0x0040)
-/** Channel outputs to ISPA */
+/** Channel outputs to ISPA (deprecated, non-safety) */
 #define CAPTURE_CHANNEL_FLAG_ISPA		MK_U32(0x0080)
-/** Channel outputs to ISPB */
+/** Channel outputs to ISPB (deprecated, non-safety) */
 #define CAPTURE_CHANNEL_FLAG_ISPB		MK_U32(0x0100)
-/** Channel outputs directly to selected ISP (ISO mode) */
+/** Channel outputs directly to selected ISP (ISO mode) (deprecated, non-safety) */
 #define CAPTURE_CHANNEL_FLAG_ISP_DIRECT		MK_U32(0x0200)
 /** Channel outputs to software ISP (reserved) */
 #define CAPTURE_CHANNEL_FLAG_ISPSW		MK_U32(0x0400)
-/** Channel treats all errors as stop-on-error and requires reset for recovery.*/
+/** Channel treats all errors as stop-on-error and requires reset for recovery (non-safety)*/
 #define CAPTURE_CHANNEL_FLAG_RESET_ON_ERROR	MK_U32(0x0800)
 /** Channel has line timer enabled */
 #define CAPTURE_CHANNEL_FLAG_LINETIMER		MK_U32(0x1000)
-/** Channel supports SLVSEC sensors */
+/** Channel supports SLVSEC sensors (non-safety) */
 #define CAPTURE_CHANNEL_FLAG_SLVSEC		MK_U32(0x2000)
-/** Channel reports errors to HSM based on error_mask_correctable and error_mask_uncorrectable.*/
+/**
+ * Channel reports errors to System Error Handler based on
+ * @ref capture_channel_config::error_mask_correctable and
+ * @ref capture_channel_config::error_mask_uncorrectable.
+ */
 #define CAPTURE_CHANNEL_FLAG_ENABLE_HSM_ERROR_MASKS	MK_U32(0x4000)
-/** Capture with VI PFSD enabled */
+/** Capture with VI PFSD enabled (deprecated) */
 #define CAPTURE_CHANNEL_FLAG_ENABLE_VI_PFSD	MK_U32(0x8000)
 /** Channel binds to a CSI stream and channel */
 #define CAPTURE_CHANNEL_FLAG_CSI		MK_U32(0x10000)
-
-  /**@}*/
+/**@}*/
 
 /**
- * @defgroup CaptureChannelErrMask
- * Bitmask for masking "Uncorrected errors" and "Errors with threshold".
+ * @defgroup CaptureChannelErrMask VI error numbers
  */
 /**@{*/
 /** VI Frame start error timeout */
@@ -462,11 +467,14 @@ typedef struct syncpoint_info {
  * @brief Identifies a specific CSI stream.
  */
 struct csi_stream_config {
-	/** See @ref NvCsiStream "NVCSI stream id" */
+	/** See @ref NvCsiStream "NvCSI Stream ID" */
 	uint32_t stream_id;
-	/** See @ref NvCsiPort "NvCSI Port" */
+	/**
+	 * See @ref NvCsiPort "CSI Port". If the CSI port is specified,
+	 * the value must map correctly to the @ref stream_id value.
+	 */
 	uint32_t csi_port;
-	/** CSI Virtual Channel */
+	/** See @ref NvCsiVirtualChannel "CSI Virtual Channel". */
 	uint32_t virtual_channel;
 	/** Reserved */
 	uint32_t pad__;
@@ -480,10 +488,7 @@ struct capture_channel_config {
 	 * A bitmask describing the set of non-shareable
 	 * HW resources that the capture channel will need. These HW resources
 	 * will be assigned to the new capture channel and will be owned by the
-	 * channel until it is released with CAPTURE_CHANNEL_RELEASE_REQ.
-	 *
-	 * The HW resources that can be assigned to a channel include a VI
-	 * channel, ISPBUF A/B interface (T18x only), Focus Metric Lite module (FML).
+	 * channel until it is released with @ref CAPTURE_CHANNEL_RELEASE_REQ.
 	 *
 	 * VI channels can have different capabilities. The flags are checked
 	 * against the VI channel capabilities to make sure the allocated VI
@@ -496,131 +501,188 @@ struct capture_channel_config {
 	/** rtcpu internal data field - Should be set to zero */
 	uint32_t channel_id;
 
-	/** VI unit ID. See @ref ViUnitIds "VI Unit Identifiers". */
+	/** VI unit ID. See @ref ViUnitIds "VI Unit Identifiers" */
 	uint32_t vi_unit_id;
 
 	/** Reserved */
 	uint32_t pad__;
 
 	/**
-	 * A bitmask indicating which VI channels to consider for allocation. LSB is VI channel 0.
-	 * This allows the client to enforce allocation of HW VI channel in particular range for its own
-	 * purpose.
+	 * A bitmask indicating which VI hardware channels to consider for
+	 * allocation [0, 0xFFFFFFFFF]. LSB is VI channel 0.
 	 *
-	 * Beware that client VM may have restricted range of available VI channels.
+	 * Normal usage is to set all the bits, so as not to restrict the
+	 * channel allocation. Note that a client VM may also have additional
+	 * restrictions on the range of VI channels available to it.
 	 *
-	 * In most of the cases client can set to ~0ULL to let RTCPU to allocate any available channel
-	 * permitted for client VM.
-	 *
-	 * This mask is expected to be useful for following use-cases:
-	 * 1. Debugging functionality of particular HW VI channel.
-	 * 2. Verify that RTCPU enforces VI channel permissions defined in VM DT.
+	 * This control is provided for special use cases and for testing.
 	 */
 	uint64_t vi_channel_mask;
 
 	/**
-	 * A bitmask indicating which VI2 channels to consider for allocation. LSB is VI2 channel 0.
-	 * This allows the client to enforce allocation of HW VI channel in particular range for its own
-	 * purpose.
+	 * A bitmask indicating which VI2 hardware channels to consider for
+	 * allocation [0, 0xFFFFFFFFF]. LSB is VI2 channel 0.
 	 *
-	 * Beware that client VM may have restricted range of available VI2 channels.
+	 * Normal usage is to set all the bits, so as not to restrict the
+	 * channel allocation. Note that a client VM may also have additional
+	 * restrictions on the range of VI channels available to it.
 	 *
-	 * In most of the cases client can set to ~0ULL to let RTCPU to allocate any available channel
-	 * permitted for client VM.
-	 *
-	 * This mask is expected to be useful for following use-cases:
-	 * 1. Debugging functionality of particular HW VI2 channel.
-	 * 2. Verify that RTCPU enforces VI channel permissions defined in VM DT.
+	 * This control is provided for special use cases and for testing.
 	 */
 	uint64_t vi2_channel_mask;
 
 	/**
-	 * CSI stream configuration identifies the CSI stream input for this channel.
+	 * CSI stream configuration identifies the CSI stream input for
+	 * this channel.
 	 */
 	struct csi_stream_config csi_stream;
 
 	/**
-	 * Base address of a memory mapped ring buffer containing capture requests.
-	 * The size of the buffer is queue_depth * request_size
+	 * Base address of the @ref capture_descriptor ring buffer.
+	 * The size of the buffer is @ref queue_depth * @ref request_size.
+	 * The value must be non-zero and a multiple of
+	 * @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
 	 */
 	iova_t requests;
 
 	/**
-	 * Base address of a memory mapped ring buffer containing capture requests buffer
-	 * information.
-	 * The size of the buffer is queue_depth * request_memoryinfo_size
+	 * Base address of a memory mapped ring buffer containing capture
+	 * requests buffer information. The size of the buffer is @ref
+	 * queue_depth * @ref request_memoryinfo_size. The value must be
+	 * non-zero and a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
 	 */
 	iova_t requests_memoryinfo;
 
 	/**
-	 * Maximum number of capture requests in the requests queue.
-	 * Determines the size of the ring buffer.
+	 * Maximum number of capture requests in the requests queue [1, 240].
+	 * Determines the size of the @ref capture_descriptor ring buffer
+	 * (@ref requests).
 	 */
 	uint32_t queue_depth;
 
-	/** Size of the buffer reserved for each capture request. */
+	/**
+	 * Size of the buffer reserved for each capture descriptor. The size
+	 * must be >= sizeof(@ref capture_descriptor) and a multiple of
+	 * @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
+	 */
 	uint32_t request_size;
 
-	/** Size of the memoryinfo buffer reserved for each capture request. */
+	/**
+	 * Size of the memoryinfo buffer reserved for each capture request.
+	 * Must be >= sizeof(@ref capture_descriptor_memoryinfo) and
+	 * a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
+	 */
 	uint32_t request_memoryinfo_size;
 
 	/** Reserved */
 	uint32_t reserved2;
 
-	/** SLVS-EC main stream */
+	/** SLVS-EC main stream (non-safety) */
 	uint8_t slvsec_stream_main;
-	/** SLVS-EC sub stream */
+	/** SLVS-EC sub stream (non-safety) */
 	uint8_t slvsec_stream_sub;
 	/** Reserved */
 	uint16_t reserved1;
 
 #define HAVE_VI_GOS_TABLES
 	/**
-	 * GoS tables can only be programmed when there are no
-	 * active channels. For subsequent channels we check that
-	 * the channel configuration matches with the active
-	 * configuration.
-	 *
-	 * Number of Grid of Semaphores (GOS) tables
+	 * Number of elements in @ref vi_gos_tables array
+	 * [0, @ref VI_NUM_GOS_TABLES].
 	 */
 	uint32_t num_vi_gos_tables;
-	/** VI GOS tables */
-	iova_t vi_gos_tables[VI_NUM_GOS_TABLES];
-
-	/** Capture progress syncpoint info */
-	struct syncpoint_info progress_sp;
-	/** Embedded data syncpoint info */
-	struct syncpoint_info embdata_sp;
-	/** VI line timer syncpoint info */
-	struct syncpoint_info linetimer_sp;
-
 	/**
-	 * User-defined HSM error reporting policy is specified by error masks bits
+	 * Array of IOVA pointers to VI Grid-of-Semaphores (GoS) tables
+	 * (non-safety).
 	 *
-	 * CAPTURE_CHANNEL_FLAG_ENABLE_HSM_ERROR_MASKS must be set to enable these error masks,
-	 * otherwise default HSM reporting policy is used.
-	 *
-	 * VI-falcon reports error to EC/HSM as uncorrected if error is not masked
-	 * in "Uncorrected" mask.
-	 * VI-falcon reports error to EC/HSM as corrected if error is masked
-	 * in "Uncorrected" mask and not masked in "Errors with threshold" mask.
-	 * VI-falcon does not report error to EC/HSM if error masked
-	 * in both "Uncorrected" and "Errors with threshold" masks.
+	 * GoS table configuration, if present, must be the same on all
+	 * active channels. The IOVA addresses must be a multiple of 256.
 	 */
+	iova_t vi_gos_tables[VI_NUM_GOS_TABLES];
 	/**
-	 * Error mask for "uncorrected" errors. See @ref CaptureChannelErrMask "Channel Error bitmask".
-	 * There map to the uncorrected error line in HSM
+	 * Capture progress syncpoint information. The progress syncpoint
+	 * is incremented on Start-Of-Frame, whenever a slice of pixel
+	 * data has been written to memory, and finally when the status
+	 * of a capture has been written to memory. The same progress
+	 * syncpoint will keep incrementing for every consecutive capture
+	 * request.
+	 *
+	 * @ref syncpoint_info::threshold must be set to the initial
+	 * value of the hardware syncpoint on channel setup.
+	 **/
+	struct syncpoint_info progress_sp;
+	/**
+	 * Embedded data syncpoint information. The embedded data syncpoint
+	 * is incremented whenever the sensor embedded data for a captured
+	 * frame has been written to memory. The embedded data syncpoint
+	 * is optional and need not be specified if embedded data is not
+	 * being captured (see @ref vi_channel_config::embdata_enable).
+	 * The same embedded data syncpoint will keep incrementing for every
+	 * consecutive capture request.
+	 *
+	 * @ref syncpoint_info::threshold must be set to the initial
+	 * value of the hardware syncpoint on channel setup.
+	 **/
+	struct syncpoint_info embdata_sp;
+	/**
+	 * VI line timer syncpoint info. The line timer syncpoint is
+	 * incremented whenever the frame readout reaches a specified
+	 * line (see @ref vi_channel_config::line_timer,
+	 * @ref vi_channel_config::line_timer_first, and
+	 * @ref vi_channel_config::line_timer_periodic). The line timer
+	 * syncpoint is optional and need not be specified if line timer
+	 * is not enabled (see @ref vi_channel_config::line_timer_enable).
+	 * The same line timer syncpoint will keep incrementing for every
+	 * consecutive capture request.
+	 *
+	 * @ref syncpoint_info::threshold must be set to the initial
+	 * value of the hardware syncpoint on channel setup.
+	 **/
+	struct syncpoint_info linetimer_sp;
+	/**
+	 * Error mask for suppressing uncorrected safety errors (see @ref
+	 * CaptureChannelErrMask "VI error numbers"). If the mask is set to
+	 * zero, all VI errors will be reported as uncorrected safety errors.
+	 * If a specific error is masked by setting the corresponding bit
+	 * (1 << <em>error number</em>) in the error mask, the error will not
+	 * be reported as uncorrected. Note that the error may still be
+	 * reported as a corrected error unless it is also masked in
+	 * @ref error_mask_correctable.
+	 *
+	 * An uncorrected error will be interpreted by System Error Handler
+	 * as an indication that a camera is off-line and cannot continue
+	 * the capture.
+	 *
+	 * @ref CAPTURE_CHANNEL_FLAG_ENABLE_HSM_ERROR_MASKS must be set in
+	 * @ref channel_flags for this setting to take effect. Otherwise,
+	 * a default error mask will be used.
 	 */
 	uint32_t error_mask_uncorrectable;
 	/**
-	 * Error mask for "errors with threshold".
-	 * See @ref CaptureChannelErrMask "Channel Error bitmask".
-	 * These map to the corrected error line in HSM */
+	 * This error mask applies only to errors that are masked in @ref
+	 * error_mask_uncorrectable. By default, all such errors are reported
+	 * to System Error Handler as corrected. If a specific error is masked
+	 * in both this mask and in @ref error_mask_uncorrectable, by setting
+	 * the corresponding bit (1 << <em>error number</em>) in the error mask
+	 * (see @ref CaptureChannelErrMask "VI error numbers"), the error
+	 * will not be reported to System Error Handler at all.
+	 *
+	 * A corrected safety error will be interpreted by System Error Handler
+	 * as an indication that a single frame has been corrupted or dropped.
+	 *
+	 * @ref CAPTURE_CHANNEL_FLAG_ENABLE_HSM_ERROR_MASKS must be set in
+	 * @ref channel_flags for this setting to take effect. Otherwise,
+	 * a default error mask will be used.
+	 */
 	uint32_t error_mask_correctable;
-
 	/**
-	 * Capture will stop for errors selected in this bit masks.
-	 * Bit definitions are same as in CAPTURE_STATUS_NOTIFY_BIT_* macros.
+	 * When a capture error is detected, the capture channel will
+	 * enter an error state if the corresponding error bit
+	 * (1 << <em>error number</em>) is set in this bit mask
+	 * (see @ref ViNotifyErrorTag "Extended VI error numbers"
+	 * for the bit definitions).
+	 *
+	 * When the channel is in error state it will not accept any new
+	 * capture requests.
 	 */
 	uint64_t stop_on_error_notify_bits;
 
@@ -1066,8 +1128,7 @@ struct capture_status {
 	uint64_t notify_bits;
 
 	/**
-	 * @defgroup ViNotifyErrorTag
-	 * Error bit definitions for the @ref notify_bits field
+	 * @defgroup ViNotifyErrorTag Extended VI error bits for the @ref notify_bits field
 	 */
 	/** @{ */
 	/** Reserved */
@@ -1459,14 +1520,44 @@ struct event_inject_msg {
 	uint32_t data_ext;
 };
 
+/**
+ * @defgroup ViChanselErrMask VI CHANSEL error numbers
+ * @{
+ */
 #define VI_HSM_CHANSEL_ERROR_MASK_BIT_NOMATCH MK_U32(1)
+/** @} */
+
 /**
  * @brief VI EC/HSM global CHANSEL error masking
  */
 struct vi_hsm_chansel_error_mask_config {
-	/** "Errors with threshold" bit mask */
+	/**
+	 * This error mask applies only to errors that are masked in @ref
+	 * chansel_uncorrectable_mask. By default, all such errors are reported
+	 * to System Error Handler as corrected. If a specific error is masked
+	 * in both this mask and in @ref error_mask_uncorrectable, by setting
+	 * the corresponding bit (1 << <em>error number</em>) in the error mask
+	 * (see @ref ViChanselErrMask "VI CHANSEL error numbers"), the error
+	 * will not be reported to System Error Handler at all.
+	 *
+	 * A corrected safety error will be interpreted by System Error Handler
+	 * as an indication that a single frame has been corrupted or dropped.
+	 */
 	uint32_t chansel_correctable_mask;
-	/** "Uncorrected error" bit mask */
+	/**
+	 * Error mask for suppressing uncorrected safety errors (see @ref
+	 * ViChanselErrMask "VI CHANSEL error numbers"). If the mask is set
+	 * to zero, VI CHANSEL errors will be reported as uncorrected safety
+	 * errors. If a specific error is masked by setting the corresponding
+	 * bit (1 << <em>error number</em>) in the error mask, the error will
+	 * not be reported as uncorrected. Note that the error may still be
+	 * reported as a corrected error unless it is also masked in
+	 * @ref chansel_correctable_mask.
+	 *
+	 * An uncorrected error will be interpreted by System Error Handler
+	 * as an indication that a camera is off-line and cannot continue
+	 * the capture.
+	 */
 	uint32_t chansel_uncorrectable_mask;
 } CAPTURE_IVC_ALIGN;
 
@@ -1489,14 +1580,23 @@ struct vi_hsm_chansel_error_mask_config {
  * @defgroup NvCsiPort NvCSI Port
  * @{
  */
+/** Port A maps to @ref NVCSI_STREAM_0 */
 #define NVCSI_PORT_A		MK_U32(0x0)
+/** Port B maps to @ref NVCSI_STREAM_1 */
 #define NVCSI_PORT_B		MK_U32(0x1)
+/** Port C maps to @ref NVCSI_STREAM_2 */
 #define NVCSI_PORT_C		MK_U32(0x2)
+/** Port D maps to @ref NVCSI_STREAM_3 */
 #define NVCSI_PORT_D		MK_U32(0x3)
+/** Port E maps to @ref NVCSI_STREAM_4 */
 #define NVCSI_PORT_E		MK_U32(0x4)
+/** Port F maps to @ref NVCSI_STREAM_4 with a custom lane swizzle configuration */
 #define NVCSI_PORT_F		MK_U32(0x5)
+/** Port G maps to @ref NVCSI_STREAM_5 */
 #define NVCSI_PORT_G		MK_U32(0x6)
+/** Port H maps to @ref NVCSI_STREAM_5 with a custom lane swizzle configuration */
 #define NVCSI_PORT_H		MK_U32(0x7)
+/** Port not specified. */
 #define NVCSI_PORT_UNSPECIFIED	MK_U32(0xFFFFFFFF)
 /**@}*/
 
