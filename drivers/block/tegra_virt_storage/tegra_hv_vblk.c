@@ -1233,7 +1233,7 @@ static void setup_device(struct vblk_dev *vblkdev)
 #elif KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE
 	vblkdev->gd = __alloc_disk_node(vblkdev->queue, NUMA_NO_NODE, NULL);
 #else
-	vblkdev->gd = __alloc_disk_node(vblkdev->queue, NUMA_NO_NODE);
+	vblkdev->gd = __alloc_disk_node(VBLK_MINORS, NUMA_NO_NODE);
 #endif
 	if (!vblkdev->gd) {
 		dev_err(vblkdev->device, "alloc_disk failure\n");
