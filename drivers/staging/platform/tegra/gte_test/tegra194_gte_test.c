@@ -12,6 +12,7 @@
 #include <linux/tegra-gte.h>
 #include <linux/gpio.h>
 #include <linux/timer.h>
+#include <linux/of.h>
 
 /*
  * Sample GTE test driver demonstrating GTE API usage.
