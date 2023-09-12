@@ -79,7 +79,7 @@ static int lt6911uxc_start_streaming(struct tegracam_device *tc_dev)
 	struct camera_common_power_rail *pw = s_data->power;
 
 	if (pw->reset_gpio) {
-		if (gpio_cansleep(pw->reset_gpio))
+		if (gpiod_cansleep(gpio_to_desc(pw->reset_gpio)))
 			gpio_set_value_cansleep(pw->reset_gpio, 1);
 		else
 			gpio_set_value(pw->reset_gpio, 1);
@@ -93,7 +93,7 @@ static int lt6911uxc_stop_streaming(struct tegracam_device *tc_dev)
 	struct camera_common_power_rail *pw = s_data->power;
 
 	if (pw->reset_gpio) {
-		if (gpio_cansleep(pw->reset_gpio))
+		if (gpiod_cansleep(gpio_to_desc(pw->reset_gpio)))
 			gpio_set_value_cansleep(pw->reset_gpio, 0);
 		else
 			gpio_set_value(pw->reset_gpio, 0);
@@ -308,7 +308,7 @@ static int lt6911uxc_power_on(struct camera_common_data *s_data)
 	}
 
 	if (pw->reset_gpio) {
-		if (gpio_cansleep(pw->reset_gpio))
+		if (gpiod_cansleep(gpio_to_desc(pw->reset_gpio)))
 			gpio_set_value_cansleep(pw->reset_gpio, 0);
 		else
 			gpio_set_value(pw->reset_gpio, 0);
@@ -368,7 +368,7 @@ static int lt6911uxc_power_off(struct camera_common_data *s_data)
 		}
 	} else {
 		if (pw->reset_gpio) {
-			if (gpio_cansleep(pw->reset_gpio))
+			if (gpiod_cansleep(gpio_to_desc(pw->reset_gpio)))
 				gpio_set_value_cansleep(pw->reset_gpio, 0);
 			else
 				gpio_set_value(pw->reset_gpio, 0);

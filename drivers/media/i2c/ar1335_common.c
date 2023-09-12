@@ -771,7 +771,7 @@ static int mcu_bload_ascii2hex(unsigned char ascii)
 
 static void toggle_gpio(unsigned int gpio, int val)
 {
-	if (gpio_cansleep(gpio)) {
+	if (gpiod_cansleep(gpio_to_desc(gpio))) {
 		gpio_direction_output(gpio,val);
 		gpio_set_value_cansleep(gpio, val);
 	} else{

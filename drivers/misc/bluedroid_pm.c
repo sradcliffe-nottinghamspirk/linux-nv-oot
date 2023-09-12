@@ -113,7 +113,7 @@ static irqreturn_t bluedroid_pm_hostwake_isr(int irq, void *dev_id)
 
 static int bluedroid_pm_gpio_get_value(unsigned int gpio)
 {
-	if (gpio_cansleep(gpio))
+	if (gpiod_cansleep(gpio_to_desc(gpio)))
 		return gpio_get_value_cansleep(gpio);
 	else
 		return gpio_get_value(gpio);
@@ -121,7 +121,7 @@ static int bluedroid_pm_gpio_get_value(unsigned int gpio)
 
 static void bluedroid_pm_gpio_set_value(unsigned int gpio, int value)
 {
-	if (gpio_cansleep(gpio))
+	if (gpiod_cansleep(gpio_to_desc(gpio)))
 		gpiod_set_value_cansleep(gpio_to_desc(gpio), value);
 	else
 		gpiod_set_value(gpio_to_desc(gpio), value);

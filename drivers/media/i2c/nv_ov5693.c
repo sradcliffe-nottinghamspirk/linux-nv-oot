@@ -163,7 +163,7 @@ static void ov5693_gpio_set(struct camera_common_data *s_data,
 	if (pdata && pdata->use_cam_gpio)
 		cam_gpio_ctrl(s_data->dev, gpio, val, 1);
 	else {
-		if (gpio_cansleep(gpio))
+		if (gpiod_cansleep(gpio_to_desc(gpio)))
 			gpio_set_value_cansleep(gpio, val);
 		else
 			gpio_set_value(gpio, val);
