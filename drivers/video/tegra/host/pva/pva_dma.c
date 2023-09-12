@@ -740,21 +740,30 @@ validate_descriptor(const struct nvpva_dma_descriptor *desc,
 /* TODO: Need to handle DMA descriptor like dst2ptr and dst2Offset */
 static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 					   struct pva_hw_task *hw_task,
+					   uint num_descs,
+					   u8 *did,
 					   u8 *block_height_log2)
 {
 	struct nvpva_dma_descriptor *umd_dma_desc = NULL;
 	struct pva_dtd_s *dma_desc = NULL;
 	int32_t err = 0;
 	unsigned int desc_num;
+	unsigned int i;
 	uint32_t addr = 0U;
 	uint32_t size = 0;
 	bool is_misr;
-
+	u8 num_dma_descriptors = task->num_dma_descriptors;
+	u8 *num_dma_desc_processed = &task->num_dma_desc_processed;
 	nvpva_dbg_fn(task->pva, "");
 
-	task->special_access = 0;
+	desc_num = *did;
+	for (i = 0; (i < num_descs)
+		     && (*num_dma_desc_processed < num_dma_descriptors); i++, desc_num++) {
+		if (task->desc_processed & (1LLU << desc_num))
+			continue;
 
-	for (desc_num = 0U; desc_num < task->num_dma_descriptors; desc_num++) {
+		task->desc_processed |= (1LLU << desc_num);
+		++(*num_dma_desc_processed);
 		umd_dma_desc = &task->dma_descriptors[desc_num];
 		dma_desc = &hw_task->dma_desc[desc_num];
 		is_misr = !((task->dma_misr_config.descriptor_mask
@@ -832,6 +841,7 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 		}
 
 		dma_desc->link_did = umd_dma_desc->linkDescId;
+		*did = umd_dma_desc->linkDescId;
 
 		/* DMA_DESC_TX */
 		dma_desc->tx = umd_dma_desc->tx;
@@ -1918,9 +1928,7 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 	ch->cntl0 |= ((user_ch->adbSize & 0x1FFU) << 16U);
 
 	/* DMA_CHANNEL_CNTL0_CHBH */
-	if (block_height_log2 == U8_MAX) {
-		block_height_log2 = 0;
-	} else if (block_height_log2 > NVPVA_MAX_VALID_BLK_HGT_LG2) {
+	if (block_height_log2 > NVPVA_MAX_VALID_BLK_HGT_LG2) {
 		pr_err("ERR: Invalid block height");
 		err = -EINVAL;
 		goto out;
@@ -2004,12 +2012,16 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	u32 mask;
 	struct pva_dma_info_s *hw_task_dma_info;
 	u8 *desc_block_height_log2 = task->desc_block_height_log2;
+	u8 did;
+	u8 prev_did;
 
 	nvpva_dbg_fn(task->pva, "");
 
 	memset(task->desc_block_height_log2, U8_MAX, sizeof(task->desc_block_height_log2));
 	memset(task->hwseq_info, 0, sizeof(task->hwseq_info));
-
+	task->desc_processed = 0;
+	task->num_dma_desc_processed = 0;
+	task->special_access = 0;
 	hw_task_dma_info = &hw_task->dma_info_and_params_list.dma_info;
 
 	if (task->num_dma_descriptors == 0L || task->num_dma_channels == 0L) {
@@ -2063,10 +2075,8 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	hw_task_dma_info->num_descriptors = task->num_dma_descriptors;
 	hw_task_dma_info->descriptor_id = 1U; /* PVA_DMA_DESC0 */
 	task->desc_hwseq_frm = 0ULL;
-
 	for (i = 0; i < task->num_dma_channels; i++) {
 		struct nvpva_dma_channel *user_ch = &task->dma_channels[i];
-		struct nvpva_dma_descriptor *decriptors = task->dma_descriptors;
 
 		ch_num = i + 1; /* Channel 0 can't use */
 		err = nvpva_task_dma_channel_mapping(
@@ -2109,19 +2119,33 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 			(*trig) |= (((mask >> 16) & 1U) << (ch_num + 16U));
 		}
 
-		if ((user_ch->hwseqEnable == 0U)
-		&&  (user_ch->blockHeight != U8_MAX)) {
-			u8 did = user_ch->descIndex + 1U;
-			while ((did != 0U)
-			&& (desc_block_height_log2[did - 1U] == U8_MAX)) {
-				desc_block_height_log2[did - 1U] =
-						user_ch->blockHeight;
-				did = decriptors[did - 1U].linkDescId;
-			 }
+		if (user_ch->hwseqEnable == 1U)
+			continue;
+
+		did = user_ch->descIndex + 1U;
+		prev_did = 0;
+		while ((did != 0U) && (did != prev_did)) {
+			prev_did = did;
+			--did;
+			desc_block_height_log2[did] = user_ch->blockHeight;
+			err = nvpva_task_dma_desc_mapping(task,
+							  hw_task,
+							  1,
+							  &did,
+							  desc_block_height_log2);
+			if (err) {
+				task_err(task, "failed to map DMA desc info");
+				goto out;
+			}
 		}
 	}
 
-	err = nvpva_task_dma_desc_mapping(task, hw_task, desc_block_height_log2);
+	did = 0;
+	err = nvpva_task_dma_desc_mapping(task,
+					  hw_task,
+					  task->num_dma_descriptors,
+					  &did,
+					  desc_block_height_log2);
 	if (err) {
 		task_err(task, "failed to map DMA desc info");
 		goto out;
