@@ -8,9 +8,7 @@
 
 #include "mods_internal.h"
 
-#if KERNEL_VERSION(5, 4, 0) <= MODS_KERNEL_VERSION
 MODULE_IMPORT_NS(DMA_BUF);
-#endif
 
 static struct device *dummy_device;
 

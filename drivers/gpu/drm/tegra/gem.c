@@ -24,9 +24,7 @@
 #include "drm.h"
 #include "gem.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 MODULE_IMPORT_NS(DMA_BUF);
-#endif
 
 static unsigned int sg_dma_count_chunks(struct scatterlist *sgl, unsigned int nents)
 {
