@@ -10,6 +10,10 @@
 #include <linux/console.h>
 #include <linux/version.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+#include <linux/fb.h>
+#endif
+
 #include <drm/drm_fourcc.h>
 #include <drm/drm_framebuffer.h>
 #include <drm/drm_gem_framebuffer_helper.h>
@@ -208,12 +212,23 @@ static int tegra_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 	return __tegra_gem_mmap(&bo->gem, vma);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+FB_GEN_DEFAULT_DEFERRED_IO_OPS(tegra_fb,
+			       drm_fb_helper_damage_range,
+			       drm_fb_helper_damage_area)
+#endif
+
 static const struct fb_ops tegra_fb_ops = {
 	.owner = THIS_MODULE,
 	DRM_FB_HELPER_DEFAULT_OPS,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+	__FB_DEFAULT_DEFERRED_OPS_RDWR(tegra_fb),
+	__FB_DEFAULT_DEFERRED_OPS_DRAW(tegra_fb),
+#else
 	.fb_fillrect = drm_fb_helper_sys_fillrect,
 	.fb_copyarea = drm_fb_helper_sys_copyarea,
 	.fb_imageblit = drm_fb_helper_sys_imageblit,
+#endif
 	.fb_mmap = tegra_fb_mmap,
 };
 
