@@ -18,6 +18,7 @@
 #include <linux/reset.h>
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 
 #include "falcon.h"
 
@@ -703,7 +704,11 @@ static void nvhost_intr_do_work(struct work_struct *work)
 
 	host1x_cb = container_of(work, struct nvhost_host1x_cb, work);
 	host1x_cb->notifier(host1x_cb->notifier_data);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0))
+	kfree_rcu_mightsleep(host1x_cb);
+#else
 	kfree_rcu(host1x_cb);
+#endif
 }
 
 int nvhost_intr_register_notifier(struct platform_device *pdev,
