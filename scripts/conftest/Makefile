@@ -1,5 +1,8 @@
 ###########################################################################
-# Kbuild file for NVIDIA Linux GPU driver kernel modules
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Makefile file for NVIDIA Linux conftest
 ###########################################################################
 
 #
