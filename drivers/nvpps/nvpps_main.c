@@ -12,7 +12,6 @@
  *
  */
 
-
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/interrupt.h>
@@ -975,11 +974,7 @@ static int nvpps_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	err = of_get_gpio(np, 0);
-#else
 	err = of_get_named_gpio(np, "gpios", 0);
-#endif
 	if (err == -EPROBE_DEFER) {
 		return err;
 	} else if (err < 0) {
