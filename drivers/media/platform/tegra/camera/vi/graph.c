@@ -76,7 +76,12 @@ static int tegra_vi_graph_build_one(struct tegra_channel *chan,
 
 		dev_dbg(chan->vi->dev, "processing endpoint %pOF\n",
 				ep);
+#if defined(CONFIG_V4L2_FWNODE)
 		ret = v4l2_fwnode_parse_link(of_fwnode_handle(ep), &link);
+#else
+		dev_err(chan->vi->dev, "CONFIG_V4L2_FWNODE not enabled!\n");
+		ret = -ENOTSUPP;
+#endif
 		if (ret < 0) {
 			dev_err(chan->vi->dev,
 			"failed to parse link for %pOF\n", ep);
@@ -87,7 +92,9 @@ static int tegra_vi_graph_build_one(struct tegra_channel *chan,
 			dev_err(chan->vi->dev,
 				"invalid port number %u for %pOF\n",
 				link.local_port, to_of_node(link.local_node));
+#if defined(CONFIG_V4L2_FWNODE)
 			v4l2_fwnode_put_link(&link);
+#endif
 			ret = -EINVAL;
 			break;
 		}
@@ -100,7 +107,9 @@ static int tegra_vi_graph_build_one(struct tegra_channel *chan,
 		if (local_pad->flags & MEDIA_PAD_FL_SINK) {
 			dev_dbg(chan->vi->dev, "skipping sink port %pOF:%u\n",
 				to_of_node(link.local_node), link.local_port);
+#if defined(CONFIG_V4L2_FWNODE)
 			v4l2_fwnode_put_link(&link);
+#endif
 			continue;
 		}
 
@@ -108,7 +117,9 @@ static int tegra_vi_graph_build_one(struct tegra_channel *chan,
 		if (link.remote_node == of_fwnode_handle(chan->vi->dev->of_node)) {
 			dev_dbg(chan->vi->dev, "skipping channel port %pOF:%u\n",
 				to_of_node(link.local_node), link.local_port);
+#if defined(CONFIG_V4L2_FWNODE)
 			v4l2_fwnode_put_link(&link);
+#endif
 			continue;
 		}
 
@@ -117,7 +128,9 @@ static int tegra_vi_graph_build_one(struct tegra_channel *chan,
 		if (ent == NULL) {
 			dev_err(chan->vi->dev, "no entity found for %pOF\n",
 				to_of_node(link.remote_node));
+#if defined(CONFIG_V4L2_FWNODE)
 			v4l2_fwnode_put_link(&link);
+#endif
 			ret = -EINVAL;
 			break;
 		}
@@ -127,14 +140,18 @@ static int tegra_vi_graph_build_one(struct tegra_channel *chan,
 		if (link.remote_port >= remote->num_pads) {
 			dev_err(chan->vi->dev, "invalid port number %u on %pOF\n",
 				link.remote_port, to_of_node(link.remote_node));
+#if defined(CONFIG_V4L2_FWNODE)
 			v4l2_fwnode_put_link(&link);
+#endif
 			ret = -EINVAL;
 			break;
 		}
 
 		remote_pad = &remote->pads[link.remote_port];
 
+#if defined(CONFIG_V4L2_FWNODE)
 		v4l2_fwnode_put_link(&link);
+#endif
 
 		/* Create the media link. */
 		dev_dbg(chan->vi->dev, "creating %s:%u -> %s:%u link\n",
@@ -176,17 +193,24 @@ static int tegra_vi_graph_build_links(struct tegra_channel *chan)
 	ep = chan->endpoint_node;
 
 	dev_dbg(chan->vi->dev, "processing endpoint %pOF\n", ep);
+#if defined(CONFIG_V4L2_FWNODE)
 	ret = v4l2_fwnode_parse_link(of_fwnode_handle(ep), &link);
+#else
+	dev_err(chan->vi->dev, "CONFIG_V4L2_FWNODE not enabled!\n");
+	ret = -ENOTSUPP;
+#endif
 	if (ret < 0) {
 		dev_err(chan->vi->dev, "failed to parse link for %pOF\n",
 			ep);
-		return -EINVAL;
+		return ret;
 	}
 
 	if (link.local_port >= chan->vi->num_channels) {
 		dev_err(chan->vi->dev, "wrong channel number for port %u\n",
 			link.local_port);
+#if defined(CONFIG_V4L2_FWNODE)
 		v4l2_fwnode_put_link(&link);
+#endif
 		return  -EINVAL;
 	}
 
@@ -205,7 +229,9 @@ static int tegra_vi_graph_build_links(struct tegra_channel *chan)
 	if (ent->entity == NULL) {
 		dev_err(chan->vi->dev, "entity not bounded %pOF\n",
 			to_of_node(link.remote_node));
+#if defined(CONFIG_V4L2_FWNODE)
 		v4l2_fwnode_put_link(&link);
+#endif
 		return -EINVAL;
 	}
 
@@ -214,7 +240,9 @@ static int tegra_vi_graph_build_links(struct tegra_channel *chan)
 	sink = &chan->video->entity;
 	sink_pad = &chan->pad;
 
+#if defined(CONFIG_V4L2_FWNODE)
 	v4l2_fwnode_put_link(&link);
+#endif
 
 	/* Create the media link. */
 	dev_dbg(chan->vi->dev, "creating %s:%u -> %s:%u link\n",
@@ -382,10 +410,12 @@ void tegra_vi_graph_cleanup(struct tegra_mc_vi *vi)
 	struct tegra_channel *chan;
 
 	list_for_each_entry(chan, &vi->vi_chans, list) {
+#if defined(CONFIG_V4L2_ASYNC)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 		v4l2_async_notifier_unregister(&chan->notifier);
 #else
 		v4l2_async_nf_unregister(&chan->notifier);
+#endif
 #endif
 		list_for_each_entry_safe(entity, entityp,
 					&chan->entities, list) {
@@ -613,6 +643,7 @@ int tegra_vi_graph_init(struct tegra_mc_vi *vi)
 		num_subdevs = chan->num_subdevs;
 
 		i = 0;
+#if defined(CONFIG_V4L2_ASYNC)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 		v4l2_async_notifier_init(&chan->notifier);
 		list_for_each_entry(entity, &chan->entities, list)
@@ -633,6 +664,10 @@ int tegra_vi_graph_init(struct tegra_mc_vi *vi)
 #else
 		ret = v4l2_async_nf_register(&vi->v4l2_dev,
 					&chan->notifier);
+#endif
+#else
+		dev_err(vi->dev, "CONFIG_V4L2_ASYNC is not enabled!\n");
+		ret = -ENOTSUPP;
 #endif
 		if (ret < 0) {
 			dev_err(vi->dev, "notifier registration failed\n");

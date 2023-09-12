@@ -229,7 +229,11 @@ int tegracam_v4l2subdev_register(struct tegracam_device *tc_dev,
 	}
 #endif
 
+#if defined(CONFIG_V4L2_ASYNC)
 	return v4l2_async_register_subdev(sd);
+#else
+	return -ENOTSUPP;
+#endif
 }
 EXPORT_SYMBOL_GPL(tegracam_v4l2subdev_register);
 
@@ -244,7 +248,9 @@ void tegracam_v4l2subdev_unregister(struct tegracam_device *tc_dev)
 	sd = &s_data->subdev;
 
 	v4l2_ctrl_handler_free(s_data->ctrl_handler);
+#if defined(CONFIG_V4L2_ASYNC)
 	v4l2_async_unregister_subdev(sd);
+#endif
 #if IS_ENABLED(CONFIG_MEDIA_CONTROLLER)
 	media_entity_cleanup(&sd->entity);
 #endif

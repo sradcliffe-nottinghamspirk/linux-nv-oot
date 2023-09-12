@@ -2757,9 +2757,14 @@ static int cam_probe(struct i2c_client *client,
 	}
 #endif
 
+#if defined(CONFIG_V4L2_ASYNC)
 	err = v4l2_async_register_subdev(priv->subdev);
 	if (err)
 		goto exit;
+#else
+	dev_err(&client->dev, "CONFIG_V4L2_ASYNC not enabled!\n");
+	return -ENOTSUPP;
+#endif
 
 	dev_info(&client->dev, "Detected ar1335 sensor\n");
 
@@ -2832,7 +2837,9 @@ static void cam_remove(struct i2c_client *client)
 		return;
 #endif
 
+#if defined(CONFIG_V4L2_ASYNC)
 	v4l2_async_unregister_subdev(priv->subdev);
+#endif
 #if defined(CONFIG_MEDIA_CONTROLLER)
 	media_entity_cleanup(&priv->subdev->entity);
 #endif

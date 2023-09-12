@@ -56,10 +56,15 @@ int tegra_vb2_dma_init(struct device *dev, void **alloc_ctx,
 	if (atomic_inc_return(refcount) > 1)
 		return 0;
 
+#if defined(CONFIG_VIDEOBUF2_DMA_CONTIG)
 	if (vb2_dma_contig_set_max_seg_size(dev, SZ_64K)) {
 		dev_err(dev, "failed to init vb2 buffer\n");
 		ret = -ENOMEM;
 	}
+#else
+	dev_err(dev, "CONFIG_VIDEOBUF2_DMA_CONTIG is not enabled!\n");
+	ret = -ENOTSUPP;
+#endif
 	return ret;
 }
 EXPORT_SYMBOL(tegra_vb2_dma_init);

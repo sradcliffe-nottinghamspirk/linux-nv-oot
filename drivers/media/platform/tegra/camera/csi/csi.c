@@ -940,11 +940,16 @@ static int tegra_csi_channel_init_one(struct tegra_csi_channel *chan)
 	}
 
 	if (!chan->pg_mode) {
+#if defined(CONFIG_V4L2_ASYNC)
 		ret = v4l2_async_register_subdev(sd);
 		if (ret < 0) {
 			dev_err(csi->dev, "failed to register subdev\n");
 			media_entity_cleanup(&sd->entity);
 		}
+#else
+		dev_err(csi->dev, "CONFIG_V4L2_ASYNC not enabled!\n");
+		return -ENOTSUPP;
+#endif
 	}
 	return ret;
 }
@@ -1151,7 +1156,9 @@ int tegra_csi_media_controller_remove(struct tegra_csi_device *csi)
 
 	list_for_each_entry(chan, &csi->csi_chans, list) {
 		sd = &chan->subdev;
+#if defined(CONFIG_V4L2_ASYNC)
 		v4l2_async_unregister_subdev(sd);
+#endif
 		media_entity_cleanup(&sd->entity);
 	}
 	return 0;
