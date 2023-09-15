@@ -65,10 +65,17 @@ struct tegra_wmark_data {
 
 static int devfreq_get_freq_index(struct devfreq *df, unsigned long freq)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+	unsigned long *freq_table = df->profile->freq_table;
+	unsigned int max_state = df->profile->max_state;
+#else
+	unsigned long *freq_table = df->freq_table;
+	unsigned int max_state = df->max_state;
+#endif
 	int i;
 
-	for (i = 0; i < df->profile->max_state; i++) {
-		if (df->profile->freq_table[i] >= freq)
+	for (i = 0; i < max_state; i++) {
+		if (freq_table[i] >= freq)
 			break;
 	}
 
@@ -79,6 +86,13 @@ static int devfreq_tegra_wmark_target_freq(struct devfreq *df, unsigned long *fr
 {
 	struct tegra_wmark_data *govdata = df->governor_data;
 	struct devfreq_tegra_wmark_data *drvdata = df->data;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+	unsigned long *freq_table = df->profile->freq_table;
+	unsigned int max_state = df->profile->max_state;
+#else
+	unsigned long *freq_table = df->freq_table;
+	unsigned int max_state = df->max_state;
+#endif
 	int target_index = 0;
 
 	switch (drvdata->event) {
@@ -86,21 +100,21 @@ static int devfreq_tegra_wmark_target_freq(struct devfreq *df, unsigned long *fr
 		target_index = max_t(int, 0, govdata->curr_freq_index-1);
 		break;
 	case DEVFREQ_TEGRA_AVG_WMARK_ABOVE:
-		target_index = min_t(int, df->profile->max_state-1, govdata->curr_freq_index+1);
+		target_index = min_t(int, max_state-1, govdata->curr_freq_index+1);
 		break;
 	case DEVFREQ_TEGRA_CONSEC_WMARK_BELOW:
 		target_index = max_t(int, 0, govdata->curr_freq_index-govdata->down_freq_margin);
 		break;
 	case DEVFREQ_TEGRA_CONSEC_WMARK_ABOVE:
 		target_index = min_t(int,
-				     df->profile->max_state-1,
+				     max_state-1,
 				     govdata->curr_freq_index + govdata->up_freq_margin);
 		break;
 	default:
 		break;
 	}
 
-	*freq = df->profile->freq_table[target_index];
+	*freq = freq_table[target_index];
 
 	return 0;
 }
@@ -162,6 +176,11 @@ static void devfreq_update_wmark_threshold(struct devfreq *df)
 	struct devfreq_tegra_wmark_data *drvdata = df->data;
 	struct devfreq_tegra_wmark_config wmark_config;
 	unsigned long curr_freq, prev_freq, min_freq, max_freq;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+	unsigned long *freq_table = df->profile->freq_table;
+#else
+	unsigned long *freq_table = df->freq_table;
+#endif
 	int err;
 
 	devfreq_get_freq_range(df, &min_freq, &max_freq);
@@ -172,7 +191,7 @@ static void devfreq_update_wmark_threshold(struct devfreq *df)
 
 	govdata->curr_freq_index = devfreq_get_freq_index(df, df->last_status.current_frequency);
 
-	curr_freq = df->profile->freq_table[govdata->curr_freq_index];
+	curr_freq = freq_table[govdata->curr_freq_index];
 
 	if (curr_freq < max_freq) {
 		wmark_config.avg_upper_wmark = curr_freq / 1000 * govdata->load_target;
@@ -184,9 +203,9 @@ static void devfreq_update_wmark_threshold(struct devfreq *df)
 
 	if (curr_freq > min_freq) {
 		prev_freq = max_t(unsigned long,
-				  df->profile->freq_table[max_t(int,
-								govdata->curr_freq_index-1,
-								0)],
+				  freq_table[max_t(int,
+						   govdata->curr_freq_index-1,
+						   0)],
 				  min_freq);
 		wmark_config.avg_lower_wmark = prev_freq / 1000 * govdata->load_target;
 		wmark_config.consec_lower_wmark = wmark_config.avg_lower_wmark
@@ -206,13 +225,18 @@ static ssize_t up_freq_margin_store(struct device *dev,
 	struct devfreq *df = to_devfreq(dev);
 	struct tegra_wmark_data *govdata;
 	unsigned int freq_margin;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+	unsigned int max_state = df->profile->max_state;
+#else
+	unsigned int max_state = df->max_state;
+#endif
 	int ret;
 
 	ret = kstrtouint(buf, 0, &freq_margin);
 	if (ret)
 		return ret;
 
-	freq_margin = min_t(unsigned int, freq_margin, df->profile->max_state);
+	freq_margin = min_t(unsigned int, freq_margin, max_state);
 
 	mutex_lock(&df->lock);
 	govdata = df->governor_data;
@@ -246,13 +270,18 @@ static ssize_t down_freq_margin_store(struct device *dev,
 	struct devfreq *df = to_devfreq(dev);
 	struct tegra_wmark_data *govdata;
 	unsigned int freq_margin;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+	unsigned int max_state = df->profile->max_state;
+#else
+	unsigned int max_state = df->max_state;
+#endif
 	int ret;
 
 	ret = kstrtouint(buf, 0, &freq_margin);
 	if (ret)
 		return ret;
 
-	freq_margin = min_t(unsigned int, freq_margin, df->profile->max_state);
+	freq_margin = min_t(unsigned int, freq_margin, max_state);
 
 	mutex_lock(&df->lock);
 	govdata = df->governor_data;
