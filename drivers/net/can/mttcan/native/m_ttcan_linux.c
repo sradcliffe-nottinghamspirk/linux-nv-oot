@@ -1251,17 +1251,6 @@ static int mttcan_power_up(struct mttcan_priv *priv)
 	int level;
 	mttcan_pm_runtime_get_sync(priv);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	if (gpio_is_valid(priv->gpio_can_stb.gpio)) {
-		level = !priv->gpio_can_stb.active_low;
-		gpio_direction_output(priv->gpio_can_stb.gpio, level);
-	}
-
-	if (gpio_is_valid(priv->gpio_can_en.gpio)) {
-		level = !priv->gpio_can_en.active_low;
-		gpio_direction_output(priv->gpio_can_en.gpio, level);
-	}
-#else
 	if (priv->gpio_can_stb.gpio) {
 		level = !priv->gpio_can_stb.active_low;
 		gpiod_direction_output(priv->gpio_can_stb.gpio, level);
@@ -1271,7 +1260,7 @@ static int mttcan_power_up(struct mttcan_priv *priv)
 		level = !priv->gpio_can_en.active_low;
 		gpiod_direction_output(priv->gpio_can_en.gpio, level);
 	}
-#endif
+
 	return ttcan_set_power(priv->ttcan, 1);
 }
 
@@ -1283,17 +1272,6 @@ static int mttcan_power_down(struct net_device *dev)
 	if (ttcan_set_power(priv->ttcan, 0))
 		return -ETIMEDOUT;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	if (gpio_is_valid(priv->gpio_can_stb.gpio)) {
-		level = priv->gpio_can_stb.active_low;
-		gpio_direction_output(priv->gpio_can_stb.gpio, level);
-	}
-
-	if (gpio_is_valid(priv->gpio_can_en.gpio)) {
-		level = priv->gpio_can_en.active_low;
-		gpio_direction_output(priv->gpio_can_en.gpio, level);
-	}
-#else
 	if (priv->gpio_can_stb.gpio) {
 		level = priv->gpio_can_stb.active_low;
 		gpiod_direction_output(priv->gpio_can_stb.gpio, level);
@@ -1303,7 +1281,6 @@ static int mttcan_power_down(struct net_device *dev)
 		level = priv->gpio_can_en.active_low;
 		gpiod_direction_output(priv->gpio_can_en.gpio, level);
 	}
-#endif
 
 	mttcan_pm_runtime_put_sync(priv);
 
@@ -1729,9 +1706,6 @@ static int mttcan_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	int irq = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	enum of_gpio_flags flags;
-#endif
 	void __iomem *regs = NULL, *xregs = NULL;
 	void __iomem *mram_addr = NULL;
 	struct net_device *dev;
@@ -1812,21 +1786,12 @@ static int mttcan_probe(struct platform_device *pdev)
 		goto exit_free_device;
 
 	/* set device-tree properties */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 	priv->gpio_can_en.gpio = devm_gpiod_get_optional(&pdev->dev,
 					"gpio_can_en", 0);
 	priv->gpio_can_en.active_low = GPIOD_OUT_LOW;
 	priv->gpio_can_stb.gpio = devm_gpiod_get_optional(&pdev->dev,
 					"gpio_can_stb", 0);
 	priv->gpio_can_stb.active_low = GPIOD_OUT_LOW;
-#else
-	priv->gpio_can_en.gpio = of_get_named_gpio_flags(np,
-					"gpio_can_en", 0, &flags);
-	priv->gpio_can_en.active_low = flags & OF_GPIO_ACTIVE_LOW;
-	priv->gpio_can_stb.gpio = of_get_named_gpio_flags(np,
-					"gpio_can_stb", 0, &flags);
-	priv->gpio_can_stb.active_low = flags & OF_GPIO_ACTIVE_LOW;
-#endif
 	priv->instance = of_alias_get_id(np, "mttcan");
 	priv->poll = of_property_read_bool(np, "use-polling");
 
@@ -1849,24 +1814,6 @@ static int mttcan_probe(struct platform_device *pdev)
 		dev_err(priv->device, "mram-param missing\n");
 		goto exit_free_device;
 	}
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	if (gpio_is_valid(priv->gpio_can_stb.gpio)) {
-		if (devm_gpio_request(priv->device, priv->gpio_can_stb.gpio,
-			"gpio_can_stb") < 0) {
-			dev_err(priv->device, "stb gpio request failed\n");
-			goto exit_free_device;
-		}
-	}
-	if (gpio_is_valid(priv->gpio_can_en.gpio)) {
-		if (devm_gpio_request(priv->device, priv->gpio_can_en.gpio,
-			"gpio_can_en") < 0) {
-			dev_err(priv->device, "stb gpio request failed\n");
-			goto exit_free_device;
-		}
-	}
-#endif
-
 
 	/* allocate controller struct memory and set fields */
 	priv->ttcan =

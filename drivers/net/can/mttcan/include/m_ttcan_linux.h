@@ -76,11 +76,7 @@ struct tegra_mttcan_soc_info {
 };
 
 struct can_gpio {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	int gpio;
-#else
 	struct gpio_desc *gpio;
-#endif
 	int active_low;
 };
 
