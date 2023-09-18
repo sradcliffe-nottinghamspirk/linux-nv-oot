@@ -4,6 +4,8 @@
  * Junction temperature thermal driver for Maxim Max77851.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <linux/mfd/max77851.h>
@@ -13,7 +15,6 @@
 #include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/thermal.h>
-#include <linux/version.h>
 
 #include <linux/of_device.h>
 
@@ -43,16 +44,16 @@ struct max77851_therm_info {
 	int				irq_tjalarm2;
 };
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
-static int max77851_thermal_read_temp(void *data, int *temp)
-#else
+#if defined(NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT)
 static int max77851_thermal_read_temp(struct thermal_zone_device *data, int *temp)
+#else
+static int max77851_thermal_read_temp(void *data, int *temp)
 #endif
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
-	struct max77851_therm_info *thermal = data;
-#else
+#if defined(NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT)
 	struct max77851_therm_info *thermal = data->devdata;
+#else
+	struct max77851_therm_info *thermal = data;
 #endif
 	unsigned int val;
 	int ret;
@@ -74,10 +75,10 @@ static int max77851_thermal_read_temp(struct thermal_zone_device *data, int *tem
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
-static const struct thermal_zone_of_device_ops max77851_thermal_ops = {
-#else
+#if defined(NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT)
 static const struct thermal_zone_device_ops max77851_thermal_ops = {
+#else
+static const struct thermal_zone_of_device_ops max77851_thermal_ops = {
 #endif
 	.get_temp = max77851_thermal_read_temp,
 };
@@ -166,11 +167,11 @@ static int max77851_thermal_probe(struct platform_device *pdev)
 
 	max77851_thermal_init(thermal);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
-	thermal->tz_device = devm_thermal_zone_of_sensor_register(&pdev->dev, 0,
+#if defined(NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT)
+	thermal->tz_device = devm_thermal_of_zone_register(&pdev->dev, 0,
 				thermal, &max77851_thermal_ops);
 #else
-	thermal->tz_device = devm_thermal_of_zone_register(&pdev->dev, 0,
+	thermal->tz_device = devm_thermal_zone_of_sensor_register(&pdev->dev, 0,
 				thermal, &max77851_thermal_ops);
 #endif
 	if (IS_ERR(thermal->tz_device)) {

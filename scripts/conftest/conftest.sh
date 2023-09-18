@@ -6293,6 +6293,23 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_CRYPTO_PRESENT" "" "symbols"
         ;;
 
+        devm_thermal_of_zone_register)
+            #
+            # Determine whether devm_thermal_of_zone_register is present.
+            #
+            # devm_thermal_of_zone_register was added in commit 3fd6d6e2b4e8
+            # ("thermal/of: Rework the thermal device tree initialization") in
+            # v6.1 (2022-08-17)
+            #
+            CODE="
+            #include <linux/thermal.h>
+            void conftest_devm_thermal_of_zone_register(void) {
+                devm_thermal_of_zone_register();
+            }"
+
+            compile_check_conftest "$CODE" "NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT" "" "functions"
+        ;;
+
         # When adding a new conftest entry, please use the correct format for
         # specifying the relevant upstream Linux kernel commit.
         #
