@@ -742,6 +742,7 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 					   struct pva_hw_task *hw_task,
 					   uint num_descs,
 					   u8 *did,
+					   u8 *bl_xfers_in_use,
 					   u8 *block_height_log2)
 {
 	struct nvpva_dma_descriptor *umd_dma_desc = NULL;
@@ -785,6 +786,10 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 					     block_height_log2[desc_num]);
 		if (err)
 			goto out;
+
+		/* return flag if block linear format is in use */
+		if ((umd_dma_desc->srcFormat == 1) || (umd_dma_desc->dstFormat == 1))
+			*bl_xfers_in_use |= 1;
 
 		/* DMA_DESC_TRANS CNTL0 */
 		dma_desc->transfer_control0 =
@@ -926,7 +931,9 @@ static int
 verify_dma_desc_hwseq(struct pva_submit_task *task,
 		     struct nvpva_dma_channel *user_ch,
 		     struct pva_hw_sweq_blob_s *blob,
-		     u32 did)
+		     u32 did,
+		     u16 mode,
+		     u8 *bl_xfers_in_use)
 {
 	int err = 0;
 	u64 *desc_hwseq_frm = &task->desc_hwseq_frm;
@@ -943,14 +950,19 @@ verify_dma_desc_hwseq(struct pva_submit_task *task,
 
 	did = array_index_nospec((did - 1),
 				 NVPVA_TASK_MAX_DMA_DESCRIPTORS);
+	desc = &task->dma_descriptors[did];
+
+	/* return flag if block linear format is in use */
+	if ((desc->srcFormat == 1)
+	|| (desc->dstFormat == 1))
+		*bl_xfers_in_use |= 1;
+	if (is_desc_mode(mode))
+		goto out;
 
 	if ((*desc_hwseq_frm & (1ULL << did)) != 0ULL)
 		goto out;
 
 	*desc_hwseq_frm |= (1ULL << did);
-
-	desc = &task->dma_descriptors[did];
-
 	if ((desc->px != 0U)
 	 || (desc->py != 0U)
 	 || (desc->descReloadEnable != 0U)) {
@@ -1712,8 +1724,8 @@ verify_hwseq_blob(struct pva_submit_task *task,
 		  struct nvpva_dma_channel *user_ch,
 		  struct nvpva_dma_descriptor *decriptors,
 		  uint8_t *hwseqbuf_cpuva,
+		  u8 *bl_xfers_in_use,
 		  int8_t ch_num)
-
 {
 	struct pva_hw_sweq_blob_s *blob;
 	struct pva_hwseq_desc_header_s *blob_desc;
@@ -1762,17 +1774,16 @@ verify_hwseq_blob(struct pva_submit_task *task,
 		goto out;
 	}
 
-	if (is_desc_mode(blob->f_header.fid)) {
-		if (task->hwseq_config.hwseqTrigMode == NVPVA_HWSEQTM_DMATRIG) {
-			pr_err("dma master not allowed");
-			err = -EINVAL;
-		}
-
+	if ((!is_desc_mode(blob->f_header.fid))
+	  && !is_frame_mode(blob->f_header.fid)) {
+		pr_err("invalid addressing mode");
+		err = -EINVAL;
 		goto out;
 	}
 
-	if (!is_frame_mode(blob->f_header.fid)) {
-		pr_err("invalid addressing mode");
+	if ((is_desc_mode(blob->f_header.fid))
+	  && task->hwseq_config.hwseqTrigMode == NVPVA_HWSEQTM_DMATRIG) {
+		pr_err("dma master not allowed");
 		err = -EINVAL;
 		goto out;
 	}
@@ -1796,7 +1807,9 @@ verify_hwseq_blob(struct pva_submit_task *task,
 			     "n_descs=%d, n_entries=%d",
 			     num_descriptors,
 			     num_desc_entries);
-		if (num_descriptors > PVA_HWSEQ_DESC_LIMIT) {
+
+		if ((is_frame_mode(blob->f_header.fid))
+		  && (num_descriptors > PVA_HWSEQ_DESC_LIMIT)) {
 			pr_err("number of descriptors is greater than %d",
 				PVA_HWSEQ_DESC_LIMIT);
 			err = -EINVAL;
@@ -1819,7 +1832,10 @@ verify_hwseq_blob(struct pva_submit_task *task,
 			err = verify_dma_desc_hwseq(task,
 						    user_ch,
 						    blob,
-						    blob_desc->did1);
+						    blob_desc->did1,
+						    blob->f_header.fid,
+						    bl_xfers_in_use);
+
 			if (err) {
 				pr_err("seq descriptor 1 verification failed");
 				goto out;
@@ -1827,13 +1843,16 @@ verify_hwseq_blob(struct pva_submit_task *task,
 
 			did = array_index_nospec((blob_desc->did1 - 1U),
 						  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
-			desc_entries[k].did = did;
-			desc_entries[k].dr = blob_desc->dr1;
-			hwseq_info->tiles_per_packet += (blob_desc->dr1 + 1U);
-			nvpva_dbg_fn(task->pva,
-				     "tiles per packet=%d",
-				     hwseq_info->tiles_per_packet);
 			desc_block_height_log2[did] = user_ch->blockHeight;
+			if (!is_desc_mode(blob->f_header.fid)) {
+				desc_entries[k].did = did;
+				desc_entries[k].dr = blob_desc->dr1;
+				hwseq_info->tiles_per_packet += (blob_desc->dr1 + 1U);
+				nvpva_dbg_fn(task->pva,
+					     "tiles per packet=%d",
+					     hwseq_info->tiles_per_packet);
+			}
+
 			++k;
 			if (k >= num_descriptors) {
 				++blob_desc;
@@ -1843,7 +1862,10 @@ verify_hwseq_blob(struct pva_submit_task *task,
 			err = verify_dma_desc_hwseq(task,
 						    user_ch,
 						    blob,
-						    blob_desc->did2);
+						    blob_desc->did2,
+						    blob->f_header.fid,
+						    bl_xfers_in_use);
+
 			if (err) {
 				pr_err("seq descriptor 2 verification failed");
 				goto out;
@@ -1851,13 +1873,16 @@ verify_hwseq_blob(struct pva_submit_task *task,
 
 			did = array_index_nospec((blob_desc->did2 - 1U),
 						  NVPVA_TASK_MAX_DMA_DESCRIPTORS);
-			desc_entries[k].did = did;
-			desc_entries[k].dr = blob_desc->dr2;
-			hwseq_info->tiles_per_packet += (blob_desc->dr2 + 1U);
-			nvpva_dbg_fn(task->pva,
-				     "tiles per packet=%d",
-				     hwseq_info->tiles_per_packet);
 			desc_block_height_log2[did] = user_ch->blockHeight;
+			if (!is_desc_mode(blob->f_header.fid)) {
+				desc_entries[k].did = did;
+				desc_entries[k].dr = blob_desc->dr2;
+				hwseq_info->tiles_per_packet += (blob_desc->dr2 + 1U);
+				nvpva_dbg_fn(task->pva,
+					     "tiles per packet=%d",
+					     hwseq_info->tiles_per_packet);
+			}
+
 			++blob_desc;
 		}
 
@@ -1874,10 +1899,32 @@ verify_hwseq_blob(struct pva_submit_task *task,
 		}
 	}
 
-	hwseq_info->dma_descs = (struct pva_hwseq_desc_header_s *) desc_entries;
-	hwseq_info->head_desc = &decriptors[desc_entries[0].did];
-	hwseq_info->tail_desc = &decriptors[desc_entries[num_descriptors - 1U].did];
-	hwseq_info->verify_bounds = true;
+	if (!is_desc_mode(blob->f_header.fid)) {
+		hwseq_info->dma_descs = (struct pva_hwseq_desc_header_s *) desc_entries;
+		hwseq_info->head_desc = &decriptors[desc_entries[0].did];
+		hwseq_info->tail_desc = &decriptors[desc_entries[num_descriptors - 1U].did];
+		hwseq_info->verify_bounds = true;
+	}
+out:
+	return err;
+}
+
+static int
+nvpva_update_blockheight(struct pva_dma_ch_config_s *ch,
+			 u8 block_height_log2)
+{
+
+	int err = 0;
+
+	/* DMA_CHANNEL_CNTL0_CHBH */
+	if (block_height_log2 > NVPVA_MAX_VALID_BLK_HGT_LG2) {
+		pr_err("ERR: Invalid block height");
+		err = -EINVAL;
+		goto out;
+	}
+
+	ch->cntl0 &= ~(0x7U << 25U);
+	ch->cntl0 |= ((block_height_log2 & 7U) << 25U);
 out:
 	return err;
 }
@@ -1896,7 +1943,7 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 	struct nvpva_dma_descriptor *decriptors = task->dma_descriptors;
 	u32 adb_limit;
 	int err = 0;
-	u8 block_height_log2 =  user_ch->blockHeight;
+	u8 bl_xfers_in_use = 0;
 
 	nvpva_dbg_fn(task->pva, "");
 
@@ -1927,14 +1974,11 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 
 	ch->cntl0 |= ((user_ch->adbSize & 0x1FFU) << 16U);
 
-	/* DMA_CHANNEL_CNTL0_CHBH */
-	if (block_height_log2 > NVPVA_MAX_VALID_BLK_HGT_LG2) {
-		pr_err("ERR: Invalid block height");
-		err = -EINVAL;
-		goto out;
-	}
-
-	ch->cntl0 |= ((block_height_log2 & 7U) << 25U);
+	/*
+	 * defer updating block height until it is known if there are
+	 * block linear transfers on the channel.  set default value.
+	 */
+	ch->cntl0 |= (0x5U << 25U);
 
 	/* DMA_CHANNEL_CNTL0_CHPREF */
 	ch->cntl0 |= ((user_ch->prefetchEnable & 1U) << 30U);
@@ -1992,8 +2036,11 @@ nvpva_task_dma_channel_mapping(struct pva_submit_task *task,
 					user_ch,
 					decriptors,
 					hwseqbuf_cpuva,
+					&bl_xfers_in_use,
 					ch_num);
 
+	if (!err && (bl_xfers_in_use != 0))
+		err = nvpva_update_blockheight(ch, user_ch->blockHeight);
 out:
 	return err;
 }
@@ -2014,6 +2061,7 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	u8 *desc_block_height_log2 = task->desc_block_height_log2;
 	u8 did;
 	u8 prev_did;
+	u8 bl_xfers_in_use = 0;
 
 	nvpva_dbg_fn(task->pva, "");
 
@@ -2078,6 +2126,7 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	for (i = 0; i < task->num_dma_channels; i++) {
 		struct nvpva_dma_channel *user_ch = &task->dma_channels[i];
 
+		bl_xfers_in_use = 0;
 		ch_num = i + 1; /* Channel 0 can't use */
 		err = nvpva_task_dma_channel_mapping(
 			task,
@@ -2132,12 +2181,17 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 							  hw_task,
 							  1,
 							  &did,
+							  &bl_xfers_in_use,
 							  desc_block_height_log2);
 			if (err) {
 				task_err(task, "failed to map DMA desc info");
 				goto out;
 			}
 		}
+
+		if (bl_xfers_in_use != 0)
+			nvpva_update_blockheight(&hw_task_dma_info->dma_channels[i],
+						 user_ch->blockHeight);
 	}
 
 	did = 0;
@@ -2145,6 +2199,7 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 					  hw_task,
 					  task->num_dma_descriptors,
 					  &did,
+					  &bl_xfers_in_use,
 					  desc_block_height_log2);
 	if (err) {
 		task_err(task, "failed to map DMA desc info");
