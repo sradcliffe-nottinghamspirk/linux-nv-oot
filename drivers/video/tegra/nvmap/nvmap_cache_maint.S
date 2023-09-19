@@ -17,16 +17,6 @@
 #include <asm/alternative.h>
 #include <asm/asm-uaccess.h>
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
-#define NVMAP_SYM_FUNC_START(func)	SYM_FUNC_START(__ip_##func)
-#define NVMAP_SYM_FUNC_END(func)	SYM_FUNC_END(__ip_##func)
-#define NVMAP_SYM_FUNC_ALIAS(func)	SYM_FUNC_ALIAS(func, __ip_##func)
-#else
-#define NVMAP_SYM_FUNC_START(func)	SYM_FUNC_START_PI(func)
-#define NVMAP_SYM_FUNC_END(func)	SYM_FUNC_END_PI(func)
-#define NVMAP_SYM_FUNC_ALIAS(func)
-#endif
-
 /*
  *	invalidate_icache_range(start,end)
  *
@@ -63,14 +53,13 @@ SYM_FUNC_END(invalidate_icache_range)
  *	- kaddr   - kernel address
  *	- size    - size in question
  */
-NVMAP_SYM_FUNC_START(__flush_dcache_area)
+SYM_FUNC_START(__flush_dcache_area)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0)
 	add	x1, x0, x1
 #endif
 	dcache_by_line_op civac, sy, x0, x1, x2, x3
 	ret
-NVMAP_SYM_FUNC_END(__flush_dcache_area)
-NVMAP_SYM_FUNC_ALIAS(__flush_dcache_area)
+SYM_FUNC_END(__flush_dcache_area)
 
 /*
  *	__clean_dcache_area_pou(kaddr, size)
@@ -104,7 +93,7 @@ SYM_FUNC_END(__clean_dcache_area_pou)
  *	- size    - size in question
  */
 SYM_FUNC_START_LOCAL(__dma_inv_area)
-NVMAP_SYM_FUNC_START(__inval_dcache_area)
+SYM_FUNC_START(__inval_dcache_area)
 	/* FALLTHROUGH */
 
 /*
@@ -130,8 +119,7 @@ NVMAP_SYM_FUNC_START(__inval_dcache_area)
 	b.lo	2b
 	dsb	sy
 	ret
-NVMAP_SYM_FUNC_END(__inval_dcache_area)
-NVMAP_SYM_FUNC_ALIAS(__inval_dcache_area)
+SYM_FUNC_END(__inval_dcache_area)
 SYM_FUNC_END(__dma_inv_area)
 
 /*
@@ -144,7 +132,7 @@ SYM_FUNC_END(__dma_inv_area)
  *	- size    - size in question
  */
 SYM_FUNC_START_LOCAL(__dma_clean_area)
-NVMAP_SYM_FUNC_START(__clean_dcache_area_poc)
+SYM_FUNC_START(__clean_dcache_area_poc)
 	/* FALLTHROUGH */
 
 /*
@@ -157,8 +145,7 @@ NVMAP_SYM_FUNC_START(__clean_dcache_area_poc)
 #endif
 	dcache_by_line_op cvac, sy, x0, x1, x2, x3
 	ret
-NVMAP_SYM_FUNC_END(__clean_dcache_area_poc)
-NVMAP_SYM_FUNC_ALIAS(__clean_dcache_area_poc)
+SYM_FUNC_END(__clean_dcache_area_poc)
 SYM_FUNC_END(__dma_clean_area)
 
 /*
@@ -170,7 +157,7 @@ SYM_FUNC_END(__dma_clean_area)
  *	- kaddr   - kernel address
  *	- size    - size in question
  */
-NVMAP_SYM_FUNC_START(__clean_dcache_area_pop)
+SYM_FUNC_START(__clean_dcache_area_pop)
 	alternative_if_not ARM64_HAS_DCPOP
 	b	__clean_dcache_area_poc
 	alternative_else_nop_endif
@@ -179,8 +166,7 @@ NVMAP_SYM_FUNC_START(__clean_dcache_area_pop)
 #endif
 	dcache_by_line_op cvap, sy, x0, x1, x2, x3
 	ret
-NVMAP_SYM_FUNC_END(__clean_dcache_area_pop)
-NVMAP_SYM_FUNC_ALIAS(__clean_dcache_area_pop)
+SYM_FUNC_END(__clean_dcache_area_pop)
 
 /*
  *	__dma_flush_area(start, size)
@@ -190,14 +176,13 @@ NVMAP_SYM_FUNC_ALIAS(__clean_dcache_area_pop)
  *	- start   - virtual start address of region
  *	- size    - size in question
  */
-NVMAP_SYM_FUNC_START(__dma_flush_area)
+SYM_FUNC_START(__dma_flush_area)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0)
 	add	x1, x0, x1
 #endif
 	dcache_by_line_op civac, sy, x0, x1, x2, x3
 	ret
-NVMAP_SYM_FUNC_END(__dma_flush_area)
-NVMAP_SYM_FUNC_ALIAS(__dma_flush_area)
+SYM_FUNC_END(__dma_flush_area)
 
 /*
  *	__dma_map_area(start, size, dir)
@@ -205,12 +190,11 @@ NVMAP_SYM_FUNC_ALIAS(__dma_flush_area)
  *	- size	- size of region
  *	- dir	- DMA direction
  */
-NVMAP_SYM_FUNC_START(__dma_map_area)
+SYM_FUNC_START(__dma_map_area)
 	cmp	w2, #DMA_FROM_DEVICE
 	b.eq	__dma_inv_area
 	b	__dma_clean_area
-NVMAP_SYM_FUNC_END(__dma_map_area)
-NVMAP_SYM_FUNC_ALIAS(__dma_map_area)
+SYM_FUNC_END(__dma_map_area)
 
 /*
  *	__dma_unmap_area(start, size, dir)
@@ -218,9 +202,8 @@ NVMAP_SYM_FUNC_ALIAS(__dma_map_area)
  *	- size	- size of region
  *	- dir	- DMA direction
  */
-NVMAP_SYM_FUNC_START(__dma_unmap_area)
+SYM_FUNC_START(__dma_unmap_area)
 	cmp	w2, #DMA_TO_DEVICE
 	b.ne	__dma_inv_area
 	ret
-NVMAP_SYM_FUNC_END(__dma_unmap_area)
-NVMAP_SYM_FUNC_ALIAS(__dma_unmap_area)
+SYM_FUNC_END(__dma_unmap_area)
