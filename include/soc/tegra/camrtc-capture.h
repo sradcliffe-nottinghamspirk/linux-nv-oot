@@ -1427,9 +1427,12 @@ struct vi_pfsd_config {
  * @brief Memory surface specs passed from KMD to RCE
  */
 struct memoryinfo_surface {
-	/** Surface iova address */
+	/**
+	 * Surface iova address. Must be a multiple of 16.
+	 * Must be non-zero if @ref size > 0.
+	 */
 	uint64_t base_address;
-	/** Surface size */
+	/** Surface size. Must be a multiple of 16. */
 	uint64_t size;
 };
 
@@ -2381,80 +2384,130 @@ struct nvcsi_tpg_rate_config {
  * @defgroup ISPProcessChannelFlags ISP process channel specific flags
  */
 /**@{*/
-/** Channel reset on error */
-#define CAPTURE_ISP_CHANNEL_FLAG_RESET_ON_ERROR	MK_U32(0x0001)
+/** Channel reset on error. Not implemented. */
+#define CAPTURE_ISP_CHANNEL_FLAG_RESET_ON_ERROR		MK_U32(0x0001)
 /**@}*/
 
 /**
  * @brief Describes RTCPU side resources for a ISP capture pipe-line.
- *
- * Following structure defines ISP channel specific configuration;
  */
 struct capture_channel_isp_config {
-	/** Unique ISP process channel ID */
+	/** Unused. @deprecated */
 	uint8_t channel_id;
+
 	/** Reserved */
 	uint8_t pad_chan__[3];
-	/** See ISP process channel specific @ref ISPProcessChannelFlags "flags" */
+
+	/** See ISP process channel specific @ref ISPProcessChannelFlags "flags". */
 	uint32_t channel_flags;
+
 	/**
-	 * Base address of ISP capture descriptor ring buffer.
-	 * The size of the buffer is request_queue_depth * request_size
+	 * Base address of the @ref isp_capture_descriptor ring buffer.
+	 * The size of the buffer is @ref request_queue_depth *
+	 * @ref request_size. The value must be non-zero and a multiple
+	 * of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
 	 */
 	iova_t requests;
-	/** Number of ISP process requests in the ring buffer */
+
+	/**
+	 * Maximum number of ISP requests in the queue [1, 240]. Determines the
+	 * size of the @ref isp_capture_descriptor ring buffer (@ref requests).
+	 */
 	uint32_t request_queue_depth;
-	/** Size of each ISP process request (@ref isp_capture_descriptor) */
+
+	/**
+	 * Size of the buffer reserved for each ISP capture descriptor.
+	 * Must be >= sizeof(@ref isp_capture_descriptor) and a multiple
+	 * of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
+	 */
 	uint32_t request_size;
 
 	/**
 	 * Base address of ISP program descriptor ring buffer.
-	 * The size of the buffer is program_queue_depth * program_size
+	 * The size of the buffer is @ref program_queue_depth *
+	 * @ref program_size. The value must be non-zero and a multiple
+	 * of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
 	 */
 	iova_t programs;
+
 	/**
-	 * Maximum number of ISP program requests in the program queue.
-	 * Determines the size of the ISP program ring buffer.
+	 * Maximum number of ISP program requests in the program queue [1, 32].
+	 * Determines the size of the ISP program ring buffer (@ref programs).
 	 */
 	uint32_t program_queue_depth;
-	/** Size of each ISP process request (@ref isp_program_descriptor) */
+
+	/** Size of each ISP process request (@ref isp_program_descriptor). */
 	uint32_t program_size;
-	/** ISP Process output buffer syncpoint info */
+
+	/**
+	 * ISP progress syncpoint information. The progress syncpoint
+	 * is incremented whenever a slice of pixel data has been written
+	 * to memory and once more when the status of the ISP task has
+	 * been written to memory. The same progress syncpoint will keep
+	 * incrementing for every consecutive capture request.
+	 *
+	 * @ref syncpoint_info::threshold must be set to the initial
+	 * value of the hardware syncpoint on channel setup.
+	 **/
 	struct syncpoint_info progress_sp;
-	/** Statistics buffer syncpoint info */
+
+	/**
+	 * ISP statistics syncpoint information. The statistics syncpoint
+	 * is incremented once for every set of statistics specifed in
+	 * @ref isp_progam::stats_aidx_flag. The same stats syncpoint will
+	 * keep incrementing for every consecutive ISP request.
+	 *
+	 * @ref syncpoint_info::threshold must be set to the initial
+	 * value of the hardware syncpoint on channel setup.
+	 **/
 	struct syncpoint_info stats_progress_sp;
 
 	/**
-	 * Base address of a memory mapped ring buffer containing ISP requests
-	 * buffer information.
-	 * The size of the buffer is queue_depth * request_memoryinfo_size
+	 * Base address of a memory mapped ring buffer containing ISP request
+	 * buffer memory information. The size of the buffer is @ref
+	 * request_queue_depth * @ref request_memoryinfo_size. The value must
+	 * be non-zero and a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
 	 */
 	iova_t requests_memoryinfo;
 
 	/**
 	 * Base address of a memory mapped ring buffer containing ISP program
-	 * buffer information.
+	 * push buffer memory surfaces. The size of the ring buffer is @ref
+	 * program_queue_depth * @ref program_memoryinfo_size. The value must
+	 * be non-zero and a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
 	 */
 	iova_t programs_memoryinfo;
 
-	/** Size of the memoryinfo buffer reserved for each capture request. */
+	/**
+	 * Size of the memoryinfo buffer reserved for each ISP request.
+	 * Must be >= sizeof(@ref isp_capture_descriptor_memoryinfo) and
+	 * a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
+	 */
 	uint32_t request_memoryinfo_size;
 
-	/** Size of the memoryinfo buffer reserved for each program request. */
+	/**
+	 * Size of the memoryinfo buffer reserved for each ISP program push
+	 * buffer surface. Must be >= sizeof(@ref memoryinfo_surface) and
+	 * a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
+	 */
 	uint32_t program_memoryinfo_size;
 
 	/** ISP unit ID. See @ref ISPUnitIds "ISP Unit Identifiers". */
 	uint32_t isp_unit_id;
 
 #define HAVE_ISP_GOS_TABLES
-	/** Number of active ISP GOS tables in isp_gos_tables[] */
+	/**
+	 * Number of elements in @ref isp_gos_tables array
+	 * [0, @ref ISP_NUM_GOS_TABLES].
+	 */
 	uint32_t num_isp_gos_tables;
 
 	/**
-	 * GoS tables can only be programmed when there are no
-	 * active channels. For subsequent channels we check that
-	 * the channel configuration matches with the active
-	 * configuration.
+	 * Array of IOVA pointers to ISP Grid-of-Semaphores (GoS) tables
+	 * (non-safety).
+	 *
+	 * GoS table configuration, if present, must be the same on all
+	 * active channels. The IOVA addresses must be a multiple of 256.
 	 */
 	iova_t isp_gos_tables[ISP_NUM_GOS_TABLES];
 } CAPTURE_IVC_ALIGN;

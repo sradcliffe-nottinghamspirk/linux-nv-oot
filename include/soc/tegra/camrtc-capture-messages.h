@@ -246,11 +246,135 @@ struct CAPTURE_MSG_HEADER {
  * @defgroup IspCapCtrlMsgType Message types for ISP capture-control IVC channel messages.
  * @{
  */
+
+/**
+ * @brief ISP capture channel setup request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * allocate an ISP capture channel and associated resources.
+ *
+ * @pre The capture-control IVC channel has been set up during
+ *      boot using the @ref CAMRTC_HSP_CH_SETUP command.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_ISP_SETUP_REQ
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" = <em>unique ID</em>
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_ISP_SETUP_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CHANNEL_ISP_SETUP_RESP
+ */
 #define CAPTURE_CHANNEL_ISP_SETUP_REQ		MK_U32(0x20)
+
+/**
+ * @brief ISP capture channel setup response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * response to a @ref CAPTURE_CHANNEL_ISP_SETUP_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_ISP_SETUP_RESP
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::transaction "transaction"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_SETUP_ISP_RESP_MSG
+ */
 #define CAPTURE_CHANNEL_ISP_SETUP_RESP		MK_U32(0x21)
+
+/**
+ * @brief ISP capture channel reset request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * reset an ISP capture channel. The client must also send a @ref
+ * CAPTURE_ISP_RESET_BARRIER_IND message on the @em capture IVC channel
+ * in order to define a boundary between capture requests submitted
+ * before the reset and requests submitted after it.
+ *
+ * When RCE FW receives the @ref CAPTURE_CHANNEL_ISP_RESET_REQ message,
+ * it will cancel all requests in the channel queue upto the @ref
+ * CAPTURE_ISP_RESET_BARRIER_IND message. The response is sent after the
+ * RCE side channel cleanup is complete. If the reset barrier is not
+ * received within 5 ms, all requests currently in the queue will be
+ * cleared and a @ref CAPTURE_ERROR_TIMEOUT error will be reported
+ * in the response message.
+ *
+ * @pre An ISP capture channel has been set up with
+ *      @ref CAPTURE_CHANNEL_ISP_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_ISP_RESET_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_ISP_RESET_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CHANNEL_ISP_RESET_RESP
+ */
 #define CAPTURE_CHANNEL_ISP_RESET_REQ		MK_U32(0x22)
+
+/**
+ * @brief ISP capture channel reset response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * response to a @ref CAPTURE_CHANNEL_ISP_RESET_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_ISP_RESET_RESP
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_RESET_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ *   - @ref CAPTURE_CHANNEL_ISP_RESET_RESP_MSG
+ */
 #define CAPTURE_CHANNEL_ISP_RESET_RESP		MK_U32(0x23)
+
+/**
+ * @brief ISP capture channel release request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * release an ISP capture channel. Cancels all pending requests.
+ *
+ * @pre An ISP capture channel has been set up with
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CHANNEL_ISP_RELEASE_RESP
+ */
 #define CAPTURE_CHANNEL_ISP_RELEASE_REQ		MK_U32(0x24)
+
+/**
+ * @brief ISP capture channel release response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * response to a @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CHANNEL_ISP_RELEASE_RESP
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG
+ */
 #define CAPTURE_CHANNEL_ISP_RELEASE_RESP	MK_U32(0x25)
 /** @} */
 
@@ -919,31 +1043,17 @@ struct CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP_MSG {
 } CAPTURE_IVC_ALIGN;
 /** @} */
 
-/**
- * @brief Set up RCE side resources for ISP capture pipe-line.
- *
- * The client shall use the transaction id field in the
- * standard message header to associate request and response.
- */
+/** Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_REQ message */
 struct CAPTURE_CHANNEL_ISP_SETUP_REQ_MSG {
-	/** ISP process channel configuration. */
+	/** ISP channel configuration. */
 	struct capture_channel_isp_config	channel_config;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Acknowledge isp capture channel setup request.
- *
- * The transaction id field in the standard message header
- * will be copied from the associated request.
- *
- * The setup response message returns a channel_id, which
- * identifies this set of resources and is used to refer to the
- * allocated capture channel in subsequent messages.
- */
+/** Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_RESP message */
 struct CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG {
-	/** ISP process channel setup request status. See @ref CapErrorCodes "Return values". */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
-	/** ISP process channel identifier for the new channel. */
+	/** ISP channel identifier for the new channel [0, UINT32_MAX]. */
 	uint32_t channel_id;
 } CAPTURE_IVC_ALIGN;
 
@@ -956,13 +1066,7 @@ typedef struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG
 typedef struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG
 			CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG;
 
-/**
- * @brief Reset ISP channel request.
- *
- * Halt the associated ISP channel. Flush the request queue for the
- * channel and increment syncpoints in the request queue to their target
- * values.
- */
+/** Message data for @ref CAPTURE_CHANNEL_ISP_RESET_REQ message */
 struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG {
 	/** Unused */
 	uint32_t reset_flags;
@@ -970,40 +1074,27 @@ struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG {
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Reset ISP channel response message.
- *
- * The response is sent after the RCE side channel cleanup is
- * complete. If the reset barrier is not received within the timeout
- * interval a CAPTURE_ERROR_TIMEOUT error is reported as the return value.
- * If the reset succeeds then the return value is CAPTURE_OK.
- */
+/** Message data for @ref CAPTURE_CHANNEL_ISP_RESET_RESP message */
 struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG {
-	/** Reset status return value. See @ref CapErrorCodes "Return values" */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Release ISP channel and all the associated resources.
- *
- * Halt the associated ISP channel and release the channel context.
- */
+/** Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ message */
 struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG {
-	/** Reset flags. Currently not used in release request. */
+	/** Unused */
 	uint32_t reset_flags;
+	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief ISP channel release response message.
- *
- * The release is acknowledged after the channel cleanup is complete
- * and all resources have been freed on RCE.
- */
+/** Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_RESP message */
 struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG {
-	/** Release status return value. See @ref CapErrorCodes "Return values" */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
