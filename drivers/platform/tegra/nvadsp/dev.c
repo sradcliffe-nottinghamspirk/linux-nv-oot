@@ -1,19 +1,6 @@
-/*
- * dev.c
- *
- * A device driver for ADSP and APE
- *
- * Copyright (C) 2014-2022, NVIDIA Corporation. All rights reserved.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
+// SPDX-License-Identifier: GPL-2.0-only
+/**
+ * Copyright (c) 2014-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/platform_device.h>
@@ -28,15 +15,8 @@
 #include <linux/io.h>
 #include <linux/tegra_nvadsp.h>
 #include <linux/version.h>
-#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-#include <soc/tegra/chip-id.h>
-#else
 #include <soc/tegra/fuse.h>
-#endif
 #include <linux/pm_runtime.h>
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-#include <linux/tegra_pm_domains.h>
-#endif
 #include <linux/clk/tegra.h>
 #include <linux/delay.h>
 #include <asm/arch_timer.h>
@@ -128,11 +108,7 @@ static const struct dev_pm_ops nvadsp_pm_ops = {
 
 uint64_t nvadsp_get_timestamp_counter(void)
 {
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-	return arch_counter_get_cntvct();
-#else
 	return __arch_counter_get_cntvct_stable();
-#endif
 }
 EXPORT_SYMBOL(nvadsp_get_timestamp_counter);
 
@@ -143,11 +119,9 @@ int nvadsp_set_bw(struct nvadsp_drv_data *drv_data, u32 efreq)
 	if (drv_data->bwmgr)
 		ret = tegra_bwmgr_set_emc(drv_data->bwmgr, efreq * 1000,
 					  TEGRA_BWMGR_SET_EMC_FLOOR);
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
 	else if (drv_data->icc_path_handle)
 		ret = icc_set_bw(drv_data->icc_path_handle, 0,
 				(unsigned long)FREQ2ICC(efreq * 1000));
-#endif
 	if (ret)
 		dev_err(&drv_data->pdev->dev,
 			"failed to set emc freq rate:%d\n", ret);
@@ -171,7 +145,6 @@ static void nvadsp_bw_register(struct nvadsp_drv_data *drv_data)
 		}
 		break;
 	default:
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
 		if (!is_tegra_hypervisor_mode()) {
 			/* Interconnect Support */
 #ifdef CONFIG_ARCH_TEGRA_23x_SOC
@@ -185,7 +158,6 @@ static void nvadsp_bw_register(struct nvadsp_drv_data *drv_data)
 				drv_data->icc_path_handle = NULL;
 			}
 		}
-#endif
 		break;
 	}
 }
@@ -199,12 +171,10 @@ static void nvadsp_bw_unregister(struct nvadsp_drv_data *drv_data)
 		drv_data->bwmgr = NULL;
 	}
 
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
 	if (drv_data->icc_path_handle) {
 		icc_put(drv_data->icc_path_handle);
 		drv_data->icc_path_handle = NULL;
 	}
-#endif
 }
 
 static int __init nvadsp_parse_co_mem(struct platform_device *pdev)
@@ -454,10 +424,6 @@ static int __init nvadsp_probe(struct platform_device *pdev)
 	nvadsp_drv_data = drv_data;
 
 #ifdef CONFIG_PM
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-	tegra_pd_add_device(dev);
-#endif
-
 	pm_runtime_enable(dev);
 
 	ret = pm_runtime_get_sync(dev);
@@ -529,10 +495,6 @@ static int nvadsp_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 	if (!pm_runtime_status_suspended(&pdev->dev))
 		nvadsp_runtime_suspend(&pdev->dev);
-#endif
-
-#if KERNEL_VERSION(5, 4, 0) > LINUX_VERSION_CODE
-	tegra_pd_remove_device(&pdev->dev);
 #endif
 
 	return 0;

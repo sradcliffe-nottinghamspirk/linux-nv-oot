@@ -1,19 +1,6 @@
-/*
- * adsp_console_dbfs.c
- *
- * adsp mailbox console driver
- *
- * Copyright (C) 2014-2022, NVIDIA Corporation. All rights reserved.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
+// SPDX-License-Identifier: GPL-2.0-only
+/**
+ * Copyright (c) 2014-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -44,11 +31,7 @@ static int open_cnt;
 
 static uint64_t adsp_app_ctx_vals[ADSP_APP_CTX_MAX];
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
-#define ACCESS_OK(addr, size) access_ok(0, addr, size)
-#else
 #define ACCESS_OK(addr, size) access_ok(addr, size)
-#endif
 
 static int adsp_app_ctx_add(uint64_t ctx)
 {

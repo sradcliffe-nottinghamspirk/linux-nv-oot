@@ -1,19 +1,6 @@
-/*
- * dev.h
- *
- * A header file for Host driver for ADSP and APE
- *
- * Copyright (C) 2014-2022, NVIDIA Corporation. All rights reserved.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
+/* SPDX-License-Identifier: GPL-2.0-only */
+/**
+ * Copyright (c) 2014-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
 #ifndef __TEGRA_NVADSP_DEV_H
@@ -25,13 +12,11 @@
 #include <linux/debugfs.h>
 
 #include <linux/platform/tegra/emc_bwmgr.h>
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
 #ifdef CONFIG_ARCH_TEGRA_23x_SOC
 #include <linux/platform/tegra/mc_utils.h>
 #include <dt-bindings/interconnect/tegra_icc_id.h>
 #endif
 #include <linux/interconnect.h>
-#endif
 
 #include "hwmailbox.h"
 #include "amc.h"
@@ -96,12 +81,10 @@ enum adsp_unit_fpga_reset {
 #define AMISC_REG_MBOX_OFFSET		0x64
 #define ADSP_ACTMON_REG_START_OFFSET	0x800
 #define ADSP_ACTMON_REG_END_OFFSET	0x828
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
 #ifdef CONFIG_ARCH_TEGRA_23x_SOC
 #define FREQ2ICC(x) (Bps_to_icc(emc_freq_to_bw(x)))
 #else
 #define FREQ2ICC(x) 0UL
-#endif
 #endif
 
 #define NVADSP_ELF     "adsp.elf"
@@ -239,9 +222,7 @@ struct nvadsp_drv_data {
 	u32 agic_irqs[NVADSP_VIRQ_MAX];
 
 	struct tegra_bwmgr_client *bwmgr;
-#if KERNEL_VERSION(5, 9, 0) <= LINUX_VERSION_CODE
 	struct icc_path *icc_path_handle; /* icc_path handle handle */
-#endif
 	u32 evp_base[ADSP_EVP_END];
 
 	const struct nvadsp_chipdata *chip_data;

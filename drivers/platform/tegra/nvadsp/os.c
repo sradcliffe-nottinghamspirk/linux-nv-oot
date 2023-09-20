@@ -1,21 +1,6 @@
-/*
- * os.c
- *
- * ADSP OS management
- * Copyright (C) 2011 Texas Instruments, Inc.
- * Copyright (C) 2011 Google, Inc.
- *
- * Copyright (C) 2014-2022, NVIDIA Corporation. All rights reserved.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
+// SPDX-License-Identifier: GPL-2.0-only
+/**
+ * Copyright (c) 2014-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/init.h>
@@ -31,11 +16,7 @@
 #include <linux/firmware.h>
 #include <linux/tegra_nvadsp.h>
 #include <linux/version.h>
-#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-#include <soc/tegra/chip-id.h>
-#else
 #include <soc/tegra/fuse.h>
-#endif
 #include <linux/elf.h>
 #include <linux/device.h>
 #include <linux/clk.h>
@@ -134,10 +115,6 @@ struct nvadsp_mappings {
 	void *va;
 	int len;
 };
-
-#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-static inline u8 tegra_get_major_rev(void) { return 0; }
-#endif
 
 static struct nvadsp_mappings adsp_map[NM_LOAD_MAPPINGS];
 static int map_idx;
@@ -2430,13 +2407,8 @@ static int adsp_create_os_version(struct dentry *adsp_debugfs_root)
 	return 0;
 }
 
-#if KERNEL_VERSION(5, 10, 0) > LINUX_VERSION_CODE
-static unsigned int adsp_health_poll(struct file *file,
-			poll_table *wait)
-#else
 static __poll_t adsp_health_poll(struct file *file,
 			poll_table *wait)
-#endif
 {
 	struct nvadsp_drv_data *drv_data = platform_get_drvdata(priv.pdev);
 

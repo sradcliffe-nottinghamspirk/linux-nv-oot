@@ -1,17 +1,6 @@
-/*
- * Copyright (C) 2016-2022 NVIDIA CORPORATION. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// SPDX-License-Identifier: GPL-2.0-only
+/**
+ * Copyright (c) 2016-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
 #include <linux/platform_device.h>
@@ -65,15 +54,6 @@ struct acast_region {
 #define ACAST_RGN_CTL_VM(IDX)		AST_VMINDEX(IDX)
 #define ACAST_SID_REG_EVAL(IDX)		AST_STREAMID_CTL_##IDX
 #define ACAST_STRMID_REG(IDX)		ACAST_SID_REG_EVAL(IDX)
-
-#if KERNEL_VERSION(4, 14, 0) > LINUX_VERSION_CODE
-/* Older kernels do not have this function, so stubbing it */
-static inline int of_property_read_u64_index(const struct device_node *np,
-			const char *propname, u32 index, u64 *out_value)
-{
-	return -ENOSYS;
-}
-#endif
 
 static inline void acast_write(void __iomem *acast, u32 reg, u32 val)
 {

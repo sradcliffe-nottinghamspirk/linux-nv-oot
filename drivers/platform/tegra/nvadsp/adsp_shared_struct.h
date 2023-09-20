@@ -1,19 +1,6 @@
-/*
- * adsp_shared_struct.h
- *
- * A header file containing shared data structures shared with ADSP OS
- *
- * Copyright (C) 2015-2022 NVIDIA Corporation. All rights reserved.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
+/* SPDX-License-Identifier: GPL-2.0-only */
+/**
+ * Copyright (c) 2015-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
 #ifndef __ADSP_SHARED_STRUCT
