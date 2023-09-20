@@ -147,7 +147,7 @@ int nvmap_cache_maint_phys_range(unsigned int op, phys_addr_t pstart,
 		phys_addr_t next = (loop + PAGE_SIZE) & PAGE_MASK;
 		void *base;
 		next = min(next, pend);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+#if defined(CONFIG_GENERIC_IOREMAP)
 		io_addr = ioremap_prot(loop, PAGE_SIZE, pgprot_val(PAGE_KERNEL));
 #else
 		io_addr = __ioremap(loop, PAGE_SIZE, PG_PROT_KERNEL);

@@ -7,6 +7,12 @@ subdir-ccflags-y += -Werror
 
 include $(srctree.nvidia-oot)/drivers/video/tegra/nvmap/Makefile.memory.configs
 
+# If the kernel enables CONFIG_GENERIC_IOREMAP,
+# then pass this flag for building NVMAP.
+ifdef CONFIG_GENERIC_IOREMAP
+ccflags-y += -DCONFIG_GENERIC_IOREMAP
+endif
+
 ifeq ($(NVMAP_CONFIG), y)
 # Build NvMap only when NVMAP_CONFIG is set to y
 nvmap-y := nvmap_core.o \

@@ -200,7 +200,7 @@ void *__nvmap_mmap(struct nvmap_handle *h)
 
 		vaddr = vmap(pages, nr_pages, VM_MAP, prot);
 	} else {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+#if defined(CONFIG_GENERIC_IOREMAP)
 		vaddr = ioremap_prot(h->carveout->base, adj_size, pgprot_val(prot));
 #else
 		vaddr = (__force void *)__ioremap(h->carveout->base, adj_size,
