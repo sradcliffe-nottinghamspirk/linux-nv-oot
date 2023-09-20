@@ -1871,15 +1871,15 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 	struct tegra_nvvse_aes_gmac_init_ctl __user *arg_aes_gmac_init_ctl = (void __user *)arg;
 	struct tegra_nvvse_aes_gmac_sign_verify_ctl __user *arg_aes_gmac_sign_verify_ctl;
 	struct tegra_nvvse_aes_cmac_sign_verify_ctl __user *arg_aes_cmac_sign_verify_ctl;
-	struct tegra_nvvse_sha_init_ctl sha_init_ctl;
-	struct tegra_nvvse_sha_update_ctl sha_update_ctl;
-	struct tegra_nvvse_sha_final_ctl sha_final_ctl;
-	struct tegra_nvvse_aes_enc_dec_ctl aes_enc_dec_ctl;
-	struct tegra_nvvse_aes_cmac_sign_verify_ctl aes_cmac_sign_verify_ctl;
-	struct tegra_nvvse_aes_drng_ctl aes_drng_ctl;
-	struct tegra_nvvse_aes_gmac_init_ctl aes_gmac_init_ctl;
-	struct tegra_nvvse_aes_gmac_sign_verify_ctl aes_gmac_sign_verify_ctl;
-	struct tegra_nvvse_get_ivc_db get_ivc_db;
+	struct tegra_nvvse_sha_init_ctl *sha_init_ctl;
+	struct tegra_nvvse_sha_update_ctl *sha_update_ctl;
+	struct tegra_nvvse_sha_final_ctl *sha_final_ctl;
+	struct tegra_nvvse_aes_enc_dec_ctl *aes_enc_dec_ctl;
+	struct tegra_nvvse_aes_cmac_sign_verify_ctl *aes_cmac_sign_verify_ctl;
+	struct tegra_nvvse_aes_drng_ctl *aes_drng_ctl;
+	struct tegra_nvvse_aes_gmac_init_ctl *aes_gmac_init_ctl;
+	struct tegra_nvvse_aes_gmac_sign_verify_ctl *aes_gmac_sign_verify_ctl;
+	struct tegra_nvvse_get_ivc_db *get_ivc_db;
 	struct tegra_nvvse_tsec_get_keyload_status *tsec_keyload_status;
 	int ret = 0;
 
@@ -1892,198 +1892,300 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 		return -EPERM;
 	}
 
-	tsec_keyload_status = kzalloc(sizeof(*tsec_keyload_status), GFP_KERNEL);
-	if (!tsec_keyload_status) {
-		pr_err("%s(): failed to allocate memory\n", __func__);
-		return -ENOMEM;
-	}
-
 	mutex_lock(&ctx->lock);
 
 	switch (ioctl_num) {
 	case NVVSE_IOCTL_CMDID_INIT_SHA:
-		ret = copy_from_user(&sha_init_ctl, (void __user *)arg, sizeof(sha_init_ctl));
+		sha_init_ctl = kzalloc(sizeof(*sha_init_ctl), GFP_KERNEL);
+		if (!sha_init_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
+		ret = copy_from_user(sha_init_ctl, (void __user *)arg, sizeof(*sha_init_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user sha_init_ctl:%d\n", __func__, ret);
+			kfree(sha_init_ctl);
 			goto out;
 		}
 
-		ret = tnvvse_crypto_sha_init(ctx, &sha_init_ctl);
+		ret = tnvvse_crypto_sha_init(ctx, sha_init_ctl);
+
+		kfree(sha_init_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_UPDATE_SHA:
-		ret = copy_from_user(&sha_update_ctl, (void __user *)arg, sizeof(sha_update_ctl));
+		sha_update_ctl = kzalloc(sizeof(*sha_update_ctl), GFP_KERNEL);
+		if (!sha_update_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
+		ret = copy_from_user(sha_update_ctl, (void __user *)arg, sizeof(*sha_update_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user sha_update_ctl:%d\n", __func__, ret);
+			kfree(sha_update_ctl);
 			goto out;
 		}
 
-		ret = tnvvse_crypto_sha_update(ctx, &sha_update_ctl);
+		ret = tnvvse_crypto_sha_update(ctx, sha_update_ctl);
+
+		kfree(sha_update_ctl);
 		break;
 
 
 	case NVVSE_IOCTL_CMDID_FINAL_SHA:
-		ret = copy_from_user(&sha_final_ctl, (void __user *)arg, sizeof(sha_final_ctl));
+		sha_final_ctl = kzalloc(sizeof(*sha_final_ctl), GFP_KERNEL);
+		if (!sha_final_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
+		ret = copy_from_user(sha_final_ctl, (void __user *)arg, sizeof(*sha_final_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user sha_final_ctl:%d\n", __func__, ret);
+			kfree(sha_final_ctl);
 			goto out;
 		}
 
-		ret = tnvvse_crypto_sha_final(ctx, &sha_final_ctl);
+		ret = tnvvse_crypto_sha_final(ctx, sha_final_ctl);
+
+		kfree(sha_final_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_AES_ENCDEC:
-		ret = copy_from_user(&aes_enc_dec_ctl, (void __user *)arg, sizeof(aes_enc_dec_ctl));
+		aes_enc_dec_ctl = kzalloc(sizeof(*aes_enc_dec_ctl), GFP_KERNEL);
+		if (!aes_enc_dec_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
+		ret = copy_from_user(aes_enc_dec_ctl, (void __user *)arg, sizeof(*aes_enc_dec_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user aes_enc_dec_ctl:%d\n", __func__, ret);
+			kfree(aes_enc_dec_ctl);
 			goto out;
 		}
 
-		if (aes_enc_dec_ctl.aes_mode == TEGRA_NVVSE_AES_MODE_GCM)
-			ret = tnvvse_crypto_aes_enc_dec_gcm(ctx, &aes_enc_dec_ctl);
+		if (aes_enc_dec_ctl->aes_mode == TEGRA_NVVSE_AES_MODE_GCM)
+			ret = tnvvse_crypto_aes_enc_dec_gcm(ctx, aes_enc_dec_ctl);
 		else
-			ret = tnvvse_crypto_aes_enc_dec(ctx, &aes_enc_dec_ctl);
+			ret = tnvvse_crypto_aes_enc_dec(ctx, aes_enc_dec_ctl);
 
 		if (ret) {
+			kfree(aes_enc_dec_ctl);
 			goto out;
 		}
 
 		/* Copy IV returned by VSE */
-		if (aes_enc_dec_ctl.is_encryption) {
-			if (aes_enc_dec_ctl.aes_mode == TEGRA_NVVSE_AES_MODE_CBC ||
-				aes_enc_dec_ctl.aes_mode == TEGRA_NVVSE_AES_MODE_GCM)
+		if (aes_enc_dec_ctl->is_encryption) {
+			if (aes_enc_dec_ctl->aes_mode == TEGRA_NVVSE_AES_MODE_CBC ||
+				aes_enc_dec_ctl->aes_mode == TEGRA_NVVSE_AES_MODE_GCM)
 				ret = copy_to_user(arg_aes_enc_dec_ctl->initial_vector,
-							aes_enc_dec_ctl.initial_vector,
-							sizeof(aes_enc_dec_ctl.initial_vector));
-			else if (aes_enc_dec_ctl.aes_mode == TEGRA_NVVSE_AES_MODE_CTR)
+							aes_enc_dec_ctl->initial_vector,
+							sizeof(aes_enc_dec_ctl->initial_vector));
+			else if (aes_enc_dec_ctl->aes_mode == TEGRA_NVVSE_AES_MODE_CTR)
 				ret = copy_to_user(arg_aes_enc_dec_ctl->initial_counter,
-							aes_enc_dec_ctl.initial_counter,
-							sizeof(aes_enc_dec_ctl.initial_counter));
+							aes_enc_dec_ctl->initial_counter,
+							sizeof(aes_enc_dec_ctl->initial_counter));
 			if (ret) {
 				pr_err("%s(): Failed to copy_to_user:%d\n", __func__, ret);
+				kfree(aes_enc_dec_ctl);
 				goto out;
 			}
 		}
+
+		kfree(aes_enc_dec_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_AES_GMAC_INIT:
-		ret = copy_from_user(&aes_gmac_init_ctl, (void __user *)arg,
-						sizeof(aes_gmac_init_ctl));
+		aes_gmac_init_ctl = kzalloc(sizeof(*aes_gmac_init_ctl), GFP_KERNEL);
+		if (!aes_gmac_init_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
+		ret = copy_from_user(aes_gmac_init_ctl, (void __user *)arg,
+						sizeof(*aes_gmac_init_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user aes_gmac_init_ctl:%d\n",
 								__func__, ret);
+			kfree(aes_gmac_init_ctl);
 			goto out;
 		}
 
-		ret = tnvvse_crypto_aes_gmac_init(ctx, &aes_gmac_init_ctl);
-		if (ret)
+		ret = tnvvse_crypto_aes_gmac_init(ctx, aes_gmac_init_ctl);
+		if (ret) {
+			kfree(aes_gmac_init_ctl);
 			goto out;
+		}
 
 		/* Copy IV returned by VSE */
-		ret = copy_to_user(arg_aes_gmac_init_ctl->IV, aes_gmac_init_ctl.IV,
-							sizeof(aes_gmac_init_ctl.IV));
+		ret = copy_to_user(arg_aes_gmac_init_ctl->IV, aes_gmac_init_ctl->IV,
+							sizeof(aes_gmac_init_ctl->IV));
 		if (ret) {
 			pr_err("%s(): Failed to copy_to_user:%d\n", __func__, ret);
+			kfree(aes_gmac_init_ctl);
 			goto out;
 		}
+
+		kfree(aes_gmac_init_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_AES_GMAC_SIGN_VERIFY:
+		aes_gmac_sign_verify_ctl = kzalloc(sizeof(*aes_gmac_sign_verify_ctl), GFP_KERNEL);
+		if (!aes_gmac_sign_verify_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
 		arg_aes_gmac_sign_verify_ctl = (void __user *)arg;
-		ret = copy_from_user(&aes_gmac_sign_verify_ctl, (void __user *)arg,
-						sizeof(aes_gmac_sign_verify_ctl));
+		ret = copy_from_user(aes_gmac_sign_verify_ctl, (void __user *)arg,
+						sizeof(*aes_gmac_sign_verify_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user aes_gmac_sign_verify_ctl:%d\n",
 								 __func__, ret);
+			kfree(aes_gmac_sign_verify_ctl);
 			goto out;
 		}
 
-		ret = tnvvse_crypto_aes_gmac_sign_verify(ctx, &aes_gmac_sign_verify_ctl);
-		if (ret)
+		ret = tnvvse_crypto_aes_gmac_sign_verify(ctx, aes_gmac_sign_verify_ctl);
+		if (ret) {
+			kfree(aes_gmac_sign_verify_ctl);
 			goto out;
+		}
 
-		if (aes_gmac_sign_verify_ctl.gmac_type == TEGRA_NVVSE_AES_GMAC_VERIFY) {
+		if (aes_gmac_sign_verify_ctl->gmac_type == TEGRA_NVVSE_AES_GMAC_VERIFY) {
 			ret = copy_to_user(&arg_aes_gmac_sign_verify_ctl->result,
-						&aes_gmac_sign_verify_ctl.result,
+						&aes_gmac_sign_verify_ctl->result,
 								sizeof(uint8_t));
 			if (ret)
 				pr_err("%s(): Failed to copy_to_user:%d\n", __func__, ret);
 		}
+
+		kfree(aes_gmac_sign_verify_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_AES_CMAC_SIGN_VERIFY:
+		aes_cmac_sign_verify_ctl = kzalloc(sizeof(*aes_cmac_sign_verify_ctl), GFP_KERNEL);
+		if (!aes_cmac_sign_verify_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
 		arg_aes_cmac_sign_verify_ctl = (void __user *)arg;
-		ret = copy_from_user(&aes_cmac_sign_verify_ctl, (void __user *)arg,
-					sizeof(aes_cmac_sign_verify_ctl));
+		ret = copy_from_user(aes_cmac_sign_verify_ctl, (void __user *)arg,
+					sizeof(*aes_cmac_sign_verify_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user aes_cmac_sign_verify:%d\n",
 						__func__, ret);
+			kfree(aes_cmac_sign_verify_ctl);
 			goto out;
 		}
 
-		ret = tnvvse_crypto_aes_cmac_sign_verify(ctx, &aes_cmac_sign_verify_ctl);
-		if (ret)
+		ret = tnvvse_crypto_aes_cmac_sign_verify(ctx, aes_cmac_sign_verify_ctl);
+		if (ret) {
+			kfree(aes_cmac_sign_verify_ctl);
 			goto out;
+		}
 
-		if (aes_cmac_sign_verify_ctl.cmac_type == TEGRA_NVVSE_AES_CMAC_VERIFY) {
+		if (aes_cmac_sign_verify_ctl->cmac_type == TEGRA_NVVSE_AES_CMAC_VERIFY) {
 			ret = copy_to_user(&arg_aes_cmac_sign_verify_ctl->result,
-						&aes_cmac_sign_verify_ctl.result,
+						&aes_cmac_sign_verify_ctl->result,
 								sizeof(uint8_t));
 			if (ret)
 				pr_err("%s(): Failed to copy_to_user:%d\n", __func__, ret);
 		}
+
+		kfree(aes_cmac_sign_verify_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_AES_DRNG:
-		ret = copy_from_user(&aes_drng_ctl, (void __user *)arg, sizeof(aes_drng_ctl));
+		aes_drng_ctl = kzalloc(sizeof(*aes_drng_ctl), GFP_KERNEL);
+		if (!aes_drng_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
+		ret = copy_from_user(aes_drng_ctl, (void __user *)arg, sizeof(*aes_drng_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user aes_drng_ctl:%d\n", __func__, ret);
+			kfree(aes_drng_ctl);
 			goto out;
 		}
-		ret = tnvvse_crypto_get_aes_drng(ctx, &aes_drng_ctl);
+		ret = tnvvse_crypto_get_aes_drng(ctx, aes_drng_ctl);
+
+		kfree(aes_drng_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_GET_IVC_DB:
-		ret = tnvvse_crypto_get_ivc_db(&get_ivc_db);
+		get_ivc_db = kzalloc(sizeof(*get_ivc_db), GFP_KERNEL);
+		if (!get_ivc_db) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
+		ret = tnvvse_crypto_get_ivc_db(get_ivc_db);
 		if (ret) {
 			pr_err("%s(): Failed to get ivc database get_ivc_db:%d\n", __func__, ret);
+			kfree(get_ivc_db);
 			goto out;
 		}
 
-		ret = copy_to_user((void __user *)arg, &get_ivc_db, sizeof(get_ivc_db));
+		ret = copy_to_user((void __user *)arg, get_ivc_db, sizeof(*get_ivc_db));
 		if (ret) {
 			pr_err("%s(): Failed to copy_to_user get_ivc_db:%d\n", __func__, ret);
+			kfree(get_ivc_db);
 			goto out;
 		}
 
+		kfree(get_ivc_db);
 		break;
 
 	case NVVSE_IOCTL_CMDID_TSEC_SIGN_VERIFY:
+		aes_cmac_sign_verify_ctl = kzalloc(sizeof(*aes_cmac_sign_verify_ctl), GFP_KERNEL);
+		if (!aes_cmac_sign_verify_ctl) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
 		arg_aes_cmac_sign_verify_ctl = (void __user *)arg;
-		ret = copy_from_user(&aes_cmac_sign_verify_ctl, (void __user *)arg,
-					sizeof(aes_cmac_sign_verify_ctl));
+		ret = copy_from_user(aes_cmac_sign_verify_ctl, (void __user *)arg,
+					sizeof(*aes_cmac_sign_verify_ctl));
 		if (ret) {
 			pr_err("%s(): Failed to copy_from_user tsec_sign_verify:%d\n",
 						__func__, ret);
+			kfree(aes_cmac_sign_verify_ctl);
 			goto out;
 		}
-		ret = tnvvtsec_crypto_aes_cmac_sign_verify(ctx, &aes_cmac_sign_verify_ctl);
-		if (ret)
+		ret = tnvvtsec_crypto_aes_cmac_sign_verify(ctx, aes_cmac_sign_verify_ctl);
+		if (ret) {
+			kfree(aes_cmac_sign_verify_ctl);
 			goto out;
+		}
 
-		if (aes_cmac_sign_verify_ctl.cmac_type == TEGRA_NVVSE_AES_CMAC_VERIFY) {
+		if (aes_cmac_sign_verify_ctl->cmac_type == TEGRA_NVVSE_AES_CMAC_VERIFY) {
 			ret = copy_to_user(&arg_aes_cmac_sign_verify_ctl->result,
-						&aes_cmac_sign_verify_ctl.result,
+						&aes_cmac_sign_verify_ctl->result,
 								sizeof(uint8_t));
 			if (ret)
 				pr_err("%s(): Failed to copy_to_user:%d\n", __func__, ret);
 		}
+
+		kfree(aes_cmac_sign_verify_ctl);
 		break;
 
 	case NVVSE_IOCTL_CMDID_TSEC_GET_KEYLOAD_STATUS:
+		tsec_keyload_status = kzalloc(sizeof(*tsec_keyload_status), GFP_KERNEL);
+		if (!tsec_keyload_status) {
+			pr_err("%s(): failed to allocate memory\n", __func__);
+			return -ENOMEM;
+		}
+
 		ret = tnvvse_crypto_tsec_get_keyload_status(ctx, tsec_keyload_status);
 		if (ret) {
 			pr_err("%s(): Failed to get keyload status:%d\n", __func__, ret);
+			kfree(tsec_keyload_status);
 			goto out;
 		}
 
@@ -2092,8 +2194,11 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 		if (ret) {
 			pr_err("%s(): Failed to copy_to_user tsec_keyload_status:%d\n",
 					__func__, ret);
+			kfree(tsec_keyload_status);
 			goto out;
 		}
+
+		kfree(tsec_keyload_status);
 		break;
 
 	default:
@@ -2104,7 +2209,6 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 
 out:
 	mutex_unlock(&ctx->lock);
-	kfree(tsec_keyload_status);
 
 	return ret;
 }
