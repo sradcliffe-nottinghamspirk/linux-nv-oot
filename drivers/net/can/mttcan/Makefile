@@ -1,5 +1,12 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: GPL-2.0-only
+
+# CAN_LEDS has been marked as BROKEN since Linux v4.19 and
+# was finally removed in Linux v5.19. Only compile support
+# for LEDS if enabled in the kernel.
+ifdef CONFIG_CAN_LEDS
+subdir-ccflags-y += -DCONFIG_CAN_LEDS
+endif
 
 obj-m := mttcan.o
 
