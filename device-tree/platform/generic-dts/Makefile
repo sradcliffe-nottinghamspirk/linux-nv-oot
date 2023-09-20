@@ -61,6 +61,11 @@ DTBO_LIST := $(dtbo-y)
 dtb-y :=
 fdts := $(tegra-dtstree)/t23x
 
+# Add internal SOCs to scan the DT makefiles
+ifneq ($(internal_soc_list),)
+fdts += $(addprefix $(tegra-dtstree)/,$(internal_soc_list))
+endif
+
 # Remove the DTs from protected soc list
 ifneq ($(protected_soc_list),)
 kdts := $(foreach dt_path, $(fdts), $(if $(filter $(protected_soc_list),$(patsubst -,$(space),$(subst /, $(space),$(dt_path)))),,$(dt_path)))
