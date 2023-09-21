@@ -1039,15 +1039,11 @@ static irqreturn_t bmi_irq_thread(int irq, void *dev_id)
 		goto out;
 	}
 
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_lock(&st->snsrs[hw].bmi_iio->mlock);
-#endif
+	mutex_lock(BMI_MUTEX(st->snsrs[hw].bmi_iio));
 
 	ret = bmi_i2c_rd(st, hw, reg, sizeof(sample), sample);
 
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_unlock(&st->snsrs[hw].bmi_iio->mlock);
-#endif
+	mutex_unlock(BMI_MUTEX(st->snsrs[hw].bmi_iio));
 
 	if (!ret) {
 		bmi_iio_push_buf(st->snsrs[hw].bmi_iio, sample,
@@ -1391,9 +1387,7 @@ static int __maybe_unused bmi_suspend(struct device *dev)
 	st->suspend_en_st = 0;
 
 	for (i = 0; i < st->hw_n; i++) {
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_lock(&st->snsrs[i].bmi_iio->mlock);
-#endif
+		mutex_lock(BMI_MUTEX(st->snsrs[i].bmi_iio));
 		/* check if sensor is enabled to begin with */
 		old_en_st = bmi_enable(st, st->snsrs[i].cfg.snsr_id, -1,
 				       false);
@@ -1405,9 +1399,7 @@ static int __maybe_unused bmi_suspend(struct device *dev)
 
 			ret |= temp_ret;
 		}
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_unlock(&st->snsrs[i].bmi_iio->mlock);
-#endif
+		mutex_unlock(BMI_MUTEX(st->snsrs[i].bmi_iio));
 	}
 
 	return ret;
@@ -1421,15 +1413,11 @@ static int __maybe_unused bmi_resume(struct device *dev)
 	int ret = 0;
 
 	for (i = 0; i < st->hw_n; i++) {
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_lock(&st->snsrs[i].bmi_iio->mlock);
-#endif
+		mutex_lock(BMI_MUTEX(st->snsrs[i].bmi_iio));
 		if (st->suspend_en_st & (1 << st->snsrs[i].cfg.snsr_id))
 			ret |=  bmi_enable(st, st->snsrs[i].cfg.snsr_id, 1,
 					   false);
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_unlock(&st->snsrs[i].bmi_iio->mlock);
-#endif
+		mutex_unlock(BMI_MUTEX(st->snsrs[i].bmi_iio));
 	}
 
 	st->sts &= ~BMI_STS_SUSPEND;
@@ -1447,17 +1435,13 @@ static void bmi_shutdown(struct i2c_client *client)
 	st->sts |= BMI_STS_SHUTDOWN;
 	for (i = 0; i < st->hw_n; i++) {
 		if (st->iio_init_done[i])
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-			mutex_lock(&st->snsrs[i].bmi_iio->mlock);
-#endif
+			mutex_lock(BMI_MUTEX(st->snsrs[i].bmi_iio));
 
 		if (bmi_enable(st, st->snsrs[i].cfg.snsr_id, -1, false))
 			bmi_enable(st, st->snsrs[i].cfg.snsr_id, 0, false);
 
 		if (st->iio_init_done[i]) {
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-			mutex_unlock(&st->snsrs[i].bmi_iio->mlock);
-#endif
+			mutex_unlock(BMI_MUTEX(st->snsrs[i].bmi_iio));
 		}
 	}
 }

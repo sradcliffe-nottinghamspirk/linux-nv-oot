@@ -5,11 +5,20 @@
 #ifndef _BMI_IIO_H_
 #define _BMI_IIO_H_
 
+#include <nvidia/conftest.h>
+
 #include <linux/device.h>
 #include <linux/iio/iio.h>
+#include <linux/iio/iio-opaque.h>
 
 #define BMI_STS_SHUTDOWN	(1 << 0)
 #define BMI_STS_SUSPEND		(1 << 1)
+
+#if defined(NV_IIO_DEV_OPAQUE_HAS_LOCK)
+#define BMI_MUTEX(indio_dev) (&to_iio_dev_opaque(indio_dev)->mlock)
+#else
+#define BMI_MUTEX(indio_dev) (&indio_dev->mlock)
+#endif
 
 struct bmi_float {
 	int ival;

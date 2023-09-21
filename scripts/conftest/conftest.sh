@@ -6310,6 +6310,25 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT" "" "functions"
         ;;
 
+        iio_dev_opaque_has_mlock)
+            #
+            # Determine if the 'iio_dev_opaque' structure has 'mlock' field.
+            # 'mlock' field is moved from 'indio_dev' to 'iio_dev_opaque'
+            # structure.
+            #
+            # Added in commit 16afe125b53f88b855d2713c8ba253d905dcf3cc (iio: core:
+            # move 'mlock' to 'struct iio_dev_opaque') in v6.2 2022-10-12
+
+            CODE="
+            #include <linux/iio/iio.h>
+            #include <linux/iio/iio-opaque.h>
+            int conftest_iio_dev_opaque_has_mlock(void) {
+                return offsetof(struct iio_dev_opaque, mlock);
+            }"
+
+            compile_check_conftest "$CODE" "NV_IIO_DEV_OPAQUE_HAS_LOCK" "" "types"
+        ;;
+
         # When adding a new conftest entry, please use the correct format for
         # specifying the relevant upstream Linux kernel commit.
         #

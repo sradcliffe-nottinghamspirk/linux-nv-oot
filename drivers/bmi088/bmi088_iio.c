@@ -231,14 +231,10 @@ static ssize_t bmi_iio_attr_store(struct device *dev,
 	if (!indio_dev || !st || !this_attr)
 		return -EINVAL;
 
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_lock(&indio_dev->mlock);
-#endif
+	mutex_lock(BMI_MUTEX(indio_dev));
 
 	if (*st->fn_dev->sts & (BMI_STS_SHUTDOWN | BMI_STS_SUSPEND)) {
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_unlock(&indio_dev->mlock);
-#endif
+		mutex_unlock(BMI_MUTEX(indio_dev));
 		return -EPERM;
 	}
 
@@ -269,9 +265,7 @@ static ssize_t bmi_iio_attr_store(struct device *dev,
 		ret = -EINVAL;
 	}
 
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_unlock(&indio_dev->mlock);
-#endif
+	mutex_unlock(BMI_MUTEX(indio_dev));
 
 	return ret;
 }
@@ -294,17 +288,13 @@ static ssize_t bmi_iio_attr_show(struct device *dev,
 				st->cfg->part, st->cfg->name);
 
 	case BMI_ATTR_MATRIX:
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_lock(&indio_dev->mlock);
-#endif
+		mutex_lock(BMI_MUTEX(indio_dev));
 		for (i = 0; i < 8; i++)
 			t += snprintf(buf + t, PAGE_SIZE - t, "%hhd,",
 				      st->cfg->matrix[i]);
 		t += snprintf(buf + t, PAGE_SIZE - t, "%hhd\n",
 			      st->cfg->matrix[i]);
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_unlock(&indio_dev->mlock);
-#endif
+		mutex_unlock(BMI_MUTEX(indio_dev));
 
 		return t;
 
@@ -370,13 +360,9 @@ static int bmi_iio_read_raw(struct iio_dev *indio_dev,
 	struct bmi_iio_state *st = iio_priv(indio_dev);
 	int ret;
 
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_lock(&indio_dev->mlock);
-#endif
+	mutex_lock(BMI_MUTEX(indio_dev));
 	if (*st->fn_dev->sts & (BMI_STS_SHUTDOWN | BMI_STS_SUSPEND)) {
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_unlock(&indio_dev->mlock);
-#endif
+		mutex_unlock(BMI_MUTEX(indio_dev));
 		return -EPERM;
 	}
 
@@ -419,9 +405,7 @@ static int bmi_iio_read_raw(struct iio_dev *indio_dev,
 	}
 
 out:
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_unlock(&indio_dev->mlock);
-#endif
+	mutex_unlock(BMI_MUTEX(indio_dev));
 
 	return ret;
 }
@@ -433,13 +417,9 @@ static int bmi_iio_write_raw(struct iio_dev *indio_dev,
 	struct bmi_iio_state *st = iio_priv(indio_dev);
 	int ret = 0;
 
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_lock(&indio_dev->mlock);
-#endif
+	mutex_lock(BMI_MUTEX(indio_dev));
 	if (*st->fn_dev->sts & (BMI_STS_SHUTDOWN | BMI_STS_SUSPEND)) {
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-		mutex_unlock(&indio_dev->mlock);
-#endif
+		mutex_unlock(BMI_MUTEX(indio_dev));
 		return -EPERM;
 	}
 
@@ -470,9 +450,7 @@ static int bmi_iio_write_raw(struct iio_dev *indio_dev,
 	}
 
 out:
-#if KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE
-	mutex_unlock(&indio_dev->mlock);
-#endif
+	mutex_unlock(BMI_MUTEX(indio_dev));
 
 	return ret;
 }
