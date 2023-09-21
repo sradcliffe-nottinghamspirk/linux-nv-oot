@@ -340,6 +340,8 @@ static u32 virt_engine_get_ip_index(const char *name)
 		return (u32)TEGRA_SOC_HWPM_RESOURCE_NVENC;
 	} else if (strstr(name, "ofa")) {
 		return (u32)TEGRA_SOC_HWPM_RESOURCE_OFA;
+	} else if (strstr(name, "nvdec")) {
+		return (u32)TEGRA_SOC_HWPM_RESOURCE_NVDEC;
 	}
 	return (u32)TERGA_SOC_HWPM_NUM_IPS;
 }
@@ -356,6 +358,8 @@ static u32 virt_engine_extract_base_addr(struct platform_device *pdev)
 		base_address = 0x154c0000;
 	} else if (hwpm_ip_index == TEGRA_SOC_HWPM_RESOURCE_OFA) {
 		base_address = 0x15a50000;
+	} else if (hwpm_ip_index == TEGRA_SOC_HWPM_RESOURCE_NVDEC) {
+		base_address = 0x15480000;
 	} else {
 		dev_err(&pdev->dev, "IP Base address not found");
 		return -ENOMEM;
