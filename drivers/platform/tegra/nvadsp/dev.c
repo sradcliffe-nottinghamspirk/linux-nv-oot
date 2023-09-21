@@ -347,10 +347,9 @@ static int __init nvadsp_probe(struct platform_device *pdev)
 	void __iomem *base = NULL;
 	uint32_t aram_addr;
 	uint32_t aram_size;
-	int dram_iter;
-	int irq_iter;
+	int dram_iter, irq_iter, iter;
+	int irq_num;
 	int ret = 0;
-	int iter;
 
 	dev_info(dev, "in probe()...\n");
 
@@ -441,14 +440,14 @@ static int __init nvadsp_probe(struct platform_device *pdev)
 	}
 
 	for (irq_iter = 0; irq_iter < NVADSP_VIRQ_MAX; irq_iter++) {
-		res = platform_get_resource(pdev, IORESOURCE_IRQ, irq_iter);
-		if (!res) {
+		irq_num = platform_get_irq(pdev, irq_iter);
+		if (irq_num < 0) {
 			dev_err(dev, "Failed to get irq number for index %d\n",
 				irq_iter);
 			ret = -EINVAL;
 			goto out;
 		}
-		drv_data->agic_irqs[irq_iter] = res->start;
+		drv_data->agic_irqs[irq_iter] = irq_num;
 	}
 
 	nvadsp_drv_data = drv_data;
