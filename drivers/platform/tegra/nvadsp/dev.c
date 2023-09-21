@@ -238,11 +238,9 @@ static int __init nvadsp_parse_dt(struct platform_device *pdev)
 	struct nvadsp_drv_data *drv_data = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
 	const char *adsp_elf;
-	u32 *adsp_reset;
 	u32 *adsp_mem;
 	int iter;
 
-	adsp_reset = drv_data->unit_fpga_reset;
 	adsp_mem = drv_data->adsp_mem;
 
 	for (iter = 0; iter < ADSP_MEM_END; iter++) {
@@ -315,17 +313,6 @@ static int __init nvadsp_parse_dt(struct platform_device *pdev)
 				&drv_data->adsp_load_timeout))
 		dev_dbg(dev, "adsp_load_timeout dt not found\n");
 
-	if (drv_data->adsp_unit_fpga) {
-		for (iter = 0; iter < ADSP_UNIT_FPGA_RESET_END; iter++) {
-			if (of_property_read_u32_index(dev->of_node,
-				"nvidia,adsp_unit_fpga_reset", iter,
-				&adsp_reset[iter])) {
-				dev_err(dev, "adsp reset dt %d not found\n",
-					iter);
-				return -EINVAL;
-			}
-		}
-	}
 	nvadsp_parse_clk_entries(pdev);
 
 	if (nvadsp_parse_co_mem(pdev))
@@ -401,17 +388,6 @@ static int __init nvadsp_probe(struct platform_device *pdev)
 			ret = -EINVAL;
 			goto out;
 		}
-
-		if (!drv_data->adsp_unit_fpga && iter == UNIT_FPGA_RST)
-			continue;
-
-		/*
-		 * skip if the particular module is not present in a
-		 * generation, for which the register start address
-		 * is made 0 from dt.
-		 */
-		if (res->start == 0)
-			continue;
 
 		base = devm_ioremap_resource(dev, res);
 		if (IS_ERR(base)) {

@@ -89,7 +89,6 @@ struct nvadsp_debug_log {
 };
 
 struct nvadsp_os_data {
-	void __iomem		*unit_fpga_reset_reg;
 	const struct firmware	*os_firmware;
 	struct platform_device	*pdev;
 	struct global_sym_info	*adsp_glo_sym_tbl;
@@ -2596,7 +2595,6 @@ int __init nvadsp_os_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int ret = 0;
 
-	priv.unit_fpga_reset_reg = drv_data->base_regs[UNIT_FPGA_RST];
 	priv.hwmailbox_base = drv_data->base_regs[hwmb_reg_idx()];
 	priv.dram_region = drv_data->dram_region;
 
