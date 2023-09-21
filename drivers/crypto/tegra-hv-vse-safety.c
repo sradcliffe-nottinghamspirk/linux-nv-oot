@@ -1643,6 +1643,13 @@ static int tegra_hv_vse_safety_sha_init(struct ahash_request *req)
 		dst_len = req_ctx->intermediate_digest_size;
 	}
 
+	if (dst_len == 0) {
+		dma_free_coherent(se_dev->dev, SZ_4M,
+				req_ctx->sha_buf, req_ctx->sha_buf_addr);
+		req_ctx->sha_buf = NULL;
+		return -EINVAL;
+	}
+
 	req_ctx->hash_result = dma_alloc_coherent(
 			se_dev->dev, dst_len,
 			&req_ctx->hash_result_addr, GFP_KERNEL);
