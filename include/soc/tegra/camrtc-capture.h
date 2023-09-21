@@ -337,28 +337,28 @@ typedef struct syncpoint_info {
  * @{
  */
 /** Output surface plane 0 */
-#define VI_ATOMP_SURFACE0	0U
+#define VI_ATOMP_SURFACE0				0U
 /** Output surface plane 1 */
-#define VI_ATOMP_SURFACE1	1U
+#define VI_ATOMP_SURFACE1				1U
 /** Output surface plane 2 */
-#define VI_ATOMP_SURFACE2	2U
+#define VI_ATOMP_SURFACE2				2U
 
 /** Sensor embedded data */
 #define VI_ATOMP_SURFACE_EMBEDDED 3
 
 /** RAW pixels */
-#define VI_ATOMP_SURFACE_MAIN	VI_ATOMP_SURFACE0
+#define VI_ATOMP_SURFACE_MAIN				VI_ATOMP_SURFACE0
 /** PDAF pixels */
-#define VI_ATOMP_SURFACE_PDAF	VI_ATOMP_SURFACE1
+#define VI_ATOMP_SURFACE_PDAF				VI_ATOMP_SURFACE1
 
 /** YUV - Luma plane */
-#define VI_ATOMP_SURFACE_Y	VI_ATOMP_SURFACE0
+#define VI_ATOMP_SURFACE_Y				VI_ATOMP_SURFACE0
 /** Semi-planar - UV plane */
-#define	VI_ATOMP_SURFACE_UV	VI_ATOMP_SURFACE1
+#define	VI_ATOMP_SURFACE_UV				VI_ATOMP_SURFACE1
 /** Planar - U plane */
-#define	VI_ATOMP_SURFACE_U	VI_ATOMP_SURFACE1
+#define	VI_ATOMP_SURFACE_U				VI_ATOMP_SURFACE1
 /** Planar - V plane */
-#define	VI_ATOMP_SURFACE_V	VI_ATOMP_SURFACE2
+#define	VI_ATOMP_SURFACE_V				VI_ATOMP_SURFACE2
 
 /** @} */
 
@@ -366,101 +366,149 @@ typedef struct syncpoint_info {
 #define SLVSEC_STREAM_DISABLED	MK_U8(0xFF)
 
 /**
- * @defgroup VICaptureChannelFlags
- * VI Capture channel specific flags
+ * @defgroup VICaptureChannelFlags VI Capture channel specific flags
  */
 /**@{*/
 /** Channel takes input from Video Interface (VI) */
-#define CAPTURE_CHANNEL_FLAG_VIDEO		MK_U32(0x0001)
+#define CAPTURE_CHANNEL_FLAG_VIDEO			MK_U32(0x0001)
+
 /** Channel supports RAW Bayer output */
-#define CAPTURE_CHANNEL_FLAG_RAW		MK_U32(0x0002)
+#define CAPTURE_CHANNEL_FLAG_RAW			MK_U32(0x0002)
+
 /** Channel supports planar YUV output */
-#define CAPTURE_CHANNEL_FLAG_PLANAR		MK_U32(0x0004)
+#define CAPTURE_CHANNEL_FLAG_PLANAR			MK_U32(0x0004)
+
 /** Channel supports semi-planar YUV output */
-#define CAPTURE_CHANNEL_FLAG_SEMI_PLANAR	MK_U32(0x0008)
+#define CAPTURE_CHANNEL_FLAG_SEMI_PLANAR		MK_U32(0x0008)
+
 /** Channel supports phase-detection auto-focus (non-safety) */
-#define CAPTURE_CHANNEL_FLAG_PDAF		MK_U32(0x0010)
+#define CAPTURE_CHANNEL_FLAG_PDAF			MK_U32(0x0010)
+
 /** Channel outputs sensor embedded data */
-#define CAPTURE_CHANNEL_FLAG_EMBDATA		MK_U32(0x0040)
+#define CAPTURE_CHANNEL_FLAG_EMBDATA			MK_U32(0x0040)
+
 /** Channel outputs to ISPA (deprecated, non-safety) */
-#define CAPTURE_CHANNEL_FLAG_ISPA		MK_U32(0x0080)
+#define CAPTURE_CHANNEL_FLAG_ISPA			MK_U32(0x0080)
+
 /** Channel outputs to ISPB (deprecated, non-safety) */
-#define CAPTURE_CHANNEL_FLAG_ISPB		MK_U32(0x0100)
-/** Channel outputs directly to selected ISP (ISO mode) (deprecated, non-safety) */
-#define CAPTURE_CHANNEL_FLAG_ISP_DIRECT		MK_U32(0x0200)
+#define CAPTURE_CHANNEL_FLAG_ISPB			MK_U32(0x0100)
+
+/**
+ * Channel outputs directly to selected ISP (ISO mode)
+ * (deprecated, non-safety)
+ */
+#define CAPTURE_CHANNEL_FLAG_ISP_DIRECT			MK_U32(0x0200)
+
 /** Channel outputs to software ISP (reserved) */
-#define CAPTURE_CHANNEL_FLAG_ISPSW		MK_U32(0x0400)
-/** Channel treats all errors as stop-on-error and requires reset for recovery (non-safety)*/
-#define CAPTURE_CHANNEL_FLAG_RESET_ON_ERROR	MK_U32(0x0800)
+#define CAPTURE_CHANNEL_FLAG_ISPSW			MK_U32(0x0400)
+/**
+ * Channel treats all errors as stop-on-error and requires reset
+ * for recovery (non-safety)
+ */
+#define CAPTURE_CHANNEL_FLAG_RESET_ON_ERROR		MK_U32(0x0800)
+
 /** Channel has line timer enabled */
-#define CAPTURE_CHANNEL_FLAG_LINETIMER		MK_U32(0x1000)
+#define CAPTURE_CHANNEL_FLAG_LINETIMER			MK_U32(0x1000)
+
 /** Channel supports SLVSEC sensors (non-safety) */
-#define CAPTURE_CHANNEL_FLAG_SLVSEC		MK_U32(0x2000)
+#define CAPTURE_CHANNEL_FLAG_SLVSEC			MK_U32(0x2000)
+
 /**
  * Channel reports errors to System Error Handler based on
  * @ref capture_channel_config::error_mask_correctable and
  * @ref capture_channel_config::error_mask_uncorrectable.
  */
 #define CAPTURE_CHANNEL_FLAG_ENABLE_HSM_ERROR_MASKS	MK_U32(0x4000)
-/** Capture with VI PFSD enabled (deprecated) */
-#define CAPTURE_CHANNEL_FLAG_ENABLE_VI_PFSD	MK_U32(0x8000)
+
+/**
+ * Enable Permanent Fault Software diagnostics (PFSD) for this VI channel.
+ * VI will insert a test pattern into a specified part of the frame, to
+ * be checked after frame capture. A correct test pattern will verify
+ * that VI internal pipeline is functioning normally.
+ */
+#define CAPTURE_CHANNEL_FLAG_ENABLE_VI_PFSD		MK_U32(0x8000)
+
 /** Channel binds to a CSI stream and channel */
-#define CAPTURE_CHANNEL_FLAG_CSI		MK_U32(0x10000)
+#define CAPTURE_CHANNEL_FLAG_CSI			MK_U32(0x10000)
 /**@}*/
 
 /**
  * @defgroup CaptureChannelErrMask VI error numbers
  */
 /**@{*/
+
 /** VI Frame start error timeout */
 #define CAPTURE_CHANNEL_ERROR_VI_FRAME_START_TIMEOUT	MK_BIT32(23)
+
 /** VI Permanent Fault SW Diagnostics (PFSD) error */
 #define CAPTURE_CHANNEL_ERROR_VI_PFSD_FAULT		MK_BIT32(22)
+
 /** Embedded data incomplete */
 #define CAPTURE_CHANNEL_ERROR_ERROR_EMBED_INCOMPLETE	MK_BIT32(21)
+
 /** Pixel frame is incomplete */
 #define CAPTURE_CHANNEL_ERROR_INCOMPLETE		MK_BIT32(20)
-/** A Frame End appears from NVCSI before the normal number of pixels has appeared*/
+/**
+ * A Frame End appears from NVCSI before the normal number of pixels
+ * has appeared
+ */
 #define CAPTURE_CHANNEL_ERROR_STALE_FRAME		MK_BIT32(19)
+
 /** A start-of-frame matches a channel that is already in frame */
 #define CAPTURE_CHANNEL_ERROR_COLLISION			MK_BIT32(18)
+
 /** Frame end was forced by channel reset */
 #define CAPTURE_CHANNEL_ERROR_FORCE_FE			MK_BIT32(17)
-/** A LOAD command is received for a channel while that channel is currently in a frame.*/
+
+/**
+ * A LOAD command is received for a channel while that channel is
+ * currently in a frame.
+ */
 #define CAPTURE_CHANNEL_ERROR_LOAD_FRAMED		MK_BIT32(16)
+
 /** The pixel datatype changed in the middle of the line */
 #define CAPTURE_CHANNEL_ERROR_DTYPE_MISMATCH		MK_BIT32(15)
+
 /** Unexpected embedded data in frame */
 #define CAPTURE_CHANNEL_ERROR_EMBED_INFRINGE		MK_BIT32(14)
+
 /** Extra embedded bytes on line */
 #define CAPTURE_CHANNEL_ERROR_EMBED_LONG_LINE		MK_BIT32(13)
+
 /** Embedded bytes found between line start and line end*/
 #define CAPTURE_CHANNEL_ERROR_EMBED_SPURIOUS		MK_BIT32(12)
+
 /** Too many embeded lines in frame */
 #define CAPTURE_CHANNEL_ERROR_EMBED_RUNAWAY		MK_BIT32(11)
+
 /** Two embedded line starts without a line end in between */
 #define CAPTURE_CHANNEL_ERROR_EMBED_MISSING_LE		MK_BIT32(10)
+
 /** A line has fewer pixels than expected width */
 #define CAPTURE_CHANNEL_ERROR_PIXEL_SHORT_LINE		MK_BIT32(9)
+
 /** A line has more pixels than expected width, pixels dropped */
 #define CAPTURE_CHANNEL_ERROR_PIXEL_LONG_LINE		MK_BIT32(8)
+
 /** A pixel found between line end and line start markers, dropped */
 #define CAPTURE_CHANNEL_ERROR_PIXEL_SPURIOUS		MK_BIT32(7)
+
 /** Too many pixel lines in frame, extra lines dropped */
 #define CAPTURE_CHANNEL_ERROR_PIXEL_RUNAWAY		MK_BIT32(6)
+
 /** Two lines starts without a line end in between */
 #define CAPTURE_CHANNEL_ERROR_PIXEL_MISSING_LE		MK_BIT32(5)
+
 /**@}*/
 
 /**
- * @defgroup VIUnitIds
- * VI Unit Identifiers
+ * @defgroup VIUnitIds VI Unit Identifiers
  */
 /**@{*/
 /** VI unit 0 */
-#define VI_UNIT_VI				MK_U32(0x0000)
+#define VI_UNIT_VI					MK_U32(0x0000)
 /** VI unit 1 */
-#define VI_UNIT_VI2				MK_U32(0x0001)
+#define VI_UNIT_VI2					MK_U32(0x0001)
 /**@}*/
 
 /**
@@ -678,8 +726,7 @@ struct capture_channel_config {
 	 * When a capture error is detected, the capture channel will
 	 * enter an error state if the corresponding error bit
 	 * (1 << <em>error number</em>) is set in this bit mask
-	 * (see @ref ViNotifyErrorTag "Extended VI error numbers"
-	 * for the bit definitions).
+	 * (see @ref ViNotifyErrorTag "VI errors" for the bit definitions).
 	 *
 	 * When the channel is in error state it will not accept any new
 	 * capture requests.
@@ -689,189 +736,582 @@ struct capture_channel_config {
 } CAPTURE_IVC_ALIGN;
 
 /**
+ * @defgroup ViDpcmModes VI DPCM Modes (non-safety)
+ */
+/**@{*/
+
+/**  T186-style RAW10 format */
+#define VI_DPCM_RAW10				MK_U8(0)
+
+/**  T186-style RAW12 format */
+#define VI_DPCM_RAW12				MK_U8(1)
+
+/** Run-length-encoded RAW10 format */
+#define VI_DPCM_RLE_RAW10			MK_U8(2)
+
+/** Run-length-encoded RAW12 format */
+#define VI_DPCM_RLE_RAW12			MK_U8(3)
+
+/** RAW16 format for logarithmic data */
+#define VI_DPCM_RAW16				MK_U8(4)
+
+/** RAW20 format */
+#define VI_DPCM_RAW20				MK_U8(5)
+
+/**@}*/
+
+/**
+ * @defgroup ViPixFmt VI Output Pixel Formats
+ */
+/**@{*/
+/** NvColorFormat_R5G6B5 */
+#define VI_PIXFMT_FORMAT_T_R5G6B5		MK_U8(1)
+
+/** NvColorFormat_B5G6R5 */
+#define VI_PIXFMT_FORMAT_T_B5G6R5		MK_U8(2)
+
+/** NvColorFormat_R8 */
+#define VI_PIXFMT_FORMAT_T_R8			MK_U8(5)
+
+/** NvColorFormat_A8B8G8R8 */
+#define VI_PIXFMT_FORMAT_T_A8B8G8R8		MK_U8(8)
+
+/** NvColorFormat_A8R8G8B8 */
+#define VI_PIXFMT_FORMAT_T_A8R8G8B8		MK_U8(9)
+
+/** NvColorFormat_B8G8R8A8 */
+#define VI_PIXFMT_FORMAT_T_B8G8R8A8		MK_U8(10)
+
+/** NvColorFormat_R8G8B8A8 */
+#define VI_PIXFMT_FORMAT_T_R8G8B8A8		MK_U8(11)
+
+/** NvColorFormat_Y8_U8__Y8_V8 or NvColorFormat_YUYV */
+#define VI_PIXFMT_FORMAT_T_Y8_U8__Y8_V8		MK_U8(16)
+
+/** NvColorFormat_Y8_V8__Y8_U8 or NvColorFormat_YVYU */
+#define VI_PIXFMT_FORMAT_T_Y8_V8__Y8_U8		MK_U8(17)
+
+/** NvColorFormat_V8_Y8__U8_Y8 or NvColorFormat_VYUY */
+#define VI_PIXFMT_FORMAT_T_V8_Y8__U8_Y8		MK_U8(18)
+
+/** NvColorFormat_U8_Y8__V8_Y8 or NvColorFormat_UYVY */
+#define VI_PIXFMT_FORMAT_T_U8_Y8__V8_Y8		MK_U8(19)
+
+/** NV21 format (YUV420 semi-planar: Y8,U8V8) */
+#define VI_PIXFMT_FORMAT_T_Y8__U8V8_N420	MK_U8(34)
+
+/** NV12 format (YUV420 semi-planar: Y8,V8U8) */
+#define VI_PIXFMT_FORMAT_T_Y8__V8U8_N420	MK_U8(35)
+
+/** NvColorFormat_B5G5R5A1 */
+#define VI_PIXFMT_FORMAT_T_B5G5R5A1		MK_U8(42)
+
+/** NvColorFormat_R5G5B5A1 */
+#define VI_PIXFMT_FORMAT_T_R5G5B5A1		MK_U8(43)
+
+/** NV61 format (YUV422 semi-planar: Y8,U8V8) */
+#define VI_PIXFMT_FORMAT_T_Y8__U8V8_N422	MK_U8(44)
+
+/** NV16 format (YUV422 semi-planar: Y8,V8U8) */
+#define VI_PIXFMT_FORMAT_T_Y8__V8U8_N422	MK_U8(45)
+
+/** YV16 format (YUV422 full planar: Y8,U8,V8) */
+#define VI_PIXFMT_FORMAT_T_Y8__U8__V8_N422	MK_U8(46)
+
+/** YV12 format (YUV420 full planar: Y8,U8,V8) */
+#define VI_PIXFMT_FORMAT_T_Y8__U8__V8_N420	MK_U8(47)
+
+/** RLE compressed format for RAW10 data */
+#define VI_PIXFMT_FORMAT_T_DPCM_RAW10		MK_U8(64)
+
+/** NvColorFormat_A2B10G10R10 */
+#define VI_PIXFMT_FORMAT_T_A2B10G10R10		MK_U8(68)
+
+/** NvColorFormat_A2R10G10B10 */
+#define VI_PIXFMT_FORMAT_T_A2R10G10B10		MK_U8(69)
+
+/** NvColorFormat_B10G10R10A2 */
+#define VI_PIXFMT_FORMAT_T_B10G10R10A2		MK_U8(70)
+
+/** NvColorFormat_R10G10B10A2 */
+#define VI_PIXFMT_FORMAT_T_R10G10B10A2		MK_U8(71)
+
+/** NvColorFormat_A4B4G4R4 */
+#define VI_PIXFMT_FORMAT_T_A4B4G4R4		MK_U8(80)
+
+/** NvColorFormat_A4R4G4B4 */
+#define VI_PIXFMT_FORMAT_T_A4R4G4B4		MK_U8(81)
+
+/** NvColorFormat_B4G4R4A4 */
+#define VI_PIXFMT_FORMAT_T_B4G4R4A4		MK_U8(82)
+
+/** NvColorFormat_R4G4B4A4 */
+#define VI_PIXFMT_FORMAT_T_R4G4B4A4		MK_U8(83)
+
+/** NvColorFormat_A1B5G5R5 */
+#define VI_PIXFMT_FORMAT_T_A1B5G5R5		MK_U8(84)
+
+/** NvColorFormat_A1R5G5B5 */
+#define VI_PIXFMT_FORMAT_T_A1R5G5B5		MK_U8(85)
+
+/** NV12 format (YUV420 semi-planar: Y10,V10U10) */
+#define VI_PIXFMT_FORMAT_T_Y10__V10U10_N420	MK_U8(98)
+
+/** NV21 format (YUV420 semi-planar: Y10,U10V10) */
+#define VI_PIXFMT_FORMAT_T_Y10__U10V10_N420	MK_U8(99)
+
+/** YV12 format (YUV420 full planar: Y10,U10,V10) */
+#define VI_PIXFMT_FORMAT_T_Y10__U10__V10_N420	MK_U8(100)
+
+/** NV16 format (YUV422 semi-planar: Y10,V10U10) */
+#define VI_PIXFMT_FORMAT_T_Y10__V10U10_N422	MK_U8(101)
+
+/** NV61 format (YUV422 semi-planar: Y10,U10V10) */
+#define VI_PIXFMT_FORMAT_T_Y10__U10V10_N422	MK_U8(102)
+
+/** YV16 format (YUV422 full planar: Y10,U10,V10) */
+#define VI_PIXFMT_FORMAT_T_Y10__U10__V10_N422	MK_U8(103)
+
+/** RLE compressed format for RAW12 data */
+#define VI_PIXFMT_FORMAT_T_DPCM_RAW12		K_U32(128)
+
+/** RAW ISP encoded float, 20-bit fixed */
+#define VI_PIXFMT_FORMAT_T_R16_X_ISP20		MK_U8(194)
+
+/** Alias for @ref VI_PIXFMT_FORMAT_T_R16_X_ISP20 */
+#define VI_PIXFMT_FORMAT_T_R16_ISP		VI_PIXFMT_FORMAT_T_R16_X_ISP20
+
+/** NvColorFormat_Float_R16 */
+#define VI_PIXFMT_FORMAT_T_R16_F		MK_U8(195)
+
+/** NvColorFormat_R16 */
+#define VI_PIXFMT_FORMAT_T_R16			MK_U8(196)
+
+/** NvColorFormat_Int_R16 */
+#define VI_PIXFMT_FORMAT_T_R16_I		MK_U8(197)
+
+/** NvColorFormat_R16_X_ISP24 (RAW ISP encoded float, 24-bit fixed) */
+#define VI_PIXFMT_FORMAT_T_R16_X_ISP24		MK_U8(198)
+
+/** NvColorFormat_R24 */
+#define VI_PIXFMT_FORMAT_T_R24			MK_U8(210)
+
+/** NvColorFormat_R32 */
+#define VI_PIXFMT_FORMAT_T_R32			MK_U8(230)
+
+/** NvColorFormat_Float_R32 */
+#define VI_PIXFMT_FORMAT_T_R32_F		MK_U8(232)
+
+/** RLE compressed format for RAW16 data */
+#define VI_PIXFMT_FORMAT_T_DPCM_RAW16		MK_U8(254)
+
+/** RLE compressed format for RAW20 data */
+#define VI_PIXFMT_FORMAT_T_DPCM_RAW20		MK_U8(255)
+/**@}*/
+
+
+/**
  * @brief VI Channel configuration
  *
- * VI unit register programming for capturing a frame.
+ * Parameters for VI unit register programming to capture a frame.
  */
 struct vi_channel_config {
-	/** DT override enabled flag */
+	/** Enable CSI datatype override (1=enable, 0=disable). */
 	unsigned dt_enable:1;
-	/** Embedded data enabled flag */
+
+	/** Enable reception of sensor embedded data (1=enable, 0=disable). */
 	unsigned embdata_enable:1;
-	/** Flush notice enabled flag */
+
+	/** Enable memory flush function (1=enable, 0=disable). */
 	unsigned flush_enable:1;
-	/** Periodic flush notice enabled flag */
+
+	/** Enable periodic (subframe) memory flushes (1=enable, 0=disable). */
 	unsigned flush_periodic:1;
-	/** Line timer enabled flag */
+
+	/** Enable line timer function (1=enable, 0=disable). */
 	unsigned line_timer_enable:1;
-	/** Periodic line timer notice enabled flag */
+
+	/** Periodic line timer notice enabled flag (1=enable, 0=disable). */
 	unsigned line_timer_periodic:1;
-	/** Enable PIXFMT writing pixels flag */
+
+	/** Enable PIXFMT writing pixels flag (1=enable, 0=disable). */
 	unsigned pixfmt_enable:1;
-	/** Flag to enable merging adjacent RAW8/RAW10 pixels */
+
+	/**
+	 * Enable merging of adjacent RAW8, RAW10, or RAW12 pixel values
+	 * into a single wide pixel (1=enable, 0=disable).
+	 */
 	unsigned pixfmt_wide_enable:1;
-	/** Flag to enable big or little endian. 0 - Big Endian, 1 - Little Endian */
+
+	/** Set wide pixel endianness (0 = big endian, 1 = little endian). */
 	unsigned pixfmt_wide_endian:1;
-	/** Flag to enable Phase Detection Auto Focus (PDAF) pixel replacement */
+
+	/**
+	 * Enable Phase Detection Auto Focus (PDAF) pixel replacement
+	 * (1=enable, 0=disable). (non-safety)
+	 */
 	unsigned pixfmt_pdaf_replace_enable:1;
-	/** ISPA buffer enabled */
+
+	/** ISPA buffer enabled  (1=enable, 0=disable). (deprecated, non-safety) */
 	unsigned ispbufa_enable:1;
-	/** ISPB buffer enabled. Not valid for T186 & T194 */
+
+	/** ISPB buffer enabled  (1=enable, 0=disable). (deprecated, non-safety) */
 	unsigned ispbufb_enable:1;
-	/** VI Companding module enable flag */
+
+	/** Enable pixel companding (1=enable, 0=disable). (non-safety) */
 	unsigned compand_enable:1;
+
 	/** Reserved bits */
 	unsigned pad_flags__:19;
 
-	/* VI channel selector */
 	struct match_rec {
-		/** Datatype to be sent to the channel */
+		/**
+		 * @ref NvCsiDataType "CSI datatype" value to match.
+		 */
 		uint8_t datatype;
-		/** Bits of datatype to match on */
+
+		/**
+		 * Bitmask for bits of @ref datatype to compare [0, UINT8_MAX].
+		 * Normally set to UINT8_MAX to not restrict the comparison.
+		 */
 		uint8_t datatype_mask;
-		/** CSIMUX source to send to this channel */
+
+		/**
+		 * 1-hot encoded @ref NvCsiStream "NVCSI stream" to match
+		 * (1 << @ref NvCsiStream "stream").
+		 */
 		uint8_t stream;
-		/** Bits of STREAM to match on. */
+
+		/**
+		 * Bitmask for bits of @ref stream to compare [0, 0x3F].
+		 * Normally set to 0x3F to not restrict the comparison.
+		 */
 		uint8_t stream_mask;
-		/** Virtual channel to be sent to this channel */
+
+		/**
+		 * 1-hot encoded @ref NvCsiVirtualChannel "CSI Virtual Channel"
+		 * to match (1 << @ref NvCsiVirtualChannel "VC").
+		 */
 		uint16_t vc;
-		/** Bits of VIRTUAL_CHANNEL_MASK to match on */
+
+		/**
+		 * Bitmask for bits of @ref vc to compare [0, UINT16_MAX].
+		 * Normally set to UINT16_MAX to not restrict the comparison.
+		 */
 		uint16_t vc_mask;
-		/** Frame id to be sent to this channel */
+
+		/** CSI frame number to match. */
 		uint16_t frameid;
-		/** Bits of FRAME_ID to match on. */
+
+		/**
+		 * Bitmask for bits of @ref frameid to compare [0, UINT16_MAX].
+		 * Normally set to 0 to disable frame matching.
+		 */
 		uint16_t frameid_mask;
-		/** Data in the first pixel of a line to match on */
+
+		/**
+		 * For Sony sensors with Digital Overlap mode:
+		 * data in the DOL header to match [0, UINT16_MAX].
+		 */
 		uint16_t dol;
-		/** Bits of DOL to match on */
+
+		/**
+		 * Bitmask for bits of @ref dol to compare [0, UINT16_MAX].
+		 * Normally set to 0 to disable DOL matching.
+		 */
 		uint16_t dol_mask;
 	} match;
+	/**<
+	 * VI channel match parameters. Used to select incoming frames
+	 * for this VI channel.
+	 */
 
-	/** DOL header select */
+	/**
+	 * For Sony sensors with Digital Overlap mode: DOL header select [0, 3].
+	 * Configures which pixel in the first pixel packet will carry the
+	 * DOL header used for channel matching (see @ref match::dol).
+	 */
 	uint8_t dol_header_sel;
-	/** Data type override */
+
+	/**
+	 * @ref NvCsiDataType "Datatype" override value. If @ref dt_enable is
+	 * set this value overrides the incoming pixel datatype from the sensor.
+	 * This setting can be used to capture user defined datatypes, for
+	 * example.
+	 */
 	uint8_t dt_override;
-	/** DPCM mode to be used. Currently DPCM is not used */
+
+	/** @ref ViDpcmModes "VI DPCM Mode". (non-safety) */
 	uint8_t dpcm_mode;
+
 	/** Reserved */
 	uint8_t pad_dol_dt_dpcm__;
 
 	struct vi_frame_config {
-		/** Pixel width of frame before cropping */
+		/**
+		 * Frame width (pixels) before cropping [0, UINT16_MAX].
+		 * 0 is interpreted as 65536.
+		 */
 		uint16_t frame_x;
-		/** Line height of frame */
+
+		/**
+		 * Frame height (lines) before cropping [0, UINT16_MAX].
+		 * 0 is interpreted as 65536.
+		 */
 		uint16_t frame_y;
-		/** Maximum number of embedded data bytes on a line */
+
+		/** Number of embedded data bytes on a line [0, 131071]. */
 		uint32_t embed_x;
-		/** Number of embedded lines in frame */
+
+		/** Number of embedded data lines in a frame [0, 65535]. */
 		uint32_t embed_y;
+
 		struct skip_rec {
 			/**
-			 * Number of packets to skip on output at start of line.
-			 * Counted in groups of 8 pixels
+			 * Left edge of the crop region, counted in groups
+			 * of 8 pixels [0, MIN(@ref frame_x - 1,
+			 * @ref crop_rec::x - 1) / 8]. Left crop is disabled
+			 * if the value is 0.
 			 */
 			uint16_t x;
-			/** Number of lines to skip at top of the frame */
+			/**
+			 * Top edge of crop region counted in lines
+			 * [0, MIN(@ref frame_y - 1, @ref crop_rec::y - 1)].
+			 * Top crop is disabled if the value is 0.
+			 */
 			uint16_t y;
-		} skip;
-		struct crop_rec {
-			/** Line width in pixels after which no packets will be transmitted */
-			uint16_t x;
-			/** Height in lines after which no lines will be transmitted */
-			uint16_t y;
-		} crop;
-	} frame;
+		} skip; /**< Top left corner of crop region */
 
-	/** Pixel line count at which a flush notice is sent out */
+		struct crop_rec {
+			/**
+			 * Right edge of crop region counted in pixels
+			 * [0, UINT16_MAX]. 0 is interpreted as 65536. Right
+			 * crop is disabled if the crop region reaches beyond
+			 * the right edge of the frame (>= @ref frame_x).
+			 */
+			uint16_t x;
+
+			/**
+			 * Bottom edge of crop region counted in lines
+			 * [0, UINT16_MAX]. Bottom crop is disabled if the crop
+			 * region reaches beyond the bottom edge of the frame
+			 * (>= @ref frame_y).
+			 */
+			uint16_t y;
+		} crop; /**< Bottom right corner of crop region */
+	} frame;
+	/**<
+	 * Frame configuration (frame resolution, crop region,
+	 * number of embedded data lines)
+	 */
+
+	/**
+	 * Flush to memory after @em flush pixel lines [0, UINT16_MAX].
+	 * 0 is interpreted as 65536. @ref flush_enable must be set for this
+	 * setting to take effect. @ref flush_periodic must be set in order to
+	 * repeat the memory flush every @em flush lines.
+	 */
 	uint16_t flush;
-	/** Line count at which to trip the first flush event */
+
+	/**
+	 * Number of pixel lines before first memory flush [0, UINT16_MAX].
+	 * Can be used to trigger the first memory flush on a line different
+	 * from @ref flush. 0 disables this setting.
+	 */
 	uint16_t flush_first;
 
-	/** Pixel line count at which a notification is sent out*/
+	/**
+	 * Pixel line count between memory line timer events [0, UINT16_MAX].
+	 * 0 is interpreted as 65536. @ref flush_enable must be set
+	 * for this setting to take effect.
+	 */
 	uint16_t line_timer;
+
 	/** Line count at which to trip the first line timer event */
 	uint16_t line_timer_first;
 
-	/* Pixel formatter */
 	struct pixfmt_rec {
-		/** Pixel memory format for the VI channel */
+		/** @ref ViPixFmt "VI Output Pixel Format". */
 		uint16_t format;
-		/** Zero padding control for RAW8/10/12/14->T_R16 and RAW20/24->T_R32 */
+
+		/**
+		 * Zero padding control for RAW8/10/12/14->T_R16 and
+		 * RAW20/24->T_R32. 0 = disable, 1 = right alined MSB padded,
+		 * 2 = left aligned LSB padded.
+		 */
 		uint8_t pad0_en;
+
 		/** Reserved */
 		uint8_t pad__;
+
 		struct pdaf_rec {
-			/** Within a line, X pixel position at which PDAF separation begins */
+			/**
+			 * Within a line, X pixel position at which PDAF
+			 * separation begins [0, UINT16_MAX].
+			 */
 			uint16_t crop_left;
-			/** Within a line, X pixel position at which PDAF separation ends*/
+
+			/**
+			 * Within a line, X pixel position at which PDAF
+			 * separation ends [0, UINT16_MAX].
+			 */
 			uint16_t crop_right;
-			/** Line at which PDAF separation begins */
+
+			/**
+			 * Line at which PDAF separation begins
+			 * [0, UINT16_MAX].
+			 */
 			uint16_t crop_top;
-			/** line at which PDAF separation ends */
+
+			/**
+			 * line at which PDAF separation ends
+			 * [0, UINT16_MAX].
+			 */
 			uint16_t crop_bottom;
-			/** Within a line, X pixel position at which PDAF replacement begins*/
+
+			/**
+			 * Within a line, X pixel position at which PDAF
+			 * replacement begins [0, UINT16_MAX].
+			 */
 			uint16_t replace_crop_left;
-			/** Within a line, X pixel position at which PDAF replacement ends*/
+
+			/**
+			 * Within a line, X pixel position at which PDAF
+			 * replacement ends [0, UINT16_MAX].
+			 */
 			uint16_t replace_crop_right;
-			/** Line at which PDAF replacement begins */
+
+			/**
+			 * Line at which PDAF replacement begins
+			 * [0, UINT16_MAX].
+			 */
 			uint16_t replace_crop_top;
-			/** Line at which PDAF repalcement ends */
+
+			/**
+			 * Line at which PDAF repalcement ends
+			 * [0, UINT16_MAX].
+			 */
 			uint16_t replace_crop_bottom;
-			/** X coordinate of last PDAF pixel within the PDAF crop window */
+
+			/**
+			 * X coordinate of last PDAF pixel within the PDAF
+			 * crop window [0, UINT16_MAX]. */
 			uint16_t last_pixel_x;
-			/** Y coordinate of last PDAF pixel within the PDAF crop window */
+
+			/**
+			 * Y coordinate of last PDAF pixel within the PDAF
+			 * crop window [0, UINT16_MAX].
+			 */
 			uint16_t last_pixel_y;
+
 			/** Value to replace PDAF pixel with */
 			uint16_t replace_value;
-			/** Memory format in which the PDAF pixels will be written in */
+
+			/**
+			 * Memory format for writing PDAF pixels. Only
+			 * T_R16_X_ISP20, T_R16_F, T_R16, T_R32, and T_R32_F
+			 * formats are supported (see @ref ViPixFmt
+			 * "VI Output Pixel Formats" for values).
+			 */
 			uint8_t format;
+
 			/** Reserved */
 			uint8_t pad_pdaf__;
 		} pdaf;
-	} pixfmt;
+		/**<
+		 * Configuration for Phase Detection Auto-Focus pixels.
+		 * (non-safety)
+		 */
 
-	/* Pixel DPCM */
+	} pixfmt; /**< Pixel format configuration */
+
 	struct dpcm_rec {
-		/** Number of pixels in the strip */
+		/**
+		 * Number of pixels in the strip [0, UINT16_MAX] (@deprecated).
+		 * */
 		uint16_t strip_width;
-		/** Number of packets in overfetch region */
+
+		/**
+		 * Number of pixel packets in overfetch region [0, UINT16_MAX].
+		 * 0 disables overfetch.
+		 */
 		uint16_t strip_overfetch;
 
-		/** Not for T186 or earlier */
-		/** Number of packets in first generated chunk (no OVERFETCH region in first chunk) */
-		uint16_t chunk_first;
-		/** Number of packets in “body” chunks (including OVERFETCH region, if enabled) */
-		uint16_t chunk_body;
-		/** Number of “body” chunks to emit */
-		uint16_t chunk_body_count;
 		/**
-		 * Number of packets in chunk immediately after “body” chunks (including OVERFETCH
-		 * region, if enabled)
+		 * Number of pixel packets in first generated chunk
+		 * (no OVERFETCH region) [0, UINT16_MAX].
+		 * */
+		uint16_t chunk_first;
+
+		/**
+		 * Number of pixel packets in “body” chunks (including
+		 * possible overfetch) [0, UINT16_MAX].
+		 */
+		uint16_t chunk_body;
+
+		/** Number of “body” chunks to emit [0, UINT16_MAX]. */
+		uint16_t chunk_body_count;
+
+		/**
+		 * Number of pixel packets in chunk immediately after “body”
+		 * chunks (including possible overfecth) [0, UINT16_MAX].,
 		 */
 		uint16_t chunk_penultimate;
-		/** Number of packets in final generated chunk (including OVERFETCH region, if enabled) */
+
+		/**
+		 * Number of pixel packets in the final generated chunk
+		 * (including possible overfetch) [0, UINT16_MAX].
+		 */
 		uint16_t chunk_last;
+
 		/** Reserved */
 		uint16_t pad__;
-		/** Maximum value to truncate input data to */
-		uint32_t clamp_high;
-		/** Minimum value to truncate input data to */
-		uint32_t clamp_low;
-	} dpcm;
 
-	/* Atom packer */
+		/** Maximum value to truncate input data to [0, 0xFFFFF]. */
+		uint32_t clamp_high;
+
+		/** Minimum value to truncate input data to [0, 0xFFFFF]. */
+		uint32_t clamp_low;
+
+	} dpcm; /**< Configuration for DPCM compression. (non-safety) */
+
 	struct atomp_rec {
 		struct surface_rec {
-			/** Offset within memory buffer */
+			/**
+			 * Undefined in RCE-FW interface.
+			 *
+			 * In the UMD-KMD shared memory interface this carries
+			 * an offset into the memory buffer identified by
+			 * a memory handle stored in @ref offset_hi.
+			 */
 			uint32_t offset;
-			/** Memory handle of the buffer. Must be valid handle or 0 */
+
+			/**
+			 * Undefined in RCE-FW interface.
+			 *
+			 * In the UMD-KMD interface this carries a memory
+			 * handle for the output buffer. See KMD documentation
+			 * for the constraints.
+			 */
 			uint32_t offset_hi;
+
 		} surface[VI_NUM_ATOMP_SURFACES];
-		/** Line stride of the surface in bytes */
+		/**<
+		 * Memory buffers for output surfaces. Currently only defined
+		 * for the shared memory interface between UMD and KMD. The
+		 * content is undefined for the RCE-FW interface.
+		 */
+
+		/** Line stride of the surface in bytes [0, 0xFFFFF]. */
 		uint32_t surface_stride[VI_NUM_ATOMP_SURFACES];
-		/** DPCM chunk stride (distance from start of chunk to end of chunk) */
+
+		/**
+		 * DPCM chunk stride (distance from start of chunk to end of
+		 * chunk) [0, 0xFFFFF].
+		 * */
 		uint32_t dpcm_chunk_stride;
 	} atomp;
+	/**< Memory output configuration. */
 
 	/** Reserved */
 	uint16_t pad__[2];
@@ -879,12 +1319,28 @@ struct vi_channel_config {
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief Engine status buffer base address.
+ * @brief Memory buffer for engine status.
+ *
+ * This structure is used to between UMD and KMD to share a buffer
+ * for writing VI or ISP engine status.
  */
 struct engine_status_surface {
-	/** Offset within memory buffer */
+	/**
+	 * Undefined in RCE-FW interface.
+	 *
+	 * In the UMD-KMD interface this carries an Offset into a memory
+	 * buffer identified by the buffer handle stored in @ref offset_hi.
+	 *
+	 * Valid only in UMD-KMD interface.
+	 */
 	uint32_t offset;
-	/** Memory handle of the buffer. Must be valid handle or 0 */
+
+	/**
+	 * Undefined in RCE-FW interface.
+	 *
+	 * In the UMD-KMD inteface this carries a memory handle for the
+	 * engine stauts buffer. Must be a valid buffer handle or 0.
+	 */
 	uint32_t offset_hi;
 } CAPTURE_IVC_ALIGN;
 
@@ -901,218 +1357,374 @@ struct watermark_mem_offset {
 /**
  * @brief NVCSI error status
  *
- * Represents error reported from CSI source used by capture descriptor.
+ * Detailed error information reported by the CSI interface.
+ *
+ * This information is provided for logging and triage of any capture
+ * issues. The information is queried from the CSI interface whenever
+ * a capture request completes. However, it should be noted that the
+ * information is not frame accurate or even channel accurate in some
+ * cases.
+ *
+ * Any error reported here must not be construed to mean
+ * that the captured frame is good or bad. Please refer to
+ * @ref capture_status::status for making that judgement.
  *
  */
 struct nvcsi_error_status {
 	/**
-	 * NVCSI @ref NvCsiStreamErrors "errors" reported for stream used by capture descriptor
+	 * NVCSI @ref NvCsiStreamErrors "stream errors" map to a CSI port
+	 * and affect all capture channels sharing that port via the use
+	 * of CSI virtual channels.
 	 *
-	 * Stream error affects multiple virtual channel.
-	 * It will be is reported only once, for the first capture channel
-	 * which retrieved the error report.
+	 * The errors will only be reported only once, on the capture channel
+	 * which happened to retrieve the error report first, not on all
+	 * capture channels sharing the CSI port.
 	 *
-	 * This error cause data packet drops and should trigger VI errors in
-	 * affected virtual channels.
+	 * Note that these errors will cause VI to independently detect
+	 * errors on all affected channels and the error reporting done
+	 * by VI is frame accurate, unlike CSI, so the client need not
+	 * consider these errors for normal operation.
 	 */
 	uint32_t nvcsi_stream_bits;
 
 	/**
-	 * @defgroup NvCsiStreamErrors
-	 * NVCSI Stream error bits
+	 * @defgroup NvCsiStreamErrors NVCSI Stream error bits
 	 */
 	/** @{ */
+
+	/**
+	 * Both CRC values in a CPHY CSI packet header have a mismatch.
+	 * The packet header is corrupted.
+	 */
 #define NVCSI_STREAM_ERR_STAT_PH_BOTH_CRC_ERR			MK_BIT32(1)
+
+	/**
+	 * Multiple bit errors detected by in DPHY CSI packet header by ECC.
+	 * The packet header is corrupted.
+	 */
 #define NVCSI_STREAM_ERR_STAT_PH_ECC_MULTI_BIT_ERR		MK_BIT32(0)
 	/** @} */
 
 	/**
-	 * NVCSI @ref NvcsiVirtualChannelErrors "errors" reported for stream virtual channel used by capture descriptor
-	 * These errors are expected to be forwarded to VI and also reported by VI as CSIMUX Frame CSI_FAULT errors
+	 * NVCSI @ref NvcsiVirtualChannelErrors "virtual channel errors" map
+	 * to a single CSI virtual channel carried over a CSI port. These
+	 * errors are also forwarded to VI with each frame-end packet and
+	 * reported to the client with each affected capture request as
+	 * part of @ref notify_bits.
 	 */
 	uint32_t nvcsi_virtual_channel_bits;
 
 	/**
-	 * @defgroup NvCsiVirtualChannelErrors
-	 * NVCSI Virtual Channel error bits
+	 * @defgroup NvCsiVirtualChannelErrors NVCSI Virtual Channel error bits
 	 */
 	/** @{ */
-#define NVCSI_VC_ERR_INTR_STAT_PH_SINGLE_CRC_ERR_VC0		MK_BIT32(4)
-#define NVCSI_VC_ERR_INTR_STAT_PD_WC_SHORT_ERR_VC0		MK_BIT32(3)
-#define NVCSI_VC_ERR_INTR_STAT_PD_CRC_ERR_VC0			MK_BIT32(2)
-#define NVCSI_VC_ERR_INTR_STAT_PH_ECC_SINGLE_BIT_ERR_VC0	MK_BIT32(1)
-#define NVCSI_VC_ERR_INTR_STAT_PPFSM_TIMEOUT_VC0		MK_BIT32(0)
+
+	/**
+	 * CSI embedded data line CRC error. The sensor embedded data
+	 * is corrupted.
+	 */
+#define NVCSI_VC_ERR_INTR_STAT_EMBEDDED_LINE_CRC_ERR	MK_BIT32(5)
+
+	/**
+	 * One out of two CRCs for the CPHY CSI packet header mismatches.
+	 * The CRC value itself is corrupted.  This error does not
+	 * cause frame corruption.
+	 */
+#define NVCSI_VC_ERR_INTR_STAT_PH_SINGLE_CRC_ERR	MK_BIT32(4)
+
+	/**
+	 * CSI payload data word count short error. The received data line
+	 * was incomplete.
+	 */
+#define NVCSI_VC_ERR_INTR_STAT_PD_WC_SHORT_ERR		MK_BIT32(3)
+
+	/**
+	 * A CRC mismatch was detected in CSI packet payload data.
+	 * The payload is corrupted.
+	 */
+#define NVCSI_VC_ERR_INTR_STAT_PD_CRC_ERR		MK_BIT32(2)
+
+	/**
+	 * A single bit error was corrected by ECC in the DPHY CSI
+	 * packet header.
+	 */
+#define NVCSI_VC_ERR_INTR_STAT_PH_ECC_SINGLE_BIT_ERR	MK_BIT32(1)
+
+	/**
+	 * CSI pixel parser finite state machine timeout.
+	 * A line of data was not received in time
+	 * (see @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG::watchdog_config).
+	 */
+#define NVCSI_VC_ERR_INTR_STAT_PPFSM_TIMEOUT		MK_BIT32(0)
 	/** @} */
 
 	/**
-	 * NVCSI errors reported for CIL interface used by capture descriptor
+	 * NVCSI @ref NvCsiCilErrors "common interface logic errors"
+	 * reported by partition A of the CSI brick (CIL A).
 	 */
-	/** NVCSI CIL A  @ref NvCsiCilErrors "errors" */
 	uint32_t cil_a_error_bits;
-	/** NVCSI CIL B  @ref NvCsiCilErrors "errors" */
+
+	/**
+	 * NVCSI @ref NvCsiCilErrors "common interface logic errors"
+	 * reported by partition B of the CSI brick (CIL B).
+	 */
 	uint32_t cil_b_error_bits;
 
 	/**
-	 * @defgroup NvCsiCilErrors
-	 * NVCSI CIL error bits
+	 * @defgroup NvCsiCilErrors NVCSI CIL error bits
 	 */
 	/** @{ */
-#define NVCSI_ERR_CIL_DATA_LANE_SOT_2LSB_ERR1		MK_BIT32(16)
-#define NVCSI_ERR_CIL_DATA_LANE_SOT_2LSB_ERR0		MK_BIT32(15)
+
+	/** Escape mode sync error on lane 1. */
 #define NVCSI_ERR_CIL_DATA_LANE_ESC_MODE_SYNC_ERR1	MK_BIT32(14)
+
+	/** Escape mode sync error on lane 0. */
 #define NVCSI_ERR_CIL_DATA_LANE_ESC_MODE_SYNC_ERR0	MK_BIT32(13)
+
+	/**
+	 * Lane alignment error. Some lanes detected a sync word while
+	 * other lanes did not.
+	 */
 #define NVCSI_ERR_DPHY_CIL_LANE_ALIGN_ERR		MK_BIT32(12)
+
+	/**
+	 * DPHY skew calibration did not complete while sweeping the
+	 * clock lane trimmer. This will happen if the calibration
+	 * sequence is not long enough.
+	 */
 #define NVCSI_ERR_DPHY_CIL_DESKEW_CALIB_ERR_CTRL	MK_BIT32(11)
+
+	/**
+	 * DPHY skew calibration did not complete while sweeping the
+	 * data lane 1 trimmer. This will happen if the calibration
+	 * sequence is not long enough.
+	 */
 #define NVCSI_ERR_DPHY_CIL_DESKEW_CALIB_ERR_LANE1	MK_BIT32(10)
+
+	/**
+	 * DPHY skew calibration did not complete while sweeping the
+	 * data lane 0 trimmer. This will happen if the calibration
+	 * sequence is not long enough.
+	 */
 #define NVCSI_ERR_DPHY_CIL_DESKEW_CALIB_ERR_LANE0	MK_BIT32(9)
+
+	/** Data lane 1 receive FIFO overflow. */
 #define NVCSI_ERR_CIL_DATA_LANE_RXFIFO_FULL_ERR1	MK_BIT32(8)
+
+	/** LP sequence error detected on DATA lane 1. */
 #define NVCSI_ERR_CIL_DATA_LANE_CTRL_ERR1		MK_BIT32(7)
+
+	/** Multiple bit errors detected in the data lane 1 sync word. */
 #define NVCSI_ERR_CIL_DATA_LANE_SOT_MB_ERR1		MK_BIT32(6)
+
+	/** Single bit error detected in the lane 1 sync word. */
 #define NVCSI_ERR_CIL_DATA_LANE_SOT_SB_ERR1		MK_BIT32(5)
+
+	/** Data lane 0 receive FIFO overflow. */
 #define NVCSI_ERR_CIL_DATA_LANE_RXFIFO_FULL_ERR0	MK_BIT32(4)
+
+	/** LP sequence error detected on DATA lane 0. */
 #define NVCSI_ERR_CIL_DATA_LANE_CTRL_ERR0		MK_BIT32(3)
+
+	/** Multiple bit errors detected in the data lane 0 sync word */
 #define NVCSI_ERR_CIL_DATA_LANE_SOT_MB_ERR0             MK_BIT32(2)
+
+	/** Single bit error detected in the lane 0 sync word. */
 #define NVCSI_ERR_CIL_DATA_LANE_SOT_SB_ERR0		MK_BIT32(1)
+
+	/** DPHY clock lane control error */
 #define NVCSI_ERR_DPHY_CIL_CLK_LANE_CTRL_ERR		MK_BIT32(0)
 	/** @} */
 };
 
 /**
  * @brief Frame capture status record
+ *
+ * The capture status is part of @ref capture_descriptor and is populated
+ * by RCE-FW when the capture request is completed. The status record
+ * is guaranteed to be up-to-date before RCE-FW sends the @ref
+ * CAPTURE_STATUS_IND message to the client in order to signal request
+ * completion.
  */
 struct capture_status {
-	/** CSI stream number */
+	/** @ref NvCsiStream "CSI Stream Number". */
 	uint8_t src_stream;
-	/** CSI virtual channel number */
+
+	/** @ref NvCsiVirtualChannel "CSI virtual channel number". */
 	uint8_t virtual_channel;
-	/** Frame sequence number */
+
+	/** Frame number from sensor. Value range depends on the sensor. */
 	uint16_t frame_id;
-	/** Capture status. See @ref CaptureStatusCodes "codes". */
+
+	/** @ref CaptureStatusCodes "Capture status code". */
 	uint32_t status;
 
 /**
- * @defgroup CaptureStatusCodes
- * Capture status codes
+ * @defgroup CaptureStatusCodes Capture status codes
  */
+
 /** @{ */
-/** Capture status unknown.
- * Value of @ref err_data "err_data" is undefined.
+/**
+ * Capture status unknown. This usually means that the capture request
+ * is not yet executed or is still in progress. The values of other
+ * fields in the capture status record are undefined.
  */
 #define CAPTURE_STATUS_UNKNOWN			MK_U32(0)
-/** Capture status success.
- * Value of @ref err_data "err_data" is undefined.
+
+/**
+ * Capture status success.
+ *
+ * Value of @ref notify_bits may be checked for any
+ * non frame-corrupting errors detected during capture.
  */
 #define CAPTURE_STATUS_SUCCESS			MK_U32(1)
-/** CSIMUX frame error.
+
+/**
+ * CSIMUX frame error. Maps to VI CSIMUX_FRAME notify event.
  *
- * Maps to VI CSIMUX_FRAME event.
+ * This signals an error detected by VI at frame boundary or
+ * a CSI error received with FE packet from NVCSI.
  *
- * See @ref err_data "err_data" with the VI event payload.
- *
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+ * Refer to @ref notify_bits for error details.
  */
 #define CAPTURE_STATUS_CSIMUX_FRAME		MK_U32(2)
-/** CSIMUX stream error.
+
+/**
+ * CSIMUX stream error. Maps to VI CSIMUX_STREAM notify event.
  *
- * Maps to VI CSIMUX_STREAM event.
+ * An error was detected in the VI CSIMUX stream interface.
  *
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+ *
+ * Refer to @ref notify_bits for error details.
  */
 #define CAPTURE_STATUS_CSIMUX_STREAM		MK_U32(3)
-/** Data-specific fault in a channel.
- * Maps to VI CHANSEL_FAULT event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Unused. @deprecated
+ *
+ * CHANSEL_FAULT errors are reported with @ref
+ * CAPTURE_STATUS_FALCON_ERROR.
  */
 #define CAPTURE_STATUS_CHANSEL_FAULT		MK_U32(4)
-/** Data-specific fault in a channel.
- * FE packet was force inserted. Maps to VI CHANSEL_FAULT_FE event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Unused. @deprecated
+ *
+ * CHANSEL_FAULT_FE errors are reported with @ref
+ * CAPTURE_STATUS_FALCON_ERROR.
  */
 #define CAPTURE_STATUS_CHANSEL_FAULT_FE		MK_U32(5)
-/** SOF matches a channel that is already in a frame.
- * Maps to VI CHANSEL_COLLISION event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Channel collision error. Maps to VI CHANSEL_COLLISION
+ * notify event.
+ *
+ * A received start-of-frame packet matches a VI channel that
+ * is already receiving a frame. This is typically caused by
+ * a mistake in programming the
+ * (@ref capture_descriptor::match "channel match rules")
+ * so that they match more than one sensor stream.
+ *
+ * This error sets @ref CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_COLLISION
+ * in @ref notify_bits.
  */
 #define CAPTURE_STATUS_CHANSEL_COLLISION	MK_U32(6)
-/** Frame End appears from NVCSI before the normal number of pixels.
- * Maps to VI CHANSEL_SHORT_FRAME event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Unused. @deprecated.
+ *
+ * CHANSEL_SHORT_FRAME errors are reported with @ref
+ * CAPTURE_STATUS_FALCON_ERROR.
  */
 #define CAPTURE_STATUS_CHANSEL_SHORT_FRAME	MK_U32(7)
-/** Single surface packer has overflowed.
- * Maps to VI ATOMP_PACKER_OVERFLOW event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Single ATOMP surface packer has overflowed. Maps to VI
+ * ATOMP_PACKER_OVERFLOW notify event. This is an internal
+ * error that should not happen in normal use.
+ *
+ * This error sets @ref CAPTURE_STATUS_NOTIFY_BIT_ATOMP_PACKER_OVERFLOW
+ * in @ref notify_bits.
  */
 #define CAPTURE_STATUS_ATOMP_PACKER_OVERFLOW	MK_U32(8)
-/** Frame interrupted mid-frame.
- * Maps to VI ATOMP_FRAME_TRUNCATED event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Frame truncated writing to system memory. Maps to VI
+ * ATOMP_FRAME_TRUNCATED event. This error typically indicates
+ * memory back-pressure due to insufficient memory bandwidth
+ * or an excessive memory access latency.
+ *
+ * This error sets @ref CAPTURE_STATUS_NOTIFY_BIT_ATOMP_FRAME_TRUNCATED
+ * in @ref notify_bits.
  */
 #define CAPTURE_STATUS_ATOMP_FRAME_TRUNCATED	MK_U32(9)
-/** Frame interrupted without writing any data out.
- * Maps to VI ATOMP_FRAME_TOSSED event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Frame discarded writing to system memory. Maps to VI
+ * ATOMP_FRAME_TOSSED event. This error typically indicates
+ * memory back-pressure due to insufficient memory bandwidth
+ * or an excessive memory access latency.
+ *
+ * This error sets @ref CAPTURE_STATUS_NOTIFY_BIT_ATOMP_FRAME_TOSSED
+ * in @ref notify_bits.
  */
 #define CAPTURE_STATUS_ATOMP_FRAME_TOSSED	MK_U32(10)
-/** ISP buffer FIFO overflowed.
- * Maps to VI CSIMUX_FRAME event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+
+/**
+ * Unused. @deprecated
+ *
+ * ISPBUF FIFO interfaces are not used.
  */
 #define CAPTURE_STATUS_ISPBUF_FIFO_OVERFLOW	MK_U32(11)
-/** Capture status out of sync.
- * Value of @ref err_data "err_data" is undefined.
+
+/**
+ * Capture status out of sync. A stale error from a past frame was
+ * detected and logged. An unknown number of frames may have been lost
+ * due to, for example, a longer break in the sensor connection.
  */
 #define CAPTURE_STATUS_SYNC_FAILURE		MK_U32(12)
-/** VI notifier backend down.
- * Value of @ref err_data "err_data" is undefined.
+
+/**
+ * Unused. @deprecated
  */
 #define CAPTURE_STATUS_NOTIFIER_BACKEND_DOWN	MK_U32(13)
-/** Falcon error.
- * Value of @ref err_data "err_data" is defined in
- " VI Microcode IAS v0.5.13, section 2.3.3".
+
+/**
+ * Capture error reported by VI falcon. See @ref notify_bits
+ * for detailed @ref ViFalconErrorBits "errors".
  */
 #define CAPTURE_STATUS_FALCON_ERROR		MK_U32(14)
-/** Data does not match any active channel.
+
+/**
+ * Incoming frame does not match any active channel.
  * Maps to VI CHANSEL_NOMATCH event.
- * See @ref err_data "err_data" with the VI event payload.
- * Please refer to T19x Video Input (“VI5”) Application Note:
- * Programming NOTIFY v0.0.0" for details.
+ *
+ * This typically means that the client has either not configured
+ * a capture channel for the sensor or has been unable to supply
+ * capture requests quickly enough, causing a request queue
+ * underflow. Each CHANSEL_NOMATCH error implies that a frame
+ * has been dropped.
  */
 #define CAPTURE_STATUS_CHANSEL_NOMATCH		MK_U32(15)
 
 /**
- * Invalid VI capture settings.
- * Value of @ref err_data "err_data" is undefined.
+ * Invalid VI capture settings. Parameter validation error from
+ * VI driver.
  */
 #define CAPTURE_STATUS_INVALID_CAP_SETTINGS	MK_U32(16)
+
 /** @} */
 
-	/** Start of Frame (SOF) timestamp (ns) */
+	/** TSC based start-of-frame (SOF) timestamp (ns) */
 	uint64_t sof_timestamp;
-	/** End of Frame (EOF) timestamp (ns) */
+
+	/** TSC based end-of-frame (EOF) timestamp (ns) */
 	uint64_t eof_timestamp;
+
 	/**
-	 * Extended error data. The content depends on the value in @ref status.
-	 * See @ref CaptureStatusCodes for references.
+	 * @deprecated
+	 *
+	 * See @ref notify_bits for error details.
 	 */
 	uint32_t err_data;
 
@@ -1128,156 +1740,237 @@ struct capture_status {
 	uint32_t flags;
 
 	/**
-	 * VI error notifications logged in capture channel since previous capture.
-	 * See @ref ViNotifyErrorTag "VI notify error bitmask"
-	 *
-	 * Please refer to "[1] VI Microcode IAS v0.5.13" and
-	 * "[2] T19x Video Input (“VI5”) Application Note: Programming NOTIFY v0.0.0"
-	 * for more information on the meaning of individual error bits.
+	 * @ref ViNotifyErrorTag "VI errors" logged in capture channel since
+	 * previous capture.
 	 */
 	uint64_t notify_bits;
 
 	/**
-	 * @defgroup ViNotifyErrorTag Extended VI error bits for the @ref notify_bits field
+	 * @defgroup ViNotifyErrorTag VI errors
+	 *
+	 * VI error bits for the @ref notify_bits field.
 	 */
 	/** @{ */
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESEVED_0			MK_BIT64(1)
-	/** Frame start fault */
+
+	/**
+	 * Frame start fault. A FS packet was received while already
+	 * in frame indicating that a FE packet was lost.
+	 *
+	 * This is not a frame corrupting error, unless pixel data was
+	 * lost as well, and may also be present in the capture status
+	 * of a successful request.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_FS_FAULT				MK_BIT64(2)
-	/** Frame end forced by CSIMUX stream reset or stream timeout */
+
+	/** FE forced by CSIMUX stream reset or stream timeout. */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_FORCE_FE_FAULT			MK_BIT64(3)
-	/** Frame ID fault in frame end packet */
+
+	/** Frame ID of the FE packet does not match the Frame ID of the FS packet.  */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_FE_FRAME_ID_FAULT		MK_BIT64(4)
-	/** Pixel enable fault in pixel packet header */
+
+	/** An illegal pixel enable encoding was detected in a long packet. */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_PXL_ENABLE_FAULT			MK_BIT64(5)
 
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_1			MK_BIT64(6)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_2			MK_BIT64(7)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_3			MK_BIT64(8)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_4			MK_BIT64(9)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_5			MK_BIT64(10)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_6			MK_BIT64(11)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_7			MK_BIT64(12)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_8			MK_BIT64(13)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_RESERVED_9			MK_BIT64(14)
-
-	/** CSI pixel parser finite state machine timeout */
+	/**
+	 * CSI pixel parser finite state machine timeout.
+	 * A line of data was not received in time
+	 * (see @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG::watchdog_config).
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_CSI_FAULT_PPFSM_TIMEOUT		MK_BIT64(15)
-	/** CSI single bit error corrected in packet header by ECC */
+
+	/**
+	 * A single bit error was corrected by ECC in the DPHY CSI
+	 * packet header.
+	 *
+	 * This is not a frame corrupting error and may also be present
+	 * in the capture status of a successful request.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_CSI_FAULT_PH_ECC_SINGLE_BIT_ERR	MK_BIT64(16)
-	/** CSI CRC Error in payload data */
+
+	/**
+	 * A CRC mismatch was detected in CSI packet payload data.
+	 * The payload is corrupted.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_CSI_FAULT_PD_CRC_ERR		MK_BIT64(17)
-	/** CSI payload data word count short error */
+
+	/**
+	 * CSI payload data word count short error. The received data line
+	 * was incomplete.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_CSI_FAULT_PD_WC_SHORT_ERR	MK_BIT64(18)
-	/** CSI packet header single CRC error */
+
+	/**
+	 * One out of two CRCs for the CPHY CSI packet header mismatches.
+	 * The CRC value itself is corrupted.  This error does not cause
+	 * frame corruption.
+	 *
+	 * This is not a frame corrupting error and may also be present
+	 * in the capture status of a successful request.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_CSI_FAULT_PH_SINGLE_CRC_ERR	MK_BIT64(19)
-	/** CSI embedded data line CRC error */
+
+	/**
+	 * CSI embedded data line CRC error. The sensor embedded data
+	 * is corrupted.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_FRAME_CSI_FAULT_EMBEDDED_LINE_CRC_ERR	MK_BIT64(20)
 
 	/**
 	 * Spurious data detected between valid frames or before first frame.
-	 * This can be a badly corrupted frame or some random bits.
-	 * This error doesn't have an effect on the captured frame.
+	 * This can be a badly corrupted frame or some random bits. This error
+	 * doesn't have an effect on the next captured frame. Spurious data
+	 * before the first captured frame is often caused by receiving the
+	 * tail part of a partial frame in the beginning. Spurious errors
+	 * detected before first full frame will be suppressed.
+	 *
+	 * This is not a frame corrupting error and may also be present
+	 * in the capture status of a subsequent successful request.
 	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_STREAM_SPURIOUS_DATA			MK_BIT64(21)
-	/** Stream FIFO overflow. This error is unrecoverable. */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_STREAM_FIFO_OVERFLOW			MK_BIT64(22)
-	/** Stream loss of frame error. This error is unrecoverable. */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_STREAM_FIFO_LOF			MK_BIT64(23)
+
 	/**
-	 * Illegal data packet was encountered and dropped by CSIMUX.
-	 * This error may have no effect on capture result or trigger
-	 * other errors if frame got corrupted.
+	 * Stream FIFO overflow. This error is unrecoverable. The FIFO
+	 * overflow error usually implies incorrect configuration of
+	 * VI and ISP core clock rates. This error should not happen
+	 * during normal use.
+	 */
+	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_STREAM_FIFO_OVERFLOW			MK_BIT64(22)
+
+	/**
+	 * Stream loss of frame error. A FS packet was lost due a stream
+	 * FIFO overflow. This error is unrecoverable. The FIFO
+	 * overflow error usually implies incorrect configuration of
+	 * VI and ISP core clock rates. This error should not happen
+	 * during normal use.
+	 */
+	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_STREAM_FIFO_LOF			MK_BIT64(23)
+
+	/**
+	 * An illegal data packet was encountered and dropped by CSIMUX.
+	 * This error may have no effect on capture result or may trigger
+	 * other errors if the frame got corrupted.
 	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CSIMUX_STREAM_FIFO_BADPKT			MK_BIT64(24)
 
 	/**
-	 * Timeout from frame descriptor activation to frame start.
-	 * See also frame_start_timeout in struct capture_descriptor
+	 * Start of frame capture timed out. The timeout is measured
+	 * from VI falcon task activation to frame start (see
+	 * @ref capture_descriptor::frame_start_timeout).
 	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_FRAME_START_TIMEOUT			MK_BIT64(25)
 
 	/**
-	 * Timeout from frame start to frame completion.
-	 * See also frame_completion_timeout in struct capture_descriptor
+	 * Frame capture timed out. The timeout is measured from frame start
+	 * to frame completion (see @ref capture_descriptor::frame_timeout).
 	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_FRAME_COMPLETION_TIMEOUT		MK_BIT64(26)
 
-	/** Missing line end packet in pixel data line */
+	/** Missing line-end packet in pixel data line */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_PIXEL_MISSING_LE		MK_BIT64(30)
+
 	/** Frame has too many lines */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_PIXEL_RUNAWAY			MK_BIT64(31)
-	/** Pixel data received without line start packet */
+
+	/** Pixel data received without line-start packet */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_PIXEL_SPURIOUS		MK_BIT64(32)
-	/** Pixel data line is too long */
+
+	/** Pixel line is too long */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_PIXEL_LONG_LINE		MK_BIT64(33)
-	/** Pixel data line is too short */
+
+	/** Pixel line is too short */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_PIXEL_SHORT_LINE		MK_BIT64(34)
-	/** Missing line end packet in embedded data line */
+
+	/** Missing line-end packet in embedded data line */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_EMBED_MISSING_LE		MK_BIT64(35)
+
 	/** Frame has too many lines of embedded data */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_EMBED_RUNAWAY			MK_BIT64(36)
-	/** Embedded data received without line start packet */
+
+	/** Embedded data received without line-start packet */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_EMBED_SPURIOUS		MK_BIT64(37)
+
 	/** Embedded data line is too long */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_EMBED_LONG_LINE		MK_BIT64(38)
-	/** Embedded data received when not expected */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_EMBED_INFRINGE		MK_BIT64(39)
-	/** Invalid pixel data type in pixel packet or line start packet */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_DTYPE_MISMATCH		MK_BIT64(40)
-	/** Reserved */
-	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_RESERVED_0			MK_BIT64(41)
 
-	/** Frame to short - too few pixel data lines */
+	/**
+	 * Embedded data received when not expected. Sensor has been
+	 * programmed to send embedded data but the capture has
+	 * not been programmed to expect it.
+	 */
+	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_EMBED_INFRINGE		MK_BIT64(39)
+
+	/** Invalid pixel datatype in pixel packet or line-start packet */
+	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_DTYPE_MISMATCH		MK_BIT64(40)
+
+	/** Short frame: frame has too few pixel lines */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_PIX_SHORT			MK_BIT64(42)
 
-	/** Frame to short - too few embedded data lines */
+	/** Short frame: frame has too few embedded data lines */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_EMB_SHORT			MK_BIT64(43)
 
-	/** VI hardware failure detected by Permanent Fault Software Diagnostics (PFSD) */
+	/**
+	 * VI hardware failure detected by
+	 * (@ref CAPTURE_CHANNEL_FLAG_ENABLE_VI_PFSD).
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_PFSD_FAULT				MK_BIT64(44)
 
-	/** Frame end forced by channel reset */
+	/**
+	 * Frame was truncated due to a frame timeout, or
+	 * a channel reset or channel release operation.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_FAULT_FE			MK_BIT64(45)
 
 	/**
-	 * Incoming frame not matched by any VI channel.
-	 * This error is usually caused by not having a pending
-	 * capture request ready to catch the incoming frame.
-	 * The frame will be dropped.
+	 * Incoming frame was not matched by any VI channel.This error is
+	 * usually caused by not having a pending capture request ready to
+	 * catch the incoming frame. The frame will be dropped. This often
+	 * indicates a request starvation condition that may be caused by
+	 * performance issues on the client side.
+	 *
+	 * This is not a frame corrupting error and may also be present
+	 * in the capture status of a subsequent successful request.
 	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_NO_MATCH			MK_BIT64(46)
 
 	/**
 	 * More than one VI channel match the same incoming frame.
-	 * Two or more channels have been configured for the same
-	 * sensor. Only one of the channels will capture the frame.
+	 * Two or more channels have been configured to catch frames
+	 * from the same source. Only one of the channels will capture
+	 * the frame and the other one will report this error for the
+	 * conflicting capture request.
 	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_COLLISION			MK_BIT64(47)
 
-	/** Channel reconfigured while in frame */
+	/**
+	 * Channel reconfigured while in frame. This is not an error and
+	 * this status should not been seen in practice.  @deprecated
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_LOAD_FRAMED			MK_BIT64(48)
 
-	/** Internal overflow in ATOMP packer. Should not happen. */
+	/**
+	 * Internal overflow in ATOMP packer. This is Internal
+	 * hardware error that should not occur in normal use.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_ATOMP_PACKER_OVERFLOW			MK_BIT64(49)
 
-	/** Frame truncated while writing to system memory. Indicates memory back-pressure. */
+	/**
+	 * Frame truncated while writing to system memory.
+	 * Indicates memory back-pressure due to insufficient memory
+	 * bandwidth or an excessive memory access latency.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_ATOMP_FRAME_TRUNCATED			MK_BIT64(50)
 
-	/** Frame dropped while writing to system memory. Indicates memory back-pressure. */
+	/**
+	 * Frame dropped while writing to system memory.
+	 * Indicates memory back-pressure due to insufficient memory
+	 * bandwidth or an excessive memory access latency.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_ATOMP_FRAME_TOSSED			MK_BIT64(51)
 
-	/** Non-classified error */
+	/** Unclassified error. Should not happen. */
+	#define CAPTURE_STATUS_NOTIFY_BIT_UNCLASSIFIED_ERROR			MK_BIT64(63)
+
+	/** Unclassified error. Should not happen. @deprecated */
 	#define CAPTURE_STATUS_NOTIFY_BIT_NON_CLASSIFIED_0			MK_BIT64(63)
 	/** @} */
 
@@ -1371,65 +2064,95 @@ struct vi_syncgen_config {
 	uint32_t pad2__;
 } CAPTURE_IVC_ALIGN;
 
-
 /**
  * @brief VI PFSD Configuration.
  *
- * PDAF replacement function is used in PFSD mode. Pixels within ROI are replaced
- * by test pattern, and output pixels from the ROI are compared against expected
- * values.
+ * The PDAF replacement function is used in PFSD mode. Pixels within a
+ * designated region are replaced by a test pattern, and output pixels
+ * from the region are compared against expected values after a capture.
  */
 struct vi_pfsd_config {
 	/**
-	 * @brief Area in which the pixels are replaced with test pattern
-	 *
-	 * Note that all coordinates are inclusive.
+	 * Region within which the pixels are replaced with a test pattern.
 	 */
 	struct replace_roi_rec {
-		/** left pixel column of the replacement ROI */
+		/**
+		 * left pixel column of the replacement region [0, UINT16_MAX].
+		 */
 		uint16_t left;
-		/** right pixel column of the replacement ROI (inclusive) */
-		uint16_t right;
-		/** top pixel row of the replacement ROI */
-		uint16_t top;
-		/** bottom pixel row of the replacement ROI (inclusive) */
-		uint16_t bottom;
-	} replace_roi;
 
-	/** test pattern used to replace pixels within the ROI */
+		/**
+		 * right pixel column of the replacement region (inclusive)
+		 * [0, UINT16_MAX].
+		 */
+		uint16_t right;
+
+		/** top pixel row of the replacement region [0, UINT16_MAX]. */
+		uint16_t top;
+
+		/**
+		 * bottom pixel row of the replacement region (inclusive)
+		 * [0, UINT16_MAX].
+		 */
+		uint16_t bottom;
+
+	} replace_roi; /**< Pixel replacement region. */
+
+	/**
+	 * The test pattern used to replace pixels within the region
+	 * [0, 0xFFFFF]. The value is defined in the nvcsi2vi pixel
+	 * bus format. The actual value range depends on the
+	 * @ref NvCsiDataType "CSI datatype".
+	 */
 	uint32_t replace_value;
 
 	/**
-	 * Count of items in the @ref expected array.
-	 * If zero, PFSD will not be performed for this frame
+	 * Count of items in the @ref expected array
+	 * [0, VI_NUM_VI_PFSD_SURFACES]. If zero, PFSD
+	 * will not be performed for this frame
 	 */
 	uint32_t expected_count;
 
 	/**
-	 * Array of area definitions in output surfaces that shall be verified.
-	 * For YUV422 semi-planar, [0] is Y surface and [1] is UV surface.
+	 * Array of area definitions for output surfaces that will be
+	 * verified. For YUV422 semi-planar, [0] is the Y surface and
+	 * [1] ist the UV surface.
 	 */
 	struct {
-		/** Byte offset for the roi from beginning of the surface */
+		/**
+		 * Byte offset for the roi from beginning of the surface
+		 * [0, UINT32_MAX].
+		 */
 		uint32_t offset;
-		/** Number of bytes that need to be read from the output surface */
+
+		/**
+		 * Number of bytes that need to be read from the output
+		 * surface [0, 255].
+		 */
 		uint32_t len;
-		/** Expected value. The 4 byte pattern is repeated until @ref len
-		 * bytes have been compared
+
+		/**
+		 * Sequence of expected values [0, UINT8_MAX]. The 4 byte
+		 * pattern is repeated until @ref len bytes have been
+		 * compared.
 		 */
 		uint8_t value[4];
-	} expected[VI_NUM_VI_PFSD_SURFACES];
+	} expected[VI_NUM_VI_PFSD_SURFACES]; /**< Expected PFSD values. */
 
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @defgroup CaptureFrameFlags
- * Capture frame specific flags
+ * @defgroup CaptureRequestFlags Capture request flags
  */
 /** @{ */
-/** Enables capture status reporting for the channel */
+
+/** Enable capture status and error reporting for the channel. */
 #define CAPTURE_FLAG_STATUS_REPORT_ENABLE	MK_BIT32(0)
-/** Enables error reporting for the channel */
+
+/**
+ * Enable error reporting only for the channel. No effect if
+ * @ref CAPTURE_FLAG_STATUS_REPORT_ENABLE is set.
+ */
 #define CAPTURE_FLAG_ERROR_REPORT_ENABLE	MK_BIT32(1)
 /** @} */
 
@@ -1438,10 +2161,11 @@ struct vi_pfsd_config {
  */
 struct memoryinfo_surface {
 	/**
-	 * Surface iova address. Must be a multiple of 16.
+	 * Surface IOVA address. Must be a multiple of 16.
 	 * Must be non-zero if @ref size > 0.
 	 */
 	uint64_t base_address;
+
 	/** Surface size. Must be a multiple of 16. */
 	uint64_t size;
 };
@@ -1455,14 +2179,25 @@ struct memoryinfo_surface {
  * application.
  */
 struct capture_descriptor_memoryinfo {
+	/** VI output surfaces */
 	struct memoryinfo_surface surface[VI_NUM_ATOMP_SURFACES];
-	/** Base address of engine status surface */
+
+	/**
+	 * Base IOVA of engine status surface. Must be a multiple of 16.
+	 * Must be non-zero if @ref engine_status_surface_size > 0.
+	 */
 	uint64_t engine_status_surface_base_address;
-	/** Size of engine status surface */
+
+	/**
+	 * Size of engine status surface.
+	 * Must be >= @ref NV_ENGINE_STATUS_SURFACE_SIZE.
+	 */
 	uint64_t engine_status_surface_size;
+
 	/** Memory surface for watermark ring buffer written by VI FW */
 	struct memoryinfo_surface watermark_surface;
-	/** pad for alignment */
+
+	/** Reserved */
 	uint32_t reserved32[8];
 } CAPTURE_DESCRIPTOR_ALIGN;
 
@@ -1470,13 +2205,22 @@ struct capture_descriptor_memoryinfo {
  * @brief VI frame capture context.
  */
 struct capture_descriptor {
-	/** VI frame sequence number*/
+	/** Capture request sequence number [0, UINT32_MAX]. */
 	uint32_t sequence;
-	/** See @ref CaptureFrameFlags "Capture frame specific flags" */
+
+	/** See @ref CaptureRequestFlags "capture request flags". */
 	uint32_t capture_flags;
-	/** Task descriptor frame start timeout in milliseconds */
+
+	/**
+	 * Task descriptor frame start timeout in milliseconds
+	 * [0, UINT16_MAX].
+	 */
 	uint16_t frame_start_timeout;
-	/** Task descriptor frame complete timeout in milliseconds */
+
+	/**
+	 * Task descriptor frame completion timeout in milliseconds
+	 * [0, UINT16_MAX].
+	 */
 	uint16_t frame_completion_timeout;
 
 #define CAPTURE_PREFENCE_ARRAY_SIZE		2
@@ -1486,16 +2230,29 @@ struct capture_descriptor {
 	/** @deprecated */
 	struct syncpoint_info prefence[CAPTURE_PREFENCE_ARRAY_SIZE] CAMRTC_DEPRECATED;
 
-	/** VI Channel configuration */
+	/** VI Channel configuration. */
 	struct vi_channel_config ch_cfg;
 
-	/** VI PFSD Configuration */
+	/**
+	 * VI PFSD Configuration.
+	 * The @ref CAPTURE_CHANNEL_FLAG_ENABLE_VI_PFSD is set in
+	 * @ref channel_flags for this setting to take effect.
+	 */
 	struct vi_pfsd_config pfsd_cfg;
 
-	/** Engine result record – written by Falcon */
+	/**
+	 * Engine status surface for downstream synchronization.
+	 * Engine status is written by VI when a frame is complete.
+	 *
+	 * This is only valid in the UMD-KMD interface.
+	 * The content is undefined in the RCE FW interface.
+	 */
 	struct engine_status_surface engine_status;
 
-	/** Capture result record – written by RCE */
+	/**
+	 * Capture status record. Written by RCE when the capture
+	 * request is completed.
+	 */
 	struct capture_status status;
 
 	/** Unique ID for the output buffer used for watermarking */

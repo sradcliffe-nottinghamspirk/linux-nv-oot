@@ -121,8 +121,10 @@ struct CAPTURE_MSG_HEADER {
 /**
  * @brief VI capture channel setup response.
  *
- * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_CHANNEL_SETUP_REQ message.
+ *
+ * @pre A @ref CAPTURE_CHANNEL_SETUP_REQ message has been sent.
  *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
@@ -172,8 +174,11 @@ struct CAPTURE_MSG_HEADER {
 /**
  * @brief VI capture channel reset response.
  *
- * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_CHANNEL_RESET_REQ message.
+ *
+ * @pre A @ref CAPTURE_CHANNEL_RESET_REQ message has been sent to the
+ *      logical channel.
  *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
@@ -213,8 +218,11 @@ struct CAPTURE_MSG_HEADER {
 /**
  * @brief VI capture channel release response.
  *
- * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_CHANNEL_RELEASE_REQ message.
+ *
+ * @pre A @ref CAPTURE_CHANNEL_RELEASE_REQ message has been sent to the
+ *      logical channel.
  *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
@@ -272,8 +280,10 @@ struct CAPTURE_MSG_HEADER {
 /**
  * @brief ISP capture channel setup response.
  *
- * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_CHANNEL_ISP_SETUP_REQ message.
+ *
+ * @pre A @ref CAPTURE_CHANNEL_ISP_SETUP_REQ message has been sent.
  *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
@@ -323,8 +333,11 @@ struct CAPTURE_MSG_HEADER {
 /**
  * @brief ISP capture channel reset response.
  *
- * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_CHANNEL_ISP_RESET_REQ message.
+ *
+ * @pre A @ref CAPTURE_CHANNEL_ISP_RESET_REQ message has been sent
+ *      to the logical channel.
  *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
@@ -363,8 +376,11 @@ struct CAPTURE_MSG_HEADER {
 /**
  * @brief ISP capture channel release response.
  *
- * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ message.
+ *
+ * @pre A @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ message has been sent
+ *      to the logical channel.
  *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
@@ -377,13 +393,148 @@ struct CAPTURE_MSG_HEADER {
  */
 #define CAPTURE_CHANNEL_ISP_RELEASE_RESP	MK_U32(0x25)
 /** @} */
+/** @} */
 
 /**
- * @defgroup ViCapMsgType Message types for capture channel IVC messages.
+ * @defgroup CapMsgType Message types for capture channel IVC messages.
+ *
+ * The capture IVC channel is established during boot using the
+ * @ref CAMRTC_HSP_CH_SETUP command. The IVC channel is bi-directional
+ * but the usage is asynchronous. The channel is used for sending
+ * capture requests, ISP requests, and ISP program requests to RCE FW.
+ * RCE FW in turn will send asynchronous status indications when the
+ * requests complete. Multiple requests can be in progress in parallel.
+ *
+ * The overall message structure is defined by @ref CAPTURE_MSG and the
+ * structure is the same for both requests and indications. Each message
+ * consists of a common @ref CAPTURE_MSG_HEADER followed by message
+ * specific data.
+ *
+ * The type of a message is identified by @ref CAPTURE_MSG_HEADER::msg_id.
+ *
+ * Requests on the same logical channel will be executed in the order they
+ * were submitted and status indications will be sent back in the same order.
+ * Request ordering is not guaranteed between different logical channels.
+ * Requests and indications must specify the logical channel ID in the
+ * @ref CAPTURE_MSG_HEADER::channel_id. The channel ID is assigned by
+ * RCE FW when the logical channel is created.
+ *
  * @{
  */
+
+/**
+ * @defgroup ViCapMsgType Message types for VI capture request messages and indications.
+ *
+ * Capture channel messages are used to submit capture requests and to
+ * receive status indications pertaining to submitted requests.
+ *
+ * @{
+ */
+
+/**
+ * @brief Submit a new capture request on a VI capture channel.
+ *
+ * This is a @ref CapMsgType "capture channel message" to
+ * submit a VI capture request. The capture request provides
+ * a reference to a @ref capture_descriptor in shared memory,
+ * containing the detailed parameters for the capture.
+ *
+ * Capture completion is indicated to downstream engines by
+ * incrementing the <em>progress syncpoint</em> (see @ref
+ * capture_channel_config::progress_sp) a pre-calculated number of
+ * times (2 + <em>number of sub-frames</em>). The first increment
+ * occurs at @em start-of-frame and the last increment occurs at
+ * @em end-of-frame. In between, the syncpoint is incremented once
+ * for each completed @em subframe. The number of @em subframes
+ * used in the capture is chosen by the client and is implemented
+ * by programming flush points for the output buffer (see
+ * @ref vi_channel_config::flush_enable,
+ * @ref vi_channel_config::flush_periodic,
+ * @ref vi_channel_config::flush, and
+ * @ref vi_channel_config::flush_first. When the @em end-of-frame
+ * increment occurs, the optional @ref capture_descriptor::engine_status
+ * record is guaranteed to be populated if a buffer for it was
+ * provided by the client.
+ *
+ * If @ref CAPTURE_FLAG_STATUS_REPORT_ENABLE
+ * is set in @ref capture_descriptor::capture_flags, RCE will store
+ * the capture status into @ref capture_descriptor::status. RCE will
+ * also send a @ref CAPTURE_STATUS_IND message to indicate that the
+ * capture was completed. The capture status record contains information
+ * about the capture, such as CSI frame number, start-of-frame and
+ * end-of-frame timestamps, a general success or fail status,
+ * as well as a detailed record of any errors detected.
+ *
+ * If @ref CAPTURE_FLAG_ERROR_REPORT_ENABLE is set in
+ * @ref capture_descriptor::capture_flags, RCE will send a
+ * @ref CAPTURE_STATUS_IND message upon an error, even if
+ * @ref CAPTURE_FLAG_STATUS_REPORT_ENABLE is not set.
+ *
+ * @pre A VI capture channel has been set up with
+ *     @ref CAPTURE_CHANNEL_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_REQUEST_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_REQUEST_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_STATUS_IND (asynchronous)
+ */
 #define	CAPTURE_REQUEST_REQ			MK_U32(0x01)
+
+/**
+ * @brief Capture status indication.
+ *
+ * This is a @ref CapMsgType "capture channel message"
+ * received in response to a @ref CAPTURE_REQUEST_REQ message
+ * when the capture request has been completed and the
+ * capture status record has been written into
+ * @ref capture_descriptor::status.
+ *
+ * @pre A @ref CAPTURE_REQUEST_REQ has been sent with
+ *      @ref CAPTURE_FLAG_STATUS_REPORT_ENABLE or
+ *      @ref CAPTURE_FLAG_ERROR_REPORT_ENABLE set in
+ *      @ref capture_descriptor::capture_flags.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_STATUS_IND
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_STATUS_IND_MSG
+ */
 #define	CAPTURE_STATUS_IND			MK_U32(0x02)
+
+/**
+ * @brief VI capture channel reset barrier indication.
+ *
+ * This is a @ref CapMsgType "capture channel message" sent on
+ * the @em capture IVC channel in conjuncation with a
+ * @ref CAPTURE_CHANNEL_RESET_REQ message sent on the
+ * <em>capture-control</em> IVC channel to reset a VI capture channel.
+ * This indication defines a boundary between capture requests
+ * submitted before the reset request and capture requests submitted
+ * after it. Capture requests submitted after the reset request are
+ * not affected by the reset operation.
+ *
+ * @pre A VI capture channel has been set up with a
+ *      @ref CAPTURE_CHANNEL_SETUP_REQ and a
+ *      @ref CAPTURE_CHANNEL_RESET_REQ
+ *      has been sent to the channel.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_RESET_BARRIER_IND
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ */
 #define	CAPTURE_RESET_BARRIER_IND		MK_U32(0x03)
 /** @} */
 
@@ -438,13 +589,13 @@ typedef uint32_t capture_result;
 #define CAPTURE_ERROR_INVALID_STATE		MK_U32(9)
 /** @} */
 
-/** Message data for @ref CAPTURE_CHANNEL_SETUP_REQ message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_SETUP_REQ message */
 struct CAPTURE_CHANNEL_SETUP_REQ_MSG {
 	/** Capture channel configuration. */
 	struct capture_channel_config	channel_config;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_SETUP_RESP message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_SETUP_RESP message */
 struct CAPTURE_CHANNEL_SETUP_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
@@ -464,7 +615,7 @@ struct CAPTURE_CHANNEL_SETUP_RESP_MSG {
 #define CAPTURE_CHANNEL_RESET_FLAG_IMMEDIATE	MK_U32(0x01)
 /** @} */
 
-/** Message data for @ref CAPTURE_CHANNEL_RESET_REQ message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_RESET_REQ message */
 struct CAPTURE_CHANNEL_RESET_REQ_MSG {
 	/** See @ref CapResetFlags "reset flags". */
 	uint32_t reset_flags;
@@ -472,14 +623,14 @@ struct CAPTURE_CHANNEL_RESET_REQ_MSG {
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_RESET_RESP message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_RESET_RESP message */
 struct CAPTURE_CHANNEL_RESET_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_RELEASE_REQ message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_RELEASE_REQ message */
 struct CAPTURE_CHANNEL_RELEASE_REQ_MSG {
 	/** Unused */
 	uint32_t reset_flags;
@@ -487,7 +638,7 @@ struct CAPTURE_CHANNEL_RELEASE_REQ_MSG {
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_RELEASE_RESP message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_RELEASE_RESP message */
 struct CAPTURE_CHANNEL_RELEASE_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
@@ -992,6 +1143,9 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  * override the default VI CHANSEL safety error masks on all
  * active VI units.
  *
+ * @pre The capture-control IVC channel has been set up during
+ *      boot using the @ref CAMRTC_HSP_CH_SETUP command.
+ *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
  *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ
@@ -1008,8 +1162,10 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
 /**
  * @brief Override VI CHANSEL safety error masks response.
  *
- * This is a @ref CapCtrlMsgType "capture control message" sent as a
+ * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ message.
+ *
+ * @pre A @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ message has been sent.
  *
  * @par Header
  * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
@@ -1028,13 +1184,13 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  * @addtogroup ViCapCtrlMsgs
  * @{
  */
-/** Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ message */
+/** @brief Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ message */
 struct CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ_MSG {
 	/** VI CHANSEL safety error mask configuration */
 	struct vi_hsm_chansel_error_mask_config hsm_chansel_error_config;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP message */
+/** @brief Message data for @ref CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP message */
 struct CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP_MSG {
 	/** Request result. See @ref CapErrorCodes "result codes". */
 	capture_result result;
@@ -1043,13 +1199,13 @@ struct CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP_MSG {
 } CAPTURE_IVC_ALIGN;
 /** @} */
 
-/** Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_REQ message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_REQ message */
 struct CAPTURE_CHANNEL_ISP_SETUP_REQ_MSG {
 	/** ISP channel configuration. */
 	struct capture_channel_isp_config	channel_config;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_RESP message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_ISP_SETUP_RESP message */
 struct CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
@@ -1066,7 +1222,7 @@ typedef struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG
 typedef struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG
 			CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG;
 
-/** Message data for @ref CAPTURE_CHANNEL_ISP_RESET_REQ message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_ISP_RESET_REQ message */
 struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG {
 	/** Unused */
 	uint32_t reset_flags;
@@ -1074,7 +1230,7 @@ struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG {
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_ISP_RESET_RESP message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_ISP_RESET_RESP message */
 struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
@@ -1082,7 +1238,7 @@ struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG {
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_REQ message */
 struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG {
 	/** Unused */
 	uint32_t reset_flags;
@@ -1090,7 +1246,7 @@ struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG {
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/** Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_RESP message */
+/** @brief Message data for @ref CAPTURE_CHANNEL_ISP_RELEASE_RESP message */
 struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
@@ -1273,55 +1429,27 @@ struct CAPTURE_CONTROL_MSG {
 	};
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Enqueue a new capture request on a capture channel.
- *
- * The request contains channel identifier and the capture sequence
- * number, which are required to schedule the capture request. The
- * actual capture programming is stored in the capture descriptor,
- * stored in a DRAM ring buffer set up with CAPTURE_CHANNEL_SETUP_REQ.
- *
- * The capture request descriptor with buffer_index=N can be located
- * within the ring buffer as follows:
- *
- * struct capture_descriptor *desc = requests + buffer_index * request_size;
- *
- * The capture request message is asynchronous. Capture completion is
- * indicated by incrementing the progress syncpoint a pre-calculated
- * number of times = 1 + <number of sub-frames>. The first increment
- * occurs at start-of-frame and the last increment occurs at
- * end-of-frame. The progress-syncpoint is used to synchronize with
- * down-stream engines. This model assumes that the capture client
- * knows the number of subframes used in the capture and has
- * programmed the VI accordingly.
- *
- * If the flag CAPTURE_FLAG_STATUS_REPORT_ENABLE is set in the capture
- * descriptor, RCE will store the capture status into status field
- * of the descriptor. RCE will also send a CAPTURE_STATUS_IND
- * message to indicate that capture has completed. The capture status
- * record contains information about the capture, such as CSI frame
- * number, start-of-frame and end-of-frame timestamps, as well as
- * error status.
- *
- * If the flag CAPTURE_FLAG_ERROR_REPORT_ENABLE is set, RCE will send a
- * CAPTURE_STATUS_IND upon an error, even if
- * CAPTURE_FLAG_STATUS_REPORT_ENABLE is not set.
- */
+/** @brief Message data for @ref CAPTURE_REQUEST_REQ message. */
 struct CAPTURE_REQUEST_REQ_MSG {
-	/** Buffer index identifying capture descriptor. */
+	/**
+	 * Buffer index identifying the location of a capture descriptor:
+	 * struct @ref capture_descriptor *desc =
+	 * @ref capture_channel_config::requests "requests" +
+	 * buffer_index * @ref capture_channel_config::request_size "request_size";
+	 */
 	uint32_t buffer_index;
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Capture status indication.
- *
- * The message is sent after the capture status record has been
- * written into the capture request descriptor.
- */
+/** @brief Message data for @ref CAPTURE_STATUS_IND message. */
 struct CAPTURE_STATUS_IND_MSG {
-	/** Buffer index identifying capture descriptor. */
+	/**
+	 * Buffer index identifying the location of a capture descriptor:
+	 * struct @ref capture_descriptor *desc =
+	 * @ref capture_channel_config::requests "requests" +
+	 * buffer_index * @ref capture_channel_config::request_size "request_size";
+	 */
 	uint32_t buffer_index;
 	/** Reserved */
 	uint32_t pad__;
