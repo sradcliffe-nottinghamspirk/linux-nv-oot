@@ -280,6 +280,21 @@ static int __init nvadsp_parse_dt(struct platform_device *pdev)
 		}
 	}
 
+	for (iter = 0; iter < MAX_DRAM_MAP; iter++) {
+		if (of_property_read_u64_index(dev->of_node,
+			"nvidia,dram_map", (iter * MAX_DRAM_MAP),
+			&drv_data->dram_map[iter].addr))
+			break;
+
+		if (of_property_read_u64_index(dev->of_node,
+			"nvidia,dram_map", (iter * MAX_DRAM_MAP) + 1,
+			&drv_data->dram_map[iter].size)) {
+			dev_err(dev,
+			"Failed to get DRAM map with ID %d\n", iter);
+			return -EINVAL;
+		}
+	}
+
 	if (!of_property_read_string(dev->of_node,
 				"nvidia,adsp_elf", &adsp_elf)) {
 		if (strlen(adsp_elf) < MAX_FW_STR)
@@ -334,7 +349,7 @@ static int __init nvadsp_probe(struct platform_device *pdev)
 	void __iomem *base = NULL;
 	uint32_t aram_addr;
 	uint32_t aram_size;
-	int dram_iter, irq_iter, iter;
+	int irq_iter, iter;
 	int irq_num;
 	int ret = 0;
 
@@ -402,18 +417,6 @@ static int __init nvadsp_probe(struct platform_device *pdev)
 	}
 
 	drv_data->base_regs_saved = drv_data->base_regs;
-
-	for (dram_iter = 0; dram_iter < ADSP_MAX_DRAM_MAP; dram_iter++) {
-		res = platform_get_resource(pdev, IORESOURCE_MEM, iter++);
-		if (!res) {
-			dev_err(dev,
-			"Failed to get DRAM map with ID %d\n", iter);
-			ret = -EINVAL;
-			goto out;
-		}
-
-		drv_data->dram_region[dram_iter] = res;
-	}
 
 	for (irq_iter = 0; irq_iter < NVADSP_VIRQ_MAX; irq_iter++) {
 		irq_num = platform_get_irq(pdev, irq_iter);

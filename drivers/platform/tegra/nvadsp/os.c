@@ -93,7 +93,6 @@ struct nvadsp_os_data {
 	struct platform_device	*pdev;
 	struct global_sym_info	*adsp_glo_sym_tbl;
 	void __iomem		*hwmailbox_base;
-	struct resource		**dram_region;
 	struct nvadsp_debug_log	logger;
 	struct nvadsp_cnsl   console;
 	struct work_struct	restart_os_work;
@@ -303,13 +302,19 @@ err_out:
 bool is_adsp_dram_addr(u64 addr)
 {
 	int i;
-	struct resource **dram = priv.dram_region;
+	struct nvadsp_drv_data *drv_data = platform_get_drvdata(priv.pdev);
 
-	for (i = 0; i < ADSP_MAX_DRAM_MAP; i++) {
-		if ((dram[i]->start) && (addr >= dram[i]->start) &&
-			(addr <= dram[i]->end))
+	for (i = 0; i < MAX_DRAM_MAP; i++) {
+		struct nvadsp_reg_map *dram = &drv_data->dram_map[i];
+
+		if (dram->size == 0)
+			break;
+
+		if ((addr >= dram->addr) &&
+			(addr < (dram->addr + dram->size)))
 			return true;
 	}
+
 	return false;
 }
 
@@ -2596,7 +2601,6 @@ int __init nvadsp_os_probe(struct platform_device *pdev)
 	int ret = 0;
 
 	priv.hwmailbox_base = drv_data->base_regs[hwmb_reg_idx()];
-	priv.dram_region = drv_data->dram_region;
 
 	priv.adsp_os_addr = drv_data->adsp_mem[ADSP_OS_ADDR];
 	priv.adsp_os_size = drv_data->adsp_mem[ADSP_OS_SIZE];

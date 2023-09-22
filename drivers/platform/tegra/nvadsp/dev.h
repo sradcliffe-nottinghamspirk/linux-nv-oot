@@ -32,12 +32,6 @@ enum {
 	APE_MAX_REG
 };
 
-enum {
-	ADSP_DRAM1,
-	ADSP_DRAM2,
-	ADSP_MAX_DRAM_MAP
-};
-
 /*
  * Note: These enums should be aligned to the adsp_mem node mentioned in the
  * device tree
@@ -81,6 +75,14 @@ enum adsp_evp_dt {
 
 #define NVADSP_ELF     "adsp.elf"
 #define MAX_FW_STR     30
+
+/* Max no. of entries in "nvidia,cluster_mem" */
+#define MAX_DRAM_MAP   2
+
+struct nvadsp_reg_map {
+	u64 addr;
+	u64 size;
+};
 
 enum nvadsp_virqs {
 	MBOX_SEND_VIRQ,
@@ -157,7 +159,6 @@ struct nvadsp_drv_data {
 	void __iomem **base_regs;
 	void __iomem **base_regs_saved;
 	struct platform_device *pdev;
-	struct resource *dram_region[ADSP_MAX_DRAM_MAP];
 	struct hwmbox_queue hwmbox_send_queue;
 
 	struct nvadsp_mbox **mboxes;
@@ -245,6 +246,9 @@ struct nvadsp_drv_data {
 
 	/* "nvidia,cluster_mem" */
 	struct nvadsp_cluster_mem cluster_mem[MAX_CLUSTER_MEM];
+
+	/* "nvidia,dram_map" */
+	struct nvadsp_reg_map dram_map[MAX_DRAM_MAP];
 };
 
 #define ADSP_CONFIG	0x04
