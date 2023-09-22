@@ -2,7 +2,7 @@
 /*
  * Host1x fence UAPI
  *
- * Copyright (c) 2022, NVIDIA Corporation.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
  */
 
 #include <linux/anon_inodes.h>
@@ -472,6 +472,12 @@ unregister_chrdev_region:
 
 	return err;
 }
+
+static const struct of_device_id host1x_fence_of_match[] = {
+	{ .compatible = "nvidia,tegra234-host1x" },
+	{ },
+};
+MODULE_DEVICE_TABLE(of, host1x_fence_of_match);
 
 static int __init tegra_host1x_init(void)
 {
