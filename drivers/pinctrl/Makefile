@@ -4,3 +4,4 @@
 obj-m += pinctrl-tegra194-pexclk-padctrl.o
 obj-m += pinctrl-tegra234-dpaux.o
 obj-m += pinctrl-max77851.o
+obj-m += tegra/
