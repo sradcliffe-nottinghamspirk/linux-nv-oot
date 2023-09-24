@@ -2,7 +2,6 @@
 # Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
 
 ifdef CONFIG_TEGRA_HOST1X
-obj-m += tegra-se-nvhost.o
 obj-m += tegra-hv-vse-safety.o
 obj-m += tegra-nvvse-cryptodev.o
 ifdef CONFIG_CRYPTO_ENGINE
