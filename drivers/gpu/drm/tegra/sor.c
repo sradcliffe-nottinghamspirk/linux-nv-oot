@@ -3,6 +3,8 @@
  * Copyright (C) 2013 NVIDIA Corporation
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/debugfs.h>
@@ -13,18 +15,17 @@
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
 #include <linux/reset.h>
-#include <linux/version.h>
 
 #include <soc/tegra/pmc.h>
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+#if defined(NV_DRM_DISPLAY_DRM_DP_HELPER_H_PRESENT) /* Linux v5.19 */
 #include <drm/display/drm_dp_helper.h>
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#elif defined(NV_DRM_DP_DRM_DP_HELPER_H_PRESENT) /* Linux v5.18 */
 #include <drm/dp/drm_dp_helper.h>
 #else
 #include <drm/drm_dp_helper.h>
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+#if defined(NV_DRM_DISPLAY_DRM_SCDC_HELPER_H_PRESENT) /* Linux v5.19 */
 #include <drm/display/drm_scdc_helper.h>
 #else
 #include <drm/drm_scdc_helper.h>

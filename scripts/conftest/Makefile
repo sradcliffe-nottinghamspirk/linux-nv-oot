@@ -43,7 +43,7 @@ NV_CONFTEST_CMD := /bin/sh $(NV_CONFTEST_SCRIPT) \
 
 NV_CFLAGS_FROM_CONFTEST := $(shell $(NV_CONFTEST_CMD) build_cflags)
 
-NV_CONFTEST_CFLAGS = $(NV_CFLAGS_FROM_CONFTEST) $(EXTRA_CFLAGS) -fno-pie
+NV_CONFTEST_CFLAGS = $(NV_CFLAGS_FROM_CONFTEST) $(EXTRA_CFLAGS) -fno-pie -Werror
 
 NV_CONFTEST_COMPILE_TEST_HEADERS := $(obj)/conftest/macros.h
 NV_CONFTEST_COMPILE_TEST_HEADERS += $(obj)/conftest/functions.h
@@ -89,7 +89,15 @@ endef
 #
 
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += devm_thermal_of_zone_register
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_aperture_remove_framebuffers_has_drm_driver_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_driver_struct_has_irq_enabled_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_fb_helper_alloc_info
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_fb_helper_prepare_has_preferred_bpp_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_fb_helper_unregister_info
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_fb_helper_struct_has_info_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_mode_config_struct_has_fb_base_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += iio_dev_opaque_has_mlock
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += iommu_map_has_gfp_arg
 NV_CONFTEST_GENERIC_COMPILE_TESTS ?=
 NV_CONFTEST_MACRO_COMPILE_TESTS ?=
 NV_CONFTEST_SYMBOL_COMPILE_TESTS ?=
@@ -109,6 +117,12 @@ $(obj)/conftest/patches.h: $(NV_CONFTEST_SCRIPT)
 # Each of these headers is checked for presence with a test #include; a
 # corresponding #define will be generated in conftest/headers.h.
 NV_HEADER_PRESENCE_TESTS = \
+  drm/display/drm_dp_aux_bus.h \
+  drm/display/drm_dp_helper.h \
+  drm/display/drm_scdc_helper.h \
+  drm/dp/drm_dp_aux_bus.h \
+  drm/dp/drm_dp_helper.h \
+  drm/drm_dp_aux_bus.h \
   generated/autoconf.h \
   linux/kconfig.h \
   linux/iosys-map.h

@@ -6310,6 +6310,162 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT" "" "functions"
         ;;
 
+        drm_aperture_remove_framebuffers_has_drm_driver_arg)
+            #
+            # Determine if the function 'drm_aperture_remove_framebuffers'
+            # has the 'struct drm_driver' argument.
+            #
+            # Commit 97c9bfe3f660 ("drm/aperture: Pass DRM driver structure
+            # instead of driver name") updated the arguments for the function
+            # drm_aperture_remove_framebuffers to pass 'struct drm_driver' in
+            # Linux v5.15.
+            #
+            CODE="
+            #include <drm/drm_aperture.h>
+            int conftest_drm_aperture_remove_framebuffers_has_drm_driver_arg(
+                    bool primary, const struct drm_driver *req_driver) {
+                return drm_aperture_remove_framebuffers(primary, req_driver);
+            }"
+
+            compile_check_conftest "$CODE" "NV_DRM_APERTURE_REMOVE_FRAMEBUFFERS_HAS_DRM_DRIVER_ARG" "" "types"
+        ;;
+
+        drm_driver_struct_has_irq_enabled_arg)
+            #
+            # Determine if the 'drm_driver' structure
+            # has the 'irq_enabled' argument.
+            #
+            # Commit c1736b9008cb ("drm: IRQ midlayer is now legacy") moved
+            # the irq_enabled member of the drm_driver struct under
+            # CONFIG_DRM_LEGACY in Linux v5.15.
+            #
+            CODE="
+            #include <drm/drm_device.h>
+            int conftest_drm_driver_struct_has_irq_enabled_arg(void) {
+                return offsetof(struct drm_driver, irq_enabled);
+            }"
+
+            compile_check_conftest "$CODE" "NV_DRM_DRIVER_STRUCT_HAS_IRQ_ENABLED_ARG" "" "types"
+        ;;
+
+        drm_fb_helper_alloc_info)
+            #
+            # Determine if the function 'drm_fb_helper_alloc_info' is present.
+            #
+            # Commit 7fd50bc39d12 ("drm/fb-helper: Rename drm_fb_helper_alloc_fbi()
+            # to use _info postfix") renamed the function drm_fb_helper_alloc_fbi to
+            # drm_fb_helper_alloc_info in Linux v6.2.
+            #
+            CODE="
+            #undef CONFIG_ACPI
+            #include <drm/drm_fb_helper.h>
+            void conftest_drm_fb_helper_alloc_info(void)
+            {
+                    drm_fb_helper_alloc_info();
+            }"
+
+            compile_check_conftest "$CODE" "NV_DRM_FB_HELPER_ALLOC_INFO_PRESENT" "" "functions"
+        ;;
+
+        drm_fb_helper_prepare_has_preferred_bpp_arg)
+            #
+            # Determine if the function 'drm_fb_helper_prepare' has the
+            # argument 'preferred_bpp'.
+            #
+            # Commit 6c80a93be62d ("drm/fb-helper: Initialize fb-helper's
+            # preferred BPP in prepare function") added the 'preferred_bpp'
+            # argument to the function drm_fb_helper_prepare in Linux v6.3.
+            #
+            CODE="
+            #undef CONFIG_ACPI
+            #include <drm/drm_fb_helper.h>
+            void conftest_drm_fb_helper_prepare(struct drm_device *dev,
+                                                struct drm_fb_helper *helper,
+                                                unsigned int preferred_bpp,
+                                                const struct drm_fb_helper_funcs *funcs) {
+                    drm_fb_helper_prepare(dev, helper, preferred_bpp, funcs);
+            }"
+
+            compile_check_conftest "$CODE" "NV_DRM_FB_HELPER_PREPARE_HAS_PREFERRED_BPP_ARG" "" "types"
+        ;;
+
+        drm_fb_helper_struct_has_info_arg)
+            #
+            # Determine if the 'drm_fb_helper' structure has the 'info' member.
+            #
+            # Commit 9877d8f6bc37 ("drm/fb_helper: Rename field fbdev to info in
+            # struct drm_fb_helper") renaned the fbdev member of the
+            # drm_fb_helper structure to info in Linux v6.2.
+            #
+            CODE="
+            #undef CONFIG_ACPI
+            #include <drm/drm_fb_helper.h>
+            int conftest_drm_fb_helper_struct_has_info_arg(void) {
+                return offsetof(struct drm_fb_helper, info);
+            }"
+
+            compile_check_conftest "$CODE" "NV_DRM_FB_HELPER_STRUCT_HAS_INFO_ARG" "" "types"
+        ;;
+
+        drm_fb_helper_unregister_info)
+            #
+            # Determine if function drm_fb_helper_unregister_info is present.
+            #
+            # Commit afb0ff78c13c ("drm/fb-helper: Rename
+            # drm_fb_helper_unregister_fbi() to use _info postfix") renamed the
+            # function drm_fb_helper_unregister_fbi to drm_fb_helper_unregister_info
+            # in Linux v6.2.
+            #
+            CODE="
+            #undef CONFIG_ACPI
+            #include <drm/drm_fb_helper.h>
+            void conftest_drm_fb_helper_unregister_info(void)
+            {
+                    drm_fb_helper_unregister_info();
+            }
+            "
+
+            compile_check_conftest "$CODE" "NV_DRM_FB_HELPER_UNREGISTER_INFO_PRESENT" "" "functions"
+        ;;
+
+        drm_mode_config_struct_has_fb_base_arg)
+            #
+            # Determine if the 'drm_mode_config' structure has the 'fb_base' argument.
+            #
+            # Commit 7c99616e3fe7 ("drm: Remove drm_mode_config::fb_base") removed the
+            # fb_base member from the drm_mode_config structure in Linux v6.2.
+            #
+            CODE="
+            #include <drm/drm_mode_config.h>
+            int conftest_drm_mode_config_struct_has_fb_base_arg(void) {
+                return offsetof(struct drm_mode_config, fb_base);
+            }"
+
+            compile_check_conftest "$CODE" "NV_DRM_MODE_CONFIG_STRUCT_HAS_FB_BASE_ARG" "" "types"
+        ;;
+
+        iommu_map_has_gfp_arg)
+            #
+            # Determine if iommu_map() has 'gfp' argument.
+            #
+            # Commit 1369459b2e21 ("iommu: Add a gfp parameter to iommu_map()")
+            # added a 'gfp' argument to the iommu_map function in Linux v6.3.
+            #
+            CODE="
+            #include <linux/iommu.h>
+            void conftest_iommu_map_has_gfp_arg(
+                struct iommu_domain *domain,
+                unsigned long iova,
+                phys_addr_t paddr,
+                size_t size,
+                int prot,
+                gfp_t gfp) {
+                    iommu_map(domain, iova, paddr, size, prot, gfp);
+            }"
+
+            compile_check_conftest "$CODE" "NV_IOMMU_MAP_HAS_GFP_ARG" "" "types"
+        ;;
+
         iio_dev_opaque_has_mlock)
             #
             # Determine if the 'iio_dev_opaque' structure has 'mlock' field.

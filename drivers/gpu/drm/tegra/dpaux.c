@@ -3,6 +3,8 @@
  * Copyright (C) 2013 NVIDIA Corporation
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -19,17 +21,19 @@
 #include <linux/version.h>
 #include <linux/workqueue.h>
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+#if defined(NV_DRM_DISPLAY_DRM_DP_HELPER_H_PRESENT) /* Linux v5.19 */
 #include <drm/display/drm_dp_helper.h>
-#include <drm/display/drm_dp_aux_bus.h>
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#elif defined(NV_DRM_DP_DRM_DP_HELPER_H_PRESENT) /* Linux v5.18 */
 #include <drm/dp/drm_dp_helper.h>
-#include <drm/dp/drm_dp_aux_bus.h>
 #else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
-#include <drm/drm_dp_aux_bus.h>
-#endif
 #include <drm/drm_dp_helper.h>
+#endif
+#if defined(NV_DRM_DISPLAY_DRM_DP_AUX_BUS_H_PRESENT) /* Linux v5.19 */
+#include <drm/display/drm_dp_aux_bus.h>
+#elif defined(NV_DRM_DP_DRM_DP_AUX_BUS_H_PRESENT) /* Linux v5.18 */
+#include <drm/dp/drm_dp_aux_bus.h>
+#elif defined(NV_DRM_DRM_DP_AUX_BUS_H_PRESENT) /* Linux v5.17 */
+#include <drm/drm_dp_aux_bus.h>
 #endif
 #include <drm/drm_panel.h>
 

@@ -4,10 +4,11 @@
  * Copyright (C) 2015 Rob Clark
  */
 
-#include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+#include <nvidia/conftest.h>
+
+#if defined(NV_DRM_DISPLAY_DRM_DP_HELPER_H_PRESENT) /* Linux v5.19 */
 #include <drm/display/drm_dp_helper.h>
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#elif defined(NV_DRM_DP_DRM_DP_HELPER_H_PRESENT) /* Linux v5.18 */
 #include <drm/dp/drm_dp_helper.h>
 #else
 #include <drm/drm_dp_helper.h>

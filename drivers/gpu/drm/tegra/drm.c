@@ -4,6 +4,8 @@
  * Copyright (C) 2012-2023 NVIDIA CORPORATION.  All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/bitops.h>
 #include <linux/file.h>
 #include <linux/host1x-next.h>
@@ -1055,7 +1057,7 @@ void *tegra_drm_alloc(struct tegra_drm *tegra, size_t size, dma_addr_t *dma)
 
 	*dma = iova_dma_addr(&tegra->carveout.domain, alloc);
 	err = iommu_map(tegra->domain, *dma, virt_to_phys(virt),
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_IOMMU_MAP_HAS_GFP_ARG) /* Linux v6.3 */
 			size, IOMMU_READ | IOMMU_WRITE, GFP_KERNEL);
 #else
 			size, IOMMU_READ | IOMMU_WRITE);
@@ -1279,7 +1281,7 @@ static int host1x_drm_probe(struct host1x_device *dev)
 			goto device;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if defined(NV_DRM_DRIVER_STRUCT_HAS_IRQ_ENABLED_ARG) /* Linux v5.15 */
 	/*
 	 * We don't use the drm_irq_install() helpers provided by the DRM
 	 * core, so we need to set this manually in order to allow the
@@ -1298,7 +1300,7 @@ static int host1x_drm_probe(struct host1x_device *dev)
 	drm_mode_config_reset(drm);
 
 	if (drm->mode_config.num_crtc > 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if defined(NV_DRM_APERTURE_REMOVE_FRAMEBUFFERS_HAS_DRM_DRIVER_ARG) /* Linux v5.15 */
 		err = drm_aperture_remove_framebuffers(false, &tegra_drm_driver);
 #else
 		err = drm_aperture_remove_framebuffers(false, "tegradrmfb");

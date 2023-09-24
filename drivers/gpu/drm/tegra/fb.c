@@ -7,6 +7,8 @@
  *   Copyright (C) 2012 Analog Devices Inc.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/console.h>
 #include <linux/version.h>
 
@@ -263,7 +265,7 @@ static int tegra_fbdev_probe(struct drm_fb_helper *helper,
 	if (IS_ERR(bo))
 		return PTR_ERR(bo);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+#if defined(NV_DRM_FB_HELPER_ALLOC_INFO_PRESENT) /* Linux v6.2 */
 	info = drm_fb_helper_alloc_info(helper);
 #else
 	info = drm_fb_helper_alloc_fbi(helper);
@@ -285,7 +287,7 @@ static int tegra_fbdev_probe(struct drm_fb_helper *helper,
 
 	fb = fbdev->fb;
 	helper->fb = fb;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+#if defined(NV_DRM_FB_HELPER_STRUCT_HAS_INFO_ARG) /* Linux v6.2 */
 	helper->info = info;
 #else
 	helper->fbdev = info;
@@ -308,7 +310,7 @@ static int tegra_fbdev_probe(struct drm_fb_helper *helper,
 		}
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+#if defined(NV_DRM_MODE_CONFIG_STRUCT_HAS_FB_BASE_ARG) /* Linux v6.2 */
 	drm->mode_config.fb_base = (resource_size_t)bo->iova;
 #endif
 	info->screen_base = (void __iomem *)bo->vaddr + offset;
@@ -337,7 +339,7 @@ static struct tegra_fbdev *tegra_fbdev_create(struct drm_device *drm)
 		return ERR_PTR(-ENOMEM);
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_DRM_FB_HELPER_PREPARE_HAS_PREFERRED_BPP_ARG) /* Linux v6.3 */
 	drm_fb_helper_prepare(drm, &fbdev->base, 32, &tegra_fb_helper_funcs);
 #else
 	drm_fb_helper_prepare(drm, &fbdev->base, &tegra_fb_helper_funcs);
@@ -352,7 +354,7 @@ static void tegra_fbdev_free(struct tegra_fbdev *fbdev)
 }
 
 static int tegra_fbdev_init(struct tegra_fbdev *fbdev,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
+#if !defined(NV_DRM_FB_HELPER_PREPARE_HAS_PREFERRED_BPP_ARG) /* Linux v6.3 */
 			    unsigned int preferred_bpp,
 #endif
 			    unsigned int num_crtc,
@@ -368,7 +370,7 @@ static int tegra_fbdev_init(struct tegra_fbdev *fbdev,
 		return err;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_DRM_FB_HELPER_PREPARE_HAS_PREFERRED_BPP_ARG) /* Linux v6.3 */
 	err = drm_fb_helper_initial_config(&fbdev->base);
 #else
 	err = drm_fb_helper_initial_config(&fbdev->base, preferred_bpp);
@@ -388,7 +390,7 @@ fini:
 
 static void tegra_fbdev_exit(struct tegra_fbdev *fbdev)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+#if defined(NV_DRM_FB_HELPER_UNREGISTER_INFO_PRESENT) /* Linux v6.2 */
 	drm_fb_helper_unregister_info(&fbdev->base);
 #else
 	drm_fb_helper_unregister_fbi(&fbdev->base);
@@ -439,7 +441,7 @@ int tegra_drm_fb_init(struct drm_device *drm)
 	struct tegra_drm *tegra = drm->dev_private;
 	int err;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_DRM_FB_HELPER_PREPARE_HAS_PREFERRED_BPP_ARG) /* Linux v6.3 */
 	err = tegra_fbdev_init(tegra->fbdev, drm->mode_config.num_crtc,
 #else
 	err = tegra_fbdev_init(tegra->fbdev, 32, drm->mode_config.num_crtc,
