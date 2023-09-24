@@ -6505,6 +6505,26 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_IIO_DEV_OPAQUE_HAS_LOCK" "" "types"
         ;;
 
+        register_shrinker_has_fmt_arg)
+            #
+            # Determine if the 'register_shrinker' function
+            # has the 'fmt' argument.
+            #
+            # Commit e33c267ab70d ("mm: shrinkers: provide shrinkers with
+            # names") added a 'fmt' argument to the register_shrinker()
+            # function in Linux v6.0.
+            #
+            CODE="
+	    #include <linux/atomic.h>
+            #include <linux/compiler_attributes.h>
+            #include <linux/shrinker.h>
+            int conftest_register_shrinker_has_fmt_arg(struct shrinker *s, const char *name) {
+                    return register_shrinker(s, name);
+            }"
+
+            compile_check_conftest "$CODE" "NV_REGISTER_SHRINKER_HAS_FMT_ARG" "" "types"
+        ;;
+
         # When adding a new conftest entry, please use the correct format for
         # specifying the relevant upstream Linux kernel commit.
         #

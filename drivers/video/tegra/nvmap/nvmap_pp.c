@@ -7,6 +7,8 @@
 
 #define pr_fmt(fmt) "%s: " fmt, __func__
 
+#include <nvidia/conftest.h>
+
 #include <linux/kernel.h>
 #include <linux/vmalloc.h>
 #include <linux/moduleparam.h>
@@ -769,7 +771,7 @@ int nvmap_page_pool_init(struct nvmap_device *dev)
 					    NULL, "nvmap-bz");
 	if (IS_ERR(background_allocator))
 		goto fail;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+#if defined(NV_REGISTER_SHRINKER_HAS_FMT_ARG) /* Linux v6.0 */
 	register_shrinker(&nvmap_page_pool_shrinker, "nvmap_pp_shrinker");
 #else
 	register_shrinker(&nvmap_page_pool_shrinker);
