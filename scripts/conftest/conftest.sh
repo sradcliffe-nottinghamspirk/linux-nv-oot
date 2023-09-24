@@ -6293,6 +6293,26 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_CRYPTO_PRESENT" "" "symbols"
         ;;
 
+        class_struct_devnode_has_const_dev_arg)
+            #
+            # Determine if the 'class' structure devnode function pointer
+            # has const 'struct dev' argument.
+            #
+            # Commit 43a7206b0963 ("driver core: class: make class_register()
+            # take a const *") updated the class_register function to take a
+            # const class structure in Linux v6.2.
+            #
+            CODE="
+            #include <linux/device.h>
+            #include <linux/device/class.h>
+            #include <linux/types.h>
+            void conftest_class_struct_devnode_has_const_dev_arg(struct class *c) {
+                    char *(*fn)(const struct device *dev, umode_t *mode) = c->devnode;
+            }"
+
+            compile_check_conftest "$CODE" "NV_CLASS_STRUCT_DEVNODE_HAS_CONST_DEV_ARG" "" "types"
+        ;;
+
         devm_thermal_of_zone_register)
             #
             # Determine whether devm_thermal_of_zone_register is present.

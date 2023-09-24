@@ -5,6 +5,7 @@
  * Copyright (c) 2010-2013, NVIDIA Corporation.
  */
 
+#include <nvidia/conftest.h>
 
 #include <asm/cacheflush.h>
 #include <linux/device.h>
@@ -106,7 +107,7 @@ static int host1x_pushbuffer_init(struct push_buffer *pb)
 
 		pb->dma = iova_dma_addr(&host1x->iova, alloc);
 		err = iommu_map(host1x->domain, pb->dma, pb->phys, size,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if defined(NV_IOMMU_MAP_HAS_GFP_ARG) /* Linux v6.3 */
 				IOMMU_READ, GFP_KERNEL);
 #else
 				IOMMU_READ);

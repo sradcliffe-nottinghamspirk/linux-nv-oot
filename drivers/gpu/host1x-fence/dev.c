@@ -5,6 +5,8 @@
  * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/anon_inodes.h>
 #include <linux/cdev.h>
 #include <linux/file.h>
@@ -415,10 +417,10 @@ static const struct file_operations dev_file_fops = {
 	.compat_ioctl = dev_file_ioctl,
 };
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
-static char *host1x_fence_devnode(struct device *dev, umode_t *mode)
-#else
+#if defined(NV_CLASS_STRUCT_DEVNODE_HAS_CONST_DEV_ARG) /* Linux v6.2 */
 static char *host1x_fence_devnode(const struct device *dev, umode_t *mode)
+#else
+static char *host1x_fence_devnode(struct device *dev, umode_t *mode)
 #endif
 {
 	*mode = 0666;
