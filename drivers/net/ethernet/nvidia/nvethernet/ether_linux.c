@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2023, NVIDIA CORPORATION. All rights reserved */
+// Copyright (c) 2019-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <nvidia/conftest.h>
 
@@ -5948,7 +5948,11 @@ static int ether_parse_dt(struct ether_priv_data *pdata)
 		if (osi_dma->tx_frames > ETHER_TX_MAX_FRAME(osi_dma->tx_ring_sz) ||
 		    osi_dma->tx_frames < ETHER_MIN_TX_COALESCE_FRAMES) {
 			dev_err(dev,
+#ifdef CONFIG_MAX_SKB_FRAGS
+				"invalid tx-frames, must be inrange %d to %d",
+#else
 				"invalid tx-frames, must be inrange %d to %ld",
+#endif
 				ETHER_MIN_TX_COALESCE_FRAMES,
 				ETHER_TX_MAX_FRAME(osi_dma->tx_ring_sz));
 			return -EINVAL;

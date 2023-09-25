@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+// Copyright (c) 2019-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 #include <nvidia/conftest.h>
 
@@ -950,7 +950,11 @@ static int ether_set_coalesce(struct net_device *dev,
 		(ec->tx_max_coalesced_frames < ETHER_MIN_TX_COALESCE_FRAMES)) {
 		netdev_err(dev,
 			   "invalid tx-frames, must be in the range of"
+#ifdef CONFIG_MAX_SKB_FRAGS
+			   " %d to %d frames\n", ETHER_MIN_TX_COALESCE_FRAMES,
+#else
 			   " %d to %ld frames\n", ETHER_MIN_TX_COALESCE_FRAMES,
+#endif
 			   ETHER_TX_MAX_FRAME(osi_dma->tx_ring_sz));
 		return -EINVAL;
 	} else {
