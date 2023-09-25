@@ -42,10 +42,6 @@
 					VS_BLK_SECURE_ERASE_OP_F | \
 					VS_BLK_ERASE_OP_F)
 #define UFS_IOCTL_MAX_SIZE_SUPPORTED	0x80000
-#define READ_WRITE_OR_IOCTL_OP		(req_op(bio_req) == REQ_OP_READ \
-					|| req_op(bio_req) == REQ_OP_WRITE \
-					|| req_op(bio_req) == REQ_OP_DRV_IN)
-
 #if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
 #define HSI_SDMMC4_REPORT_ID		0x805EU
 #define HSI_ERROR_MAGIC			0xDEADDEAD
@@ -67,8 +63,7 @@ static inline uint64_t _arch_counter_get_cntvct(void)
 /**
  * vblk_get_req: Get a handle to free vsc request.
  */
-static struct vsc_request *vblk_get_req(struct vblk_dev *vblkdev, unsigned int __data_len,
-					struct request *const bio_req)
+static struct vsc_request *vblk_get_req(struct vblk_dev *vblkdev)
 {
 	struct vsc_request *req = NULL;
 	unsigned long bit;
@@ -79,46 +74,7 @@ static struct vsc_request *vblk_get_req(struct vblk_dev *vblkdev, unsigned int _
 	bit = find_first_zero_bit(vblkdev->pending_reqs, vblkdev->max_requests);
 	if (bit < vblkdev->max_requests) {
 		req = &vblkdev->reqs[bit];
-
-		if ((!vblkdev->config.blk_config.use_vm_address && READ_WRITE_OR_IOCTL_OP)
-		    || (vblkdev->config.blk_config.use_vm_address
-			&& req_op(bio_req) == REQ_OP_DRV_IN
-			&& vblkdev->config.blk_config.req_ops_supported & VS_BLK_IOCTL_OP_F)) {
-			if (vblkdev->mempool_free > vblkdev->mempool_curr) {
-				if (vblkdev->mempool_free + 1 - vblkdev->mempool_curr
-										>= __data_len) {
-					req->mempool_virt = vblkdev->mempool_curr;
-				} else {
-					/* mempool is full, return to try later */
-					req = NULL;
-					goto exit;
-				}
-			} else if (vblkdev->mempool_free < vblkdev->mempool_curr) {
-				if (vblkdev->mempool_end - vblkdev->mempool_curr >= __data_len) {
-					req->mempool_virt = vblkdev->mempool_curr;
-				} else {
-					/* rollover if we do not have enough memory
-					 * at last of mempool
-					 */
-					vblkdev->mempool_curr = vblkdev->mempool_start;
-					if (vblkdev->mempool_free + 1 - vblkdev->mempool_curr
-										>= __data_len) {
-						req->mempool_virt = vblkdev->mempool_curr;
-					} else {
-						/* mempool is full, return to try later */
-						req = NULL;
-						goto exit;
-					}
-				}
-			} else {
-				/* mempool is full, return to try later */
-				req = NULL;
-				goto exit;
-			}
-		}
-
 		req->vs_req.req_id = bit;
-		req->__data_len = __data_len;
 		set_bit(bit, vblkdev->pending_reqs);
 		vblkdev->inflight_reqs++;
 		mod_timer(&req->timer, jiffies + 30*HZ);
@@ -443,15 +399,6 @@ static bool complete_bio_req(struct vblk_dev *vblkdev)
 		goto bio_null;
 	}
 
-	if ((!vblkdev->config.blk_config.use_vm_address && READ_WRITE_OR_IOCTL_OP)
-	    || (vblkdev->config.blk_config.use_vm_address && req_op(bio_req) == REQ_OP_DRV_IN)) {
-		/* move to next slot in mempool */
-		if (vblkdev->mempool_free + 1 + vsc_req->__data_len > vblkdev->mempool_end)
-			vblkdev->mempool_free = vblkdev->mempool_start - 1;
-
-		vblkdev->mempool_free = vblkdev->mempool_free + vsc_req->__data_len;
-	}
-
 bio_null:
 	vblk_put_req(vsc_req);
 
@@ -530,7 +477,6 @@ static enum blk_cmd_op cleanup_op_supported(struct vblk_dev *vblkdev, uint32_t o
  */
 static bool submit_bio_req(struct vblk_dev *vblkdev)
 {
-	struct vblk_ioctl_req *ioctl_req;
 	struct vsc_request *vsc_req = NULL;
 	struct request *bio_req = NULL;
 	struct vs_request *vs_req;
@@ -540,7 +486,7 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 	void *buffer;
 	struct req_entry *entry = NULL;
 	size_t sz;
-	uint32_t sg_cnt, __data_len;
+	uint32_t sg_cnt;
 	uint32_t ops_supported = vblkdev->config.blk_config.req_ops_supported;
 	dma_addr_t  sg_dma_addr = 0;
 
@@ -549,6 +495,10 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 		goto bio_exit;
 
 	if (vblkdev->queue == NULL)
+		goto bio_exit;
+
+	vsc_req = vblk_get_req(vblkdev);
+	if (vsc_req == NULL)
 		goto bio_exit;
 
 	spin_lock(&vblkdev->queue_lock);
@@ -562,24 +512,8 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 			spin_unlock(&vblkdev->queue_lock);
 			goto bio_exit;
 		}
-
-		bio_req = entry->req;
-		if (req_op(bio_req) != REQ_OP_DRV_IN) {
-			__data_len = bio_req->__data_len;
-		} else {
-			ioctl_req = (struct vblk_ioctl_req *)bio_req->completion_data;
-			__data_len = ioctl_req->ioctl_len;
-		}
-
-		vsc_req = vblk_get_req(vblkdev, __data_len, bio_req);
-		if (vsc_req == NULL) {
-			bio_req = NULL;
-			spin_unlock(&vblkdev->queue_lock);
-			goto bio_exit;
-		}
-
 		list_del(&entry->list_entry);
-
+		bio_req = entry->req;
 		kfree(entry);
 	}
 	spin_unlock(&vblkdev->queue_lock);
@@ -666,7 +600,7 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 
 			if (!vblkdev->config.blk_config.use_vm_address) {
 				vs_req->blkdev_req.blk_req.data_offset =
-						vblkdev->mempool_curr - vblkdev->mempool_start;
+							vsc_req->mempool_offset;
 			} else {
 				vs_req->blkdev_req.blk_req.data_offset = 0;
 				/* Provide IOVA  as part of request */
@@ -707,8 +641,6 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 			}
 		}
 	} else {
-		vsc_req->mempool_offset = vblkdev->mempool_curr - vblkdev->mempool_start;
-
 		if (vblkdev->config.blk_config.req_ops_supported & VS_BLK_IOCTL_OP_F
 			&& !vblk_prep_ioctl_req(vblkdev,
 			(struct vblk_ioctl_req *)bio_req->completion_data,
@@ -731,12 +663,6 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 			"Request Id %d IVC write failed!\n",
 				vsc_req->id);
 		goto bio_exit;
-	}
-
-	if ((!vblkdev->config.blk_config.use_vm_address && READ_WRITE_OR_IOCTL_OP)
-	    || (vblkdev->config.blk_config.use_vm_address && req_op(bio_req) == REQ_OP_DRV_IN)) {
-		/* move to next slot in mempool */
-		vblkdev->mempool_curr = vblkdev->mempool_curr + __data_len;
 	}
 
 	return true;
@@ -1108,12 +1034,6 @@ static void setup_device(struct vblk_dev *vblkdev)
 			tegra_hv_mempool_unreserve(vblkdev->ivmk);
 			return;
 		}
-
-		/* initialize initial pointers to go over mempool */
-		vblkdev->mempool_start = vblkdev->shared_buffer;
-		vblkdev->mempool_curr = vblkdev->shared_buffer;
-		vblkdev->mempool_free = vblkdev->shared_buffer + ivmk->size - 1;
-		vblkdev->mempool_end = vblkdev->shared_buffer + ivmk->size;
 	}
 
 	/* If IOVA feature is enabled for virt partition, then set max_requests
@@ -1129,7 +1049,7 @@ static void setup_device(struct vblk_dev *vblkdev)
 				max_ioctl_requests = MAX_VSC_REQS;
 		}
 	} else {
-		max_requests = vblkdev->ivck->nframes;
+		max_requests = ((vblkdev->ivmk->size) / max_io_bytes);
 		max_ioctl_requests = max_requests;
 	}
 
@@ -1192,6 +1112,17 @@ static void setup_device(struct vblk_dev *vblkdev)
 
 	for (req_id = 0; req_id < max_requests; req_id++){
 		req = &vblkdev->reqs[req_id];
+		if (vblkdev->config.blk_config.use_vm_address == 0U) {
+			req->mempool_virt = (void *)((uintptr_t)vblkdev->shared_buffer +
+				(uintptr_t)(req_id * max_io_bytes));
+			req->mempool_offset = (req_id * max_io_bytes);
+		} else {
+			if (vblkdev->config.blk_config.req_ops_supported & VS_BLK_IOCTL_OP_F) {
+				req->mempool_virt = (void *)((uintptr_t)vblkdev->shared_buffer +
+				(uintptr_t)((req_id % max_ioctl_requests) * max_io_bytes));
+				req->mempool_offset = (req_id % max_ioctl_requests) * max_io_bytes;
+			}
+		}
 		req->mempool_len = max_io_bytes;
 		req->id = req_id;
 		req->vblkdev = vblkdev;
@@ -1520,11 +1451,6 @@ static int tegra_hv_vblk_remove(struct platform_device *pdev)
 				|| vblkdev->config.blk_config.use_vm_address == 0U) {
 		tegra_hv_mempool_unreserve(vblkdev->ivmk);
 	}
-
-	vblkdev->mempool_start = NULL;
-	vblkdev->mempool_curr = NULL;
-	vblkdev->mempool_free = NULL;
-	vblkdev->mempool_end = NULL;
 
 #if (IS_ENABLED(CONFIG_TEGRA_HSIERRRPTINJ))
 	if (vblkdev->epl_id == IP_SDMMC)

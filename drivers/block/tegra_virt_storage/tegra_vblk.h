@@ -48,7 +48,6 @@ struct vsc_request {
 	void *mempool_virt;
 	uint32_t mempool_offset;
 	uint32_t mempool_len;
-	uint32_t __data_len;
 	uint32_t id;
 	struct vblk_dev* vblkdev;
 	/* Scatter list for maping IOVA address */
@@ -107,12 +106,6 @@ struct vblk_dev {
 	struct mutex ivc_lock;
 	enum vblk_queue_state queue_state;
 	struct completion req_queue_empty;
-
-	/* mempools pointers to track the location */
-	void *mempool_start;       /* representing start of mempool */
-	void *mempool_curr;        /* representing current location in mempool */
-	void *mempool_free;        /* representing free  location in mempool */
-	void *mempool_end;         /* representing end of mempool */
 };
 
 int vblk_complete_ioctl_req(struct vblk_dev *vblkdev,
