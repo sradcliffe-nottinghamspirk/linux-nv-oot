@@ -3,7 +3,7 @@
  * Copyright (c) 2019-2023, NVIDIA CORPORATION.  All rights reserved.
  */
 
-#include <linux/version.h>
+#include <nvidia/conftest.h>
 
 #include <dce.h>
 #include <dce-ipc.h>
@@ -281,7 +281,7 @@ int dce_ipc_channel_init(struct tegra_dce *d, u32 ch_type)
 	struct dce_ipc_region *r;
 	struct dce_ipc_channel *ch;
 	struct dce_ipc_queue_info *q_info;
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	struct iosys_map rx, tx;
 #endif
 
@@ -333,7 +333,7 @@ int dce_ipc_channel_init(struct tegra_dce *d, u32 ch_type)
 
 	dev = dev_from_dce(d);
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	iosys_map_set_vaddr(&rx, r->base + r->s_offset);
 	iosys_map_set_vaddr(&tx, r->base + r->s_offset + q_sz);
 
@@ -516,7 +516,7 @@ void dce_ipc_channel_reset(struct tegra_dce *d, u32 ch_type)
  */
 static int _dce_ipc_get_next_write_buff(struct dce_ipc_channel *ch)
 {
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	int err;
 
 	err = tegra_ivc_write_get_next_frame(&ch->d_ivc, &ch->obuff);
@@ -558,7 +558,7 @@ static int _dce_ipc_write_channel(struct dce_ipc_channel *ch,
 	 * of the IVC frame
 	 */
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	if ((ch->flags & DCE_IPC_CHANNEL_MSG_HEADER) != 0U) {
 		iosys_map_wr_field(&ch->obuff, 0, struct dce_ipc_header, length,
 				   size);
@@ -633,7 +633,7 @@ out:
  */
 static int _dce_ipc_get_next_read_buff(struct dce_ipc_channel *ch)
 {
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	int err;
 
 	err = tegra_ivc_read_get_next_frame(&ch->d_ivc, &ch->ibuff);
@@ -674,7 +674,7 @@ static int _dce_ipc_read_channel(struct dce_ipc_channel *ch,
 	 * Get actual length information from the top
 	 * of the IVC frame
 	 */
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	if ((ch->flags & DCE_IPC_CHANNEL_MSG_HEADER) != 0U) {
 		iosys_map_wr_field(&ch->ibuff, 0, struct dce_ipc_header, length,
 				   size);
@@ -837,7 +837,7 @@ int dce_ipc_get_region_iova_info(struct tegra_dce *d, u64 *iova, u32 *size)
 bool dce_ipc_is_data_available(struct tegra_dce *d, u32 ch_type)
 {
 	bool ret = false;
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	struct iosys_map map;
 #else
 	void *frame;
@@ -846,7 +846,7 @@ bool dce_ipc_is_data_available(struct tegra_dce *d, u32 ch_type)
 
 	dce_mutex_lock(&ch->lock);
 
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP) /* Linux v6.2 */
 	if (!tegra_ivc_read_get_next_frame(&ch->d_ivc, &map))
 		ret = true;
 #else

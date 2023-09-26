@@ -6544,6 +6544,25 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_REGISTER_SHRINKER_HAS_FMT_ARG" "" "types"
         ;;
 
+        tegra_ivc_struct_has_iosys_map)
+            #
+            # Determine if the 'tegra_ivc' structure has the 'map' argument.
+            #
+            # Commit 4c1e0a97351a ("firmware: tegra: bpmp: Use iosys-map
+            # helpers") update the Tegra IVC driver to use iosys-map in Linux v6.2.
+            #
+            CODE="
+            #if defined(NV_LINUX_IOSYS_MAP_H_PRESENT)
+            #include <linux/iosys-map.h>
+            #endif
+            #include <soc/tegra/ivc.h>
+            struct iosys_map *conftest_tegra_ivc_struct_has_iosys_map(struct tegra_ivc *ivc) {
+                    return &ivc->rx.map;
+            }"
+
+            compile_check_conftest "$CODE" "NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP" "" "types"
+        ;;
+
         # When adding a new conftest entry, please use the correct format for
         # specifying the relevant upstream Linux kernel commit.
         #
