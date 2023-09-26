@@ -6293,6 +6293,25 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_CRYPTO_PRESENT" "" "symbols"
         ;;
 
+        bus_type_struct_remove_has_int_return_type)
+            #
+            # Determine if the 'remove' callback from the 'bus_type' structure
+            # has an integer return type.
+            #
+            # Commit fc7a6209d571 ("bus: Make remove callback return void") made
+            # the 'remove' callback return void instead of an integer in Linux
+            # v5.15.
+            #
+            CODE="
+            #include <linux/device/bus.h>
+            int conftest_bus_type_struct_remove_has_int_return_type(struct device *dev,
+                                                                    struct bus_type *bus) {
+                    return bus->remove(dev);
+            }"
+
+            compile_check_conftest "$CODE" "NV_BUS_TYPE_STRUCT_REMOVE_HAS_INT_RETURN_TYPE" "" "types"
+        ;;
+
         class_struct_devnode_has_const_dev_arg)
             #
             # Determine if the 'class' structure devnode function pointer
@@ -6515,7 +6534,7 @@ compile_test() {
             # function in Linux v6.0.
             #
             CODE="
-	    #include <linux/atomic.h>
+            #include <linux/atomic.h>
             #include <linux/compiler_attributes.h>
             #include <linux/shrinker.h>
             int conftest_register_shrinker_has_fmt_arg(struct shrinker *s, const char *name) {
