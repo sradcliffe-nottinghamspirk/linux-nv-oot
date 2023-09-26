@@ -12,6 +12,9 @@
  * disclaimer.
  *
  */
+
+#include <nvidia/conftest.h>
+
 #include <linux/version.h>
 
 #include "oak_net.h"
@@ -576,7 +579,7 @@ void oak_net_add_napi(struct net_device *netdev)
 
 	while (num_ldg > 0) {
 		/* Initialize a napi context */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+#if defined(NV_NETIF_NAPI_ADD_WEIGHT_PRESENT) /* Linux v6.1 */
 		netif_napi_add_weight(netdev, &ldg->napi, oak_net_poll, napi_wt);
 #else
 		netif_napi_add(netdev, &ldg->napi, oak_net_poll, napi_wt);

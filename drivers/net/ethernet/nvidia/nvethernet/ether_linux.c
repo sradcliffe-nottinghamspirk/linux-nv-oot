@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2019-2023, NVIDIA CORPORATION. All rights reserved */
 
+#include <nvidia/conftest.h>
+
 #include <linux/version.h>
 #include <linux/iommu.h>
 #ifdef HSI_SUPPORT
@@ -4409,7 +4411,7 @@ static int ether_alloc_napi(struct ether_priv_data *pdata)
 
 		pdata->tx_napi[chan]->pdata = pdata;
 		pdata->tx_napi[chan]->chan = chan;
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
+#if defined(NV_NETIF_NAPI_ADD_WEIGHT_PRESENT) /* Linux v6.1 */
 		netif_napi_add_weight(ndev, &pdata->tx_napi[chan]->napi,
 			       ether_napi_poll_tx, 64);
 #else
@@ -4427,7 +4429,7 @@ static int ether_alloc_napi(struct ether_priv_data *pdata)
 
 		pdata->rx_napi[chan]->pdata = pdata;
 		pdata->rx_napi[chan]->chan = chan;
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
+#if defined(NV_NETIF_NAPI_ADD_WEIGHT_PRESENT) /* Linux v6.1 */
 		netif_napi_add_weight(ndev, &pdata->rx_napi[chan]->napi,
 			       ether_napi_poll_rx, 64);
 #else

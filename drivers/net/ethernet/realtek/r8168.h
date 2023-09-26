@@ -32,6 +32,8 @@
  *  US6,570,884, US6,115,776, and US6,327,625.
  ***********************************************************************************/
 
+#include <nvidia/conftest.h>
+
 #include <linux/ethtool.h>
 #include "r8168_dash.h"
 #include "r8168_realwow.h"
@@ -566,7 +568,7 @@ typedef int *napi_budget;
 typedef struct napi_struct *napi_ptr;
 typedef int napi_budget;
 
-#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
+#if defined(NV_NETIF_NAPI_ADD_WEIGHT_PRESENT) /* Linux v6.1 */
 #define RTL_NAPI_CONFIG(ndev, priv, function, weight) \
 	netif_napi_add_weight(ndev, &priv->napi, function, weight)
 #else

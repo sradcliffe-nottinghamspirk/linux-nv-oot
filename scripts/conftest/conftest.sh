@@ -6483,6 +6483,89 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_DRM_MODE_CONFIG_STRUCT_HAS_FB_BASE_ARG" "" "types"
         ;;
 
+        ethtool_ops_get_set_coalesce_has_coal_and_extack_args)
+            #
+            # Determine if the 'get_coalesce' and 'set_coalesce' ethtool_ops
+            # callback functions support the 'kernel_ethtool_coalesce' and
+            # 'netlink_ext_ack' arguments.
+            #
+            # Added by commit f3ccfda19319 ("ethtool: extend coalesce setting
+            # uAPI with CQE mode") in Linux v5.15.
+            #
+            CODE="
+            #include <linux/ethtool.h>
+            #include <linux/netdevice.h>
+            #include <linux/netlink.h>
+            #include <uapi/linux/ethtool.h>
+            void conftest_ethtool_ops_get_set_coalesce_has_coal_and_extack_args(struct ethtool_ops *ops) {
+                    int (*fn)(struct net_device *,
+                    struct ethtool_coalesce *,
+                    struct kernel_ethtool_coalesce *,
+                    struct netlink_ext_ack *) = ops->get_coalesce;
+            }"
+
+            compile_check_conftest "$CODE" "NV_ETHTOOL_OPS_GET_SET_COALESCE_HAS_COAL_AND_EXTACT_ARGS" "" "types"
+        ;;
+
+        ethtool_ops_get_set_ringparam_has_ringparam_and_extack_args)
+            #
+            # Determine if the 'get_ringparam' and 'set_ringparam' ethtool_ops
+            # callback functions support the 'kernel_ethtool_ringparam' and
+            # 'netlink_ext_ack' arguments.
+            #
+            # Added by commit 7462494408cd ("ethtool: extend ringparam
+            # setting/getting API with rx_buf_len") in Linux v5.17.
+            #
+            CODE="
+            #include <linux/ethtool.h>
+            #include <linux/netdevice.h>
+            #include <linux/netlink.h>
+            #include <uapi/linux/ethtool.h>
+            void conftest_ethtool_ops_get_set_ringparam_has_ringparam_and_extack_args(struct ethtool_ops *ops) {
+                    void (*fn)(struct net_device *,
+                    struct ethtool_ringparam *,
+                    struct kernel_ethtool_ringparam *,
+                    struct netlink_ext_ack *) = ops->get_ringparam;
+            }"
+
+            compile_check_conftest "$CODE" "NV_ETHTOOL_OPS_GET_SET_RINGPARAM_HAS_RINGPARAM_AND_EXTACT_ARGS" "" "types"
+        ;;
+
+        netif_set_tso_max_size)
+            #
+            # Determine if netif_set_tso_max_size() function is present
+            #
+            # Added by commit 14d7b8122fd5 ("net: don't allow user space
+            # to lift the device limits") in Linux v5.19.
+            #
+            CODE="
+            #include <linux/netdevice.h>
+            void conftest_netif_set_tso_max_size(void)
+            {
+                    netif_set_tso_max_size();
+            }
+            "
+
+            compile_check_conftest "$CODE" "NV_NETIF_SET_TSO_MAX_SIZE_PRESENT" "" "functions"
+        ;;
+
+        netif_napi_add_weight)
+            #
+            # Determine if netif_napi_add_weight() function is present
+            #
+            # Added by commit 58caed3dacb4 ("netdev: reshuffle netif_napi_add()
+            # APIs to allow dropping weight") in Linux v6.1.
+            #
+            CODE="
+            #include <linux/netdevice.h>
+            void conftest_netif_napi_add_weight(void)
+            {
+                    netif_napi_add_weight();
+            }
+            "
+            compile_check_conftest "$CODE" "NV_NETIF_NAPI_ADD_WEIGHT_PRESENT" "" "functions"
+        ;;
+
         iommu_map_has_gfp_arg)
             #
             # Determine if iommu_map() has 'gfp' argument.
