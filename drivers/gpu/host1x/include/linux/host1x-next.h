@@ -526,7 +526,7 @@ static inline void host1x_memory_context_put(struct host1x_memory_context *cd)
 
 int host1x_actmon_read_avg_count(struct host1x_client *client);
 int host1x_actmon_register(struct host1x_client *client);
-int host1x_actmon_unregister(struct host1x_client *client);
+void host1x_actmon_unregister(struct host1x_client *client);
 void host1x_actmon_enable(struct host1x_client *client);
 void host1x_actmon_disable(struct host1x_client *client);
 void host1x_actmon_update_client_rate(struct host1x_client *client,

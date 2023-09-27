@@ -712,16 +712,12 @@ exit_falcon:
 static int nvjpg_remove(struct platform_device *pdev)
 {
 	struct nvjpg *nvjpg = platform_get_drvdata(pdev);
-	int err;
 
 	pm_runtime_disable(&pdev->dev);
 
 	nvjpg_devfreq_deinit(nvjpg);
 
-	err = host1x_actmon_unregister(&nvjpg->client.base);
-	if (err < 0)
-		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
-			err);
+	host1x_actmon_unregister(&nvjpg->client.base);
 
 	host1x_client_unregister(&nvjpg->client.base);
 

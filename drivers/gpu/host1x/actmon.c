@@ -388,7 +388,7 @@ int host1x_actmon_register(struct host1x_client *client)
 }
 EXPORT_SYMBOL(host1x_actmon_register);
 
-int host1x_actmon_unregister(struct host1x_client *client)
+void host1x_actmon_unregister(struct host1x_client *client)
 {
 	struct host1x_actmon_module *module;
 	struct host1x *host = dev_get_drvdata(client->host->parent);
@@ -397,10 +397,10 @@ int host1x_actmon_unregister(struct host1x_client *client)
 	int i;
 
 	if (!host->actmon_regs || !host->actmon_clk)
-		return 0;
+		return;
 
 	if (!actmon)
-		return 0;
+		return;
 
 	for (i = 0; i < actmon->num_modules; i++) {
 		module = &actmon->modules[i];
@@ -415,8 +415,6 @@ int host1x_actmon_unregister(struct host1x_client *client)
 	spin_lock_irqsave(&host->actmons_lock, flags);
 	list_del(&actmon->list);
 	spin_unlock_irqrestore(&host->actmons_lock, flags);
-
-	return 0;
 }
 EXPORT_SYMBOL(host1x_actmon_unregister);
 

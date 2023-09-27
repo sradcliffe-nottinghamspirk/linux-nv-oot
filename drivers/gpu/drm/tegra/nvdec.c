@@ -859,16 +859,12 @@ exit_falcon:
 static int nvdec_remove(struct platform_device *pdev)
 {
 	struct nvdec *nvdec = platform_get_drvdata(pdev);
-	int err;
 
 	pm_runtime_disable(&pdev->dev);
 
 	nvdec_devfreq_deinit(nvdec);
 
-	err = host1x_actmon_unregister(&nvdec->client.base);
-	if (err < 0)
-		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
-			err);
+	host1x_actmon_unregister(&nvdec->client.base);
 
 	host1x_client_unregister(&nvdec->client.base);
 

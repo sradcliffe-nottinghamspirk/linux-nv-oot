@@ -725,16 +725,12 @@ exit_falcon:
 static int nvenc_remove(struct platform_device *pdev)
 {
 	struct nvenc *nvenc = platform_get_drvdata(pdev);
-	int err;
 
 	pm_runtime_disable(&pdev->dev);
 
 	nvenc_devfreq_deinit(nvenc);
 
-	err = host1x_actmon_unregister(&nvenc->client.base);
-	if (err < 0)
-		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
-			err);
+	host1x_actmon_unregister(&nvenc->client.base);
 
 	host1x_client_unregister(&nvenc->client.base);
 

@@ -793,16 +793,12 @@ exit_falcon:
 static int vic_remove(struct platform_device *pdev)
 {
 	struct vic *vic = platform_get_drvdata(pdev);
-	int err;
 
 	pm_runtime_disable(&pdev->dev);
 
 	vic_devfreq_deinit(vic);
 
-	err = host1x_actmon_unregister(&vic->client.base);
-	if (err < 0)
-		dev_info(&pdev->dev, "failed to unregister host1x actmon: %d\n",
-			err);
+	host1x_actmon_unregister(&vic->client.base);
 
 	host1x_client_unregister(&vic->client.base);
 
