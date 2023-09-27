@@ -835,13 +835,13 @@ static int nvdec_probe(struct platform_device *pdev)
 	err = clk_set_rate(nvdec->clks[0].clk, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate: %d\n", err);
-		goto exit_falcon;
+		goto exit_actmon;
 	}
 
 	err = nvdec_devfreq_init(nvdec);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
-		goto exit_falcon;
+		goto exit_actmon;
 	}
 
 	pm_runtime_enable(dev);
@@ -850,6 +850,9 @@ static int nvdec_probe(struct platform_device *pdev)
 
 	return 0;
 
+exit_actmon:
+	host1x_actmon_unregister(&nvdec->client.base);
+	host1x_client_unregister(&nvdec->client.base);
 exit_falcon:
 	falcon_exit(&nvdec->falcon);
 

@@ -701,13 +701,13 @@ static int nvenc_probe(struct platform_device *pdev)
 	err = clk_set_rate(nvenc->clk, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate\n");
-		goto exit_falcon;
+		goto exit_actmon;
 	}
 
 	err = nvenc_devfreq_init(nvenc);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
-		goto exit_falcon;
+		goto exit_actmon;
 	}
 
 	pm_runtime_enable(dev);
@@ -716,6 +716,9 @@ static int nvenc_probe(struct platform_device *pdev)
 
 	return 0;
 
+exit_actmon:
+	host1x_actmon_unregister(&nvenc->client.base);
+	host1x_client_unregister(&nvenc->client.base);
 exit_falcon:
 	falcon_exit(&nvenc->falcon);
 

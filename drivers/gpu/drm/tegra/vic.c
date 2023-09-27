@@ -769,13 +769,13 @@ static int vic_probe(struct platform_device *pdev)
 	err = clk_set_rate(vic->clk, ULONG_MAX);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to set clock rate: %d\n", err);
-		goto exit_falcon;
+		goto exit_actmon;
 	}
 
 	err = vic_devfreq_init(vic);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
-		goto exit_falcon;
+		goto exit_actmon;
 	}
 
 	pm_runtime_enable(dev);
@@ -783,6 +783,10 @@ static int vic_probe(struct platform_device *pdev)
 	pm_runtime_set_autosuspend_delay(dev, 500);
 
 	return 0;
+
+exit_actmon:
+	host1x_actmon_unregister(&vic->client.base);
+	host1x_client_unregister(&vic->client.base);
 
 exit_falcon:
 	falcon_exit(&vic->falcon);
