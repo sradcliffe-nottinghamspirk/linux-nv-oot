@@ -32,6 +32,9 @@ endif
 ifdef CONFIG_I2C
 obj-m += i2c/busses/
 obj-m += mfd/
+ifdef CONFIG_IIO
+obj-m += bmi088/
+endif
 endif
 ifdef CONFIG_MEMORY
 obj-m += memory/
@@ -80,6 +83,3 @@ obj-m += staging/platform/tegra/gte/
 obj-m += staging/platform/tegra/gte_test/
 obj-m += nv-virtio/
 obj-m += usb/
-ifdef CONFIG_I2C
-obj-m += bmi088/
-endif
