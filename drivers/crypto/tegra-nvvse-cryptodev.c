@@ -74,6 +74,8 @@ struct nvvse_devnode {
 	bool sha_init_done;
 } nvvse_devnode[MAX_NUMBER_MISC_DEVICES];
 
+static struct tegra_nvvse_get_ivc_db ivc_database;
+
 /* SHA Algorithm Names */
 static const char *sha_alg_names[] = {
 	"sha256-vse",
@@ -461,6 +463,12 @@ static int tnvvse_crypto_sha_update(struct tnvvse_crypto_ctx *ctx,
 	struct ahash_request *req;
 	char *input_buffer = update_ctl->in_buff;
 	int ret;
+
+	if (update_ctl->input_buffer_size > ivc_database.max_buffer_size[ctx->node_id]) {
+		pr_err("%s: Msg size is greater than supported size of %d Bytes\n", __func__,
+						ivc_database.max_buffer_size[ctx->node_id]);
+		return -EINVAL;
+	}
 
 	result_buff = sha_state->result_buff;
 	req = sha_state->req;
@@ -1879,7 +1887,6 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 	struct tegra_nvvse_aes_drng_ctl *aes_drng_ctl;
 	struct tegra_nvvse_aes_gmac_init_ctl *aes_gmac_init_ctl;
 	struct tegra_nvvse_aes_gmac_sign_verify_ctl *aes_gmac_sign_verify_ctl;
-	struct tegra_nvvse_get_ivc_db *get_ivc_db;
 	struct tegra_nvvse_tsec_get_keyload_status *tsec_keyload_status;
 	int ret = 0;
 
@@ -2119,27 +2126,12 @@ static long tnvvse_crypto_dev_ioctl(struct file *filp,
 		break;
 
 	case NVVSE_IOCTL_CMDID_GET_IVC_DB:
-		get_ivc_db = kzalloc(sizeof(*get_ivc_db), GFP_KERNEL);
-		if (!get_ivc_db) {
-			pr_err("%s(): failed to allocate memory\n", __func__);
-			return -ENOMEM;
-		}
-
-		ret = tnvvse_crypto_get_ivc_db(get_ivc_db);
+		ret = copy_to_user((void __user *)arg, &ivc_database, sizeof(ivc_database));
 		if (ret) {
-			pr_err("%s(): Failed to get ivc database get_ivc_db:%d\n", __func__, ret);
-			kfree(get_ivc_db);
+			pr_err("%s(): Failed to copy_to_user ivc_database:%d\n", __func__, ret);
 			goto out;
 		}
 
-		ret = copy_to_user((void __user *)arg, get_ivc_db, sizeof(*get_ivc_db));
-		if (ret) {
-			pr_err("%s(): Failed to copy_to_user get_ivc_db:%d\n", __func__, ret);
-			kfree(get_ivc_db);
-			goto out;
-		}
-
-		kfree(get_ivc_db);
 		break;
 
 	case NVVSE_IOCTL_CMDID_TSEC_SIGN_VERIFY:
@@ -2225,6 +2217,9 @@ static int __init tnvvse_crypto_device_init(void)
 	uint32_t cnt, ctr;
 	int ret = 0;
 	struct miscdevice *misc;
+
+	/* get ivc databse */
+	tnvvse_crypto_get_ivc_db(&ivc_database);
 
 	for (cnt = 0; cnt < MAX_NUMBER_MISC_DEVICES; cnt++) {
 
