@@ -145,8 +145,9 @@ struct pva_submit_task {
 	u8 special_access;
 
 	u64 timeout;
-	u64 desc_hwseq_frm;
-	u64 desc_processed;
+	u64 desc_hwseq_frm[2];
+	u64 desc_hwseq_t26x[2];
+	u64 desc_processed[2];
 	u8 num_dma_desc_processed;
 	u32 syncpt_thresh;
 	u32 fence_num;

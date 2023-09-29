@@ -290,6 +290,30 @@ get_sym_exe_id(struct pva_submit_task *task)
 	return exe_id;
 }
 
+static inline u64 is_hwseq_mode_frm(struct pva_submit_task *task, u8 desc_id)
+{
+	u8 idx = desc_id / 64U;
+	u8 shift = desc_id % 64U;
+
+	return (task->desc_hwseq_frm[idx] & (1ULL << shift));
+}
+
+static inline void set_hwseq_mode_frm(struct pva_submit_task *task, u8 desc_id)
+{
+	u8 idx = desc_id / 64U;
+	u8 shift = desc_id % 64U;
+
+	task->desc_hwseq_frm[idx] |= (1ULL << shift);
+}
+
+static inline u64 is_hwseq_mode_t26x(struct pva_submit_task *task, u8 desc_id)
+{
+	u8 idx = desc_id / 64U;
+	u8 shift = desc_id % 64U;
+
+	return (task->desc_hwseq_t26x[idx] & (1ULL << shift));
+}
+
 static int32_t
 patch_dma_desc_address(struct pva_submit_task *task,
 		      struct nvpva_dma_descriptor *umd_dma_desc,
@@ -334,7 +358,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 			buff_info->src_buffer_size = mem->size;
 		} else {
 			addr_base = 0;
-			if ((task->desc_hwseq_frm & (1ULL << desc_id)) == 0ULL)
+			if (!is_hwseq_mode_frm(task, desc_id))
 				err = check_address_range(umd_dma_desc,
 							  task->l2_alloc_size,
 							  0,
@@ -422,7 +446,7 @@ patch_dma_desc_address(struct pva_submit_task *task,
 				"invalid memory handle: descriptor: src MC");
 			goto out;
 		}
-		if ((task->desc_hwseq_frm & (1ULL << desc_id)) == 0ULL)
+		if (!is_hwseq_mode_frm(task, desc_id))
 			err = check_address_range(umd_dma_desc,
 						  mem->size,
 						  0,
@@ -730,7 +754,7 @@ is_valid_vpu_trigger_mode(const struct nvpva_dma_descriptor *desc,
 
 static int32_t
 validate_descriptor(const struct nvpva_dma_descriptor *desc,
-		    u32 trigger_mode)
+		    u32 trigger_mode, bool dim3_check_relaxed)
 {
 	uint32_t ret = 0;
 	int32_t retval = 0;
@@ -754,8 +778,23 @@ validate_descriptor(const struct nvpva_dma_descriptor *desc,
 			|| (desc->dstRpt1 == 0U) ||
 			(desc->dstRpt2 == 0U))) ? 1UL : 0UL;
 
-	ret |= (((desc->trigEventMode) == ((uint8_t)TRIG_EVENT_MODE_DIM3)) &&
-		((desc->srcRpt1 == 0U) && (desc->dstRpt1 == 0U))) ? 1UL : 0UL;
+	/*
+	 * For DIM3,
+	 * - when SW sequencing is used, or the HW sequencing mode used is
+	 *   "descriptor addressing", both ns1 and nd1 should be positive
+	 * - In all other cases, ns1 may be 0, nd1 must be non-zero and greater
+	 *   than or equal to ns1.
+	 */
+	if (desc->trigEventMode == ((uint8_t)TRIG_EVENT_MODE_DIM3)) {
+		if (!dim3_check_relaxed) {
+			ret |= ((desc->srcRpt1 == 0U) || (desc->dstRpt1 == 0U))
+					? 1UL : 0UL;
+		} else {
+			ret |= ((desc->dstRpt1 == 0U)
+				 || (desc->srcRpt1 > desc->dstRpt1))
+				? 1UL : 0UL;
+		}
+	}
 
 	/** BL format should be associated with MC only */
 	if (desc->srcFormat == 1U) {
@@ -796,15 +835,18 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 	const uint8_t resv_desc_start_idx = NVPVA_RESERVED_DESCRIPTORS_START_IDX;
 	const uint8_t resv_desc_end_idx = (NVPVA_RESERVED_DESCRIPTORS_START_IDX
 					   + NVPVA_NUM_RESERVED_DESCRIPTORS - 1);
+	bool dim3_check_relaxed = false;
 
 	nvpva_dbg_fn(task->pva, "");
 
 	desc_num = *did;
 	for (i = 0; (i < num_descs)
 		     && (*num_dma_desc_processed < num_dma_descriptors); i++, desc_num++) {
-		if (task->desc_processed & (1LLU << desc_num))
+		if (task->desc_processed[desc_num/64] & (1LLU << (desc_num%64)))
 			continue;
 
+		task->desc_processed[desc_num/64] |= (1LLU << (desc_num%64));
+		++(*num_dma_desc_processed);
 		if (desc_num == resv_desc_start_idx) {
 			desc_num = resv_desc_end_idx;
 			i += (resv_desc_end_idx - resv_desc_start_idx + 1);
@@ -817,8 +859,12 @@ static int32_t nvpva_task_dma_desc_mapping(struct pva_submit_task *task,
 			    & PVA_BIT64(desc_num)) == 0U);
 		is_misr = is_misr && (task->dma_misr_config.enable != 0U);
 
+		dim3_check_relaxed = is_hwseq_mode_frm(task, desc_num)
+					|| is_hwseq_mode_t26x(task, desc_num);
+
 		err = validate_descriptor(umd_dma_desc,
-					  task->hwseq_config.hwseqTrigMode);
+					  task->hwseq_config.hwseqTrigMode,
+					  dim3_check_relaxed);
 		if (err) {
 			task_err(
 			    task,
@@ -985,7 +1031,6 @@ verify_dma_desc_hwseq(struct pva_submit_task *task,
 		     u8 *bl_xfers_in_use)
 {
 	int err = 0;
-	u64 *desc_hwseq_frm = &task->desc_hwseq_frm;
 	struct nvpva_dma_descriptor *desc;
 
 	const uint8_t resv_desc_start_idx = NVPVA_RESERVED_DESCRIPTORS_START_IDX;
@@ -1011,10 +1056,10 @@ verify_dma_desc_hwseq(struct pva_submit_task *task,
 	if (is_desc_mode(mode))
 		goto out;
 
-	if ((*desc_hwseq_frm & (1ULL << did)) != 0ULL)
+	if (is_hwseq_mode_frm(task, did))
 		goto out;
 
-	*desc_hwseq_frm |= (1ULL << did);
+	set_hwseq_mode_frm(task, did);
 	if ((desc->px != 0U)
 	 || (desc->py != 0U)
 	 || (desc->descReloadEnable != 0U)) {
@@ -2151,7 +2196,7 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 
 	memset(task->desc_block_height_log2, U8_MAX, sizeof(task->desc_block_height_log2));
 	memset(task->hwseq_info, 0, sizeof(task->hwseq_info));
-	task->desc_processed = 0;
+	memset(task->desc_processed, 0, sizeof(task->desc_processed));
 	task->num_dma_desc_processed = 0;
 	task->special_access = 0;
 	hw_task_dma_info = &hw_task->dma_info_and_params_list.dma_info;
@@ -2207,7 +2252,10 @@ int pva_task_write_dma_info(struct pva_submit_task *task,
 	hw_task_dma_info->num_channels = task->num_dma_channels;
 	hw_task_dma_info->num_descriptors = task->num_dma_descriptors;
 	hw_task_dma_info->descriptor_id = 1U; /* PVA_DMA_DESC0 */
-	task->desc_hwseq_frm = 0ULL;
+
+	memset(task->desc_hwseq_frm, 0, sizeof(task->desc_hwseq_frm));
+	memset(task->desc_hwseq_t26x, 0, sizeof(task->desc_hwseq_t26x));
+
 	for (i = 0; i < task->num_dma_channels; i++) {
 		struct nvpva_dma_channel *user_ch = &task->dma_channels[i];
 
