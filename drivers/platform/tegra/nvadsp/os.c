@@ -8,12 +8,10 @@
 #include <linux/errno.h>
 #include <linux/platform_device.h>
 #include <linux/io.h>
+#ifdef CONFIG_IOMMU_DMA
 #include <linux/iommu.h>
-#include <linux/delay.h>
-#include <linux/dma-buf.h>
-#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
-#include <linux/dma-iommu.h>
 #endif
+#include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/firmware.h>
 #include <linux/tegra_nvadsp.h>
@@ -115,6 +113,13 @@ struct nvadsp_mappings {
 	void *va;
 	int len;
 };
+
+#ifdef CONFIG_IOMMU_DMA
+extern dma_addr_t iommu_dma_alloc_iova(struct iommu_domain *domain,
+		size_t size, u64 dma_limit, struct device *dev);
+extern void iommu_dma_free_iova(struct iommu_dma_cookie *cookie,
+		dma_addr_t iova, size_t size, struct iommu_iotlb_gather *gather);
+#endif
 
 extern u8 tegra_get_major_rev(void);
 extern u8 tegra_get_minor_rev(void);
@@ -697,7 +702,7 @@ end:
 	return ret;
 }
 
-#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
+#ifdef CONFIG_IOMMU_DMA
 /**
  * Allocate a dma buffer and map it to a specified iova
  * Return valid cpu virtual address on success or NULL on failure
@@ -734,7 +739,8 @@ static void *nvadsp_dma_alloc_and_map_at(struct platform_device *pdev,
 	 * It might allocate an excessive iova region but it would be handled
 	 * by IOMMU core during iommu_dma_free_iova().
 	 */
-	tmp_iova = iommu_dma_alloc_iova(dev, end - aligned_iova, end - pg_size);
+	tmp_iova = iommu_dma_alloc_iova(domain,
+				(end - aligned_iova), (end - pg_size), dev);
 	if (tmp_iova != aligned_iova) {
 		dev_err(dev, "failed to reserve iova range [%llx, %llx]\n",
 			aligned_iova, end);
@@ -780,7 +786,7 @@ static void *nvadsp_dma_alloc_and_map_at(struct platform_device *pdev,
 
 	/* Unmap and free the tmp_iova since target iova is linked */
 	iommu_unmap(domain, tmp_iova, size);
-	iommu_dma_free_iova(dev, tmp_iova, size);
+	iommu_dma_free_iova(domain->iova_cookie, tmp_iova, size, NULL);
 
 	return cpu_va;
 
@@ -788,7 +794,8 @@ fail_map:
 	iommu_unmap(domain, iova, offset);
 	dma_free_coherent(dev, size, cpu_va, tmp_iova);
 fail_dma_alloc:
-	iommu_dma_free_iova(dev, end - aligned_iova, end - pg_size);
+	iommu_dma_free_iova(domain->iova_cookie,
+			(end - aligned_iova), (end - pg_size), NULL);
 
 	return NULL;
 }
@@ -800,7 +807,7 @@ static int allocate_memory_for_adsp_os(void)
 	struct nvadsp_drv_data *drv_data = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
 	struct resource *co_mem = &drv_data->co_mem;
-#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
+#ifdef CONFIG_IOMMU_DMA
 	dma_addr_t addr;
 #else
 	phys_addr_t addr;
@@ -827,7 +834,7 @@ static int allocate_memory_for_adsp_os(void)
 		goto map_and_end;
 	}
 
-#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
+#ifdef CONFIG_IOMMU_DMA
 	dram_va = nvadsp_dma_alloc_and_map_at(pdev, size, addr, GFP_KERNEL);
 	if (!dram_va) {
 		dev_err(dev, "unable to allocate SMMU pages\n");
@@ -867,7 +874,7 @@ static void deallocate_memory_for_adsp_os(void)
 		return;
 	}
 
-#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
+#ifdef CONFIG_IOMMU_DMA
 	dma_free_coherent(dev, priv.adsp_os_size, va, priv.adsp_os_addr);
 #endif
 }
@@ -928,7 +935,7 @@ static int __nvadsp_os_secload(struct platform_device *pdev)
 			return -ENOMEM;
 		}
 	} else {
-#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
+#ifdef CONFIG_IOMMU_DMA
 		dram_va = nvadsp_dma_alloc_and_map_at(pdev, size, addr,
 								GFP_KERNEL);
 		if (dram_va == NULL) {
@@ -1098,7 +1105,7 @@ static int nvadsp_load_multi_fw(struct platform_device *pdev)
 			os_mem  = drv_data->adsp_mem[ADSP_OS_ADDR] +
 						((i + 1) * os_size);
 
-#if defined(CONFIG_TEGRA_NVADSP_ON_SMMU)
+#ifdef CONFIG_IOMMU_DMA
 			dram_va = nvadsp_dma_alloc_and_map_at(pdev,
 					(size_t)os_size, (dma_addr_t)os_mem,
 					GFP_KERNEL);
