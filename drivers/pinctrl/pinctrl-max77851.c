@@ -627,15 +627,14 @@ static int max77851_pinconf_set(struct pinctrl_dev *pctldev,
 			if (IS_GPIO(pin) || IS_NRSTIO(pin)) {
 				mask = GPIO_CFG0_SUP;
 				shift = FFS(GPIO_CFG0_SUP);
-			}
+				val = param_val;
+				reg_addr = pcntl->pin_groups[pin].pin_cfg0_addr;
 
-			val = param_val;
-			reg_addr = pcntl->pin_groups[pin].pin_cfg0_addr;
-
-			ret = regmap_update_bits(pcntl->rmap, reg_addr, mask, val << shift);
-			if (ret < 0) {
-				dev_err(dev, "Input Supply GPIO update failed: %d\n", ret);
-				return ret;
+				ret = regmap_update_bits(pcntl->rmap, reg_addr, mask, val << shift);
+				if (ret < 0) {
+					dev_err(dev, "Input Supply GPIO update failed: %d\n", ret);
+					return ret;
+				}
 			}
 			break;
 

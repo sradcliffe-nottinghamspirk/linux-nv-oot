@@ -229,7 +229,11 @@ static int max77851_config_fps(struct max77851_chip *chip,
 	fps_max_period = MAX77851_FPS_PERIOD_MAX_US;
 
 	for (fps_id = 0; fps_id < MX_FPS_MASTER_NUM; fps_id++) {
-		sprintf(fps_name, "fps%d", fps_id);
+		ret = sprintf(fps_name, "fps%d", fps_id);
+		if (ret < 0) {
+			dev_err(dev, "sprintf failed with error status: 0x%x\n", ret);
+			return -EINVAL;
+		}
 		if (!strcmp(fps_np->name, fps_name))
 			break;
 	}
