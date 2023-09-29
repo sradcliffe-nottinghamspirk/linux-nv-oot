@@ -231,7 +231,7 @@ struct camrtc_event_struct {
 
 // camrtc_trace_event_rtos_ids
 #define camrtc_trace_rtos_id(_subid) \
-	CAMRTC_EVENT_MAKE_ID(CAMRTC_EVENT_TYPE_ARRAY, \
+        CAMRTC_EVENT_MAKE_ID(CAMRTC_EVENT_TYPE_ARRAY, \
 		CAMRTC_EVENT_MODULE_RTOS, (_subid))
 #define camrtc_trace_rtos_task_switched_in \
 	camrtc_trace_rtos_id(1)

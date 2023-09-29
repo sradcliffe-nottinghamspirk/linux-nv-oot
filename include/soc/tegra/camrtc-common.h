@@ -27,16 +27,16 @@
 #define CAMRTC_ALIGN(_n) __attribute__((aligned(_n)))
 #endif
 #ifndef U64_C
-#define U64_C(_x_) ((uint64_t)(_x_##ULL))
+#define U64_C(_x_) (uint64_t)(_x_##ULL)
 #endif
 #ifndef U32_C
-#define U32_C(_x_) ((uint32_t)(_x_##UL))
+#define U32_C(_x_) (uint32_t)(_x_##UL)
 #endif
 #ifndef U16_C
-#define U16_C(_x_) ((uint16_t)(_x_##U))
+#define U16_C(_x_) (uint16_t)(_x_##U)
 #endif
 #ifndef U8_C
-#define U8_C(_x_) ((uint8_t)(_x_##U))
+#define U8_C(_x_) (uint8_t)(_x_##U)
 #endif
 #endif
 

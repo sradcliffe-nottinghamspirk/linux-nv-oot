@@ -145,7 +145,7 @@ typedef struct syncpoint_info {
  *       of stats data per window.
  *  FM = 32 byte header + (64 x 64 x 2 x 4) bytes. FM can have 64 x 64 windows
  *       with each window having 2 bytes of data for each color channel.
- *  AFM = 32 byte header + 8 byte statistics data + 8 byte padding per ROI.
+ *  AFM = 32 byte header + 8 byte statistics data + 8 byte pad per ROI.
  *  LAC = 32 byte header + ( (32 x 32) x ((4 + 2 + 2) x 4) )
  *        Each ROI has 32x32 windows with each window containing 8
  *        bytes of data per color channel.
@@ -180,7 +180,7 @@ typedef struct syncpoint_info {
 #define ISP6_STATS_HIST_RAW24_MAX_SIZE	MK_SIZE(1056)
 /** Local Tone Mapping (LTM) unit statistics data size in bytes */
 #define ISP6_STATS_LTM_MAX_SIZE		MK_SIZE(1056)
-/* Stats buffer addresses must be aligned to 64 byte (ATOM) boundaries */
+/* Stats buffer addresses muse be aligned to 64 byte (ATOM) boundaries */
 #define ISP6_ALIGN_STAT_OFFSET(_offset) \
 	(((uint32_t)(_offset) + MK_U32(63)) & ~(MK_U32(63)))
 
@@ -377,8 +377,6 @@ typedef struct syncpoint_info {
 #define CAPTURE_CHANNEL_FLAG_SEMI_PLANAR	MK_U32(0x0008)
 /** Channel supports phase-detection auto-focus */
 #define CAPTURE_CHANNEL_FLAG_PDAF		MK_U32(0x0010)
-/** Channel outputs to Focus Metric Lite module (FML) */
-#define CAPTURE_CHANNEL_FLAG_FMLITE		MK_U32(0x0020)
 /** Channel outputs sensor embedded data */
 #define CAPTURE_CHANNEL_FLAG_EMBDATA		MK_U32(0x0040)
 /** Channel outputs to ISPA */
@@ -559,6 +557,7 @@ struct capture_channel_config {
 	 * Determines the size of the ring buffer.
 	 */
 	uint32_t queue_depth;
+
 	/** Size of the buffer reserved for each capture request. */
 	uint32_t request_size;
 
@@ -1027,7 +1026,9 @@ struct capture_status {
  * Programming NOTIFY v0.0.0" for details.
  */
 #define CAPTURE_STATUS_CHANSEL_NOMATCH		MK_U32(15)
-/** Capture status for invalid VI capture settings.
+
+/**
+ * Invalid VI capture settings.
  * Value of @ref err_data "err_data" is undefined.
  */
 #define CAPTURE_STATUS_INVALID_CAP_SETTINGS	MK_U32(16)
@@ -1365,10 +1366,10 @@ struct vi_pfsd_config {
  * @brief Memory surface specs passed from KMD to RCE
  */
 struct memoryinfo_surface {
-       /** Surface iova address */
-       uint64_t base_address;
-       /** Surface size */
-       uint64_t size;
+	/** Surface iova address */
+	uint64_t base_address;
+	/** Surface size */
+	uint64_t size;
 };
 
 /**
@@ -2744,7 +2745,7 @@ struct isp_capture_descriptor_memoryinfo {
 	/** RAW24 Histogram Unit statistics buffer */
 	struct memoryinfo_surface hist_raw24_surface;
 	/** Base address of ISP PB2 memory */
-	struct memoryinfo_surface isp_pb2_mem; 				// TODO move to programm desc meminfo
+	struct memoryinfo_surface isp_pb2_mem;
 	/** Engine result record – written by Falcon */
 	struct memoryinfo_surface engine_status;
 	/** Memory surface for watermark ring buffer written by ISP FW */
