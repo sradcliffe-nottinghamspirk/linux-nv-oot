@@ -2152,11 +2152,15 @@ static void tegra_sor_hdmi_disable_scrambling(struct tegra_sor *sor)
 
 static void tegra_sor_hdmi_scdc_disable(struct tegra_sor *sor)
 {
+#if defined(NV_DRM_SCDC_GET_SET_HAS_STRUCT_DRM_CONNECTOR_ARG) /* Linux v6.4 */
+	drm_scdc_set_high_tmds_clock_ratio(&sor->output.connector, false);
+	drm_scdc_set_scrambling(&sor->output.connector, false);
+#else
 	struct i2c_adapter *ddc = sor->output.ddc;
 
 	drm_scdc_set_high_tmds_clock_ratio(ddc, false);
 	drm_scdc_set_scrambling(ddc, false);
-
+#endif
 	tegra_sor_hdmi_disable_scrambling(sor);
 }
 
@@ -2180,10 +2184,15 @@ static void tegra_sor_hdmi_enable_scrambling(struct tegra_sor *sor)
 
 static void tegra_sor_hdmi_scdc_enable(struct tegra_sor *sor)
 {
+#if defined(NV_DRM_SCDC_GET_SET_HAS_STRUCT_DRM_CONNECTOR_ARG) /* Linux v6.4 */
+	drm_scdc_set_high_tmds_clock_ratio(&sor->output.connector, true);
+	drm_scdc_set_scrambling(&sor->output.connector, true);
+#else
 	struct i2c_adapter *ddc = sor->output.ddc;
 
 	drm_scdc_set_high_tmds_clock_ratio(ddc, true);
 	drm_scdc_set_scrambling(ddc, true);
+#endif
 
 	tegra_sor_hdmi_enable_scrambling(sor);
 }
@@ -2191,9 +2200,14 @@ static void tegra_sor_hdmi_scdc_enable(struct tegra_sor *sor)
 static void tegra_sor_hdmi_scdc_work(struct work_struct *work)
 {
 	struct tegra_sor *sor = container_of(work, struct tegra_sor, scdc.work);
+
+#if defined(NV_DRM_SCDC_GET_SET_HAS_STRUCT_DRM_CONNECTOR_ARG) /* Linux v6.4 */
+	if (!drm_scdc_get_scrambling_status(&sor->output.connector)) {
+#else
 	struct i2c_adapter *ddc = sor->output.ddc;
 
 	if (!drm_scdc_get_scrambling_status(ddc)) {
+#endif
 		DRM_DEBUG_KMS("SCDC not scrambled\n");
 		tegra_sor_hdmi_scdc_enable(sor);
 	}

@@ -6517,6 +6517,29 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_DRM_MODE_CONFIG_STRUCT_HAS_FB_BASE_ARG" "" "types"
         ;;
 
+        drm_scdc_get_set_has_struct_drm_connector_arg)
+            #
+            # Determine if the functions drm_scdc_get_scrambling_status(),
+            # drm_scdc_set_scrambling() and drm_scdc_set_high_tmds_clock_ratio()
+            # have the 'struct drm_connector' argument.
+            #
+            # In Linux v6.4, commit 5d844091f237 ("drm/scdc-helper: Pimp SCDC debugs")
+            # updated these drm_scdc_get/set functions to take an argument on type
+            # 'struct drm_connector'.
+            CODE="
+            #if defined(NV_DRM_DISPLAY_DRM_SCDC_HELPER_H_PRESENT)
+            #include <drm/display/drm_scdc_helper.h>
+            #else
+            #include <drm/drm_scdc_helper.h>
+            #endif
+            bool conftest_drm_scdc_get_set_has_struct_drm_connector_arg(struct drm_connector *c) {
+                    return drm_scdc_get_scrambling_status(c);
+            }"
+
+            compile_check_conftest "$CODE" \
+                    "NV_DRM_SCDC_GET_SET_HAS_STRUCT_DRM_CONNECTOR_ARG" "" "types"
+        ;;
+
         ethtool_ops_get_set_coalesce_has_coal_and_extack_args)
             #
             # Determine if the 'get_coalesce' and 'set_coalesce' ethtool_ops
