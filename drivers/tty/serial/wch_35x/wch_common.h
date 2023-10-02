@@ -30,6 +30,7 @@
 #include <linux/ptrace.h>
 #include <linux/sched.h>
 #include <linux/serial_core.h>
+#include <linux/semaphore.h>
 #include <linux/string.h>
 #include <linux/timer.h>
 

@@ -11,11 +11,17 @@
  * more details.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/version.h>
 
 #include "wch_common.h"
 
+#if defined(NV_DEFINE_SEMAPHORE_HAS_NUMBER_ARG)
+static DEFINE_SEMAPHORE(ser_port_sem, 1);
+#else
 static DEFINE_SEMAPHORE(ser_port_sem);
+#endif
 
 #define WCH_HIGH_BITS_OFFSET ((sizeof(long) - sizeof(int)) * 8)
 #define wch_ser_users(state) ((state)->count + ((state)->info ? (state)->info->blocked_open : 0))

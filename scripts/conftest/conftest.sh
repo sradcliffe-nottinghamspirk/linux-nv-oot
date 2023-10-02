@@ -6332,6 +6332,22 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_CLASS_STRUCT_DEVNODE_HAS_CONST_DEV_ARG" "" "types"
         ;;
 
+        define_semaphore_has_number_arg)
+            #
+            # Determine if the macro DEFINE_SEMAPHORE has a number argument.
+            #
+            # In Linux v6.4, 48380368dec1 ("Change DEFINE_SEMAPHORE() to
+            # take a number argument") updated the macro DEFINE_SEMAPHORE to
+            # take a number argument.
+            #
+            CODE="
+            #include <linux/semaphore.h>
+
+            DEFINE_SEMAPHORE(my_sem, 1);"
+
+            compile_check_conftest "$CODE" "NV_DEFINE_SEMAPHORE_HAS_NUMBER_ARG" "" "types"
+        ;;
+
         devm_thermal_of_zone_register)
             #
             # Determine whether devm_thermal_of_zone_register is present.

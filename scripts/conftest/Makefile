@@ -90,6 +90,7 @@ endef
 
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += bus_type_struct_remove_has_int_return_type
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += class_struct_devnode_has_const_dev_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += define_semaphore_has_number_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += devm_thermal_of_zone_register
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_aperture_remove_framebuffers_has_drm_driver_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_driver_struct_has_irq_enabled_arg
