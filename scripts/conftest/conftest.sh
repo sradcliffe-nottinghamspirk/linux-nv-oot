@@ -6738,6 +6738,24 @@ compile_test() {
                     "NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG" "" "types"
         ;;
 
+        snd_soc_of_get_dai_name_has_index_arg)
+            #
+            # Determine if the function 'snd_soc_of_get_dai_name()' has an index argument.
+            #
+            # In Linux v6.5, commit 3c8b5861850c ("ASoC: soc-core.c: add index on
+            # snd_soc_of_get_dai_name()") updated the arguments to the function
+            # snd_soc_of_get_dai_name().
+            #
+            CODE="
+            #include <sound/soc.h>
+            int conftest_snd_soc_of_get_dai_name_has_index_args(struct device_node *np,
+                                                                const char **name) {
+                    return snd_soc_of_get_dai_name(np, name, 0);
+            }"
+
+            compile_check_conftest "$CODE" "NV_SND_SOC_OF_GET_DAI_NAME_HAS_INDEX_ARG" "" "types"
+        ;;
+
         tc_taprio_qopt_offload_struct_has_cmd)
             #
             # Determine if struct tc_taprio_qopt_offload has a member named cmd

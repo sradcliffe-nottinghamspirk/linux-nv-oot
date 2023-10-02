@@ -245,7 +245,11 @@ static int parse_dai(struct device_node *node,
 	if (ret)
 		return ret;
 
+#if defined(NV_SND_SOC_OF_GET_DAI_NAME_HAS_INDEX_ARG)
+	ret = snd_soc_of_get_dai_name(node, &dlc->dai_name, 0);
+#else
 	ret = snd_soc_of_get_dai_name(node, &dlc->dai_name);
+#endif
 	if (ret < 0)
 		return ret;
 
