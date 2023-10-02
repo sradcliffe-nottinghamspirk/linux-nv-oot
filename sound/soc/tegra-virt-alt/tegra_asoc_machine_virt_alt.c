@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
+
+#include <nvidia/conftest.h>
 
 #include <linux/module.h>
 #include <linux/of.h>
@@ -306,7 +308,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 0 */
 		.name = DAI_NAME(1),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio1),
@@ -315,7 +321,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 1 */
 		.name = DAI_NAME(2),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio2),
@@ -324,7 +334,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 2 */
 		.name = DAI_NAME(3),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio3),
@@ -333,7 +347,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 3 */
 		.name = DAI_NAME(4),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio4),
@@ -342,7 +360,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 4 */
 		.name = DAI_NAME(5),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio5),
@@ -351,7 +373,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 5 */
 		.name = DAI_NAME(6),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio6),
@@ -360,7 +386,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 6 */
 		.name = DAI_NAME(7),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio7),
@@ -369,7 +399,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 7 */
 		.name = DAI_NAME(8),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio8),
@@ -378,7 +412,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 8 */
 		.name = DAI_NAME(9),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio9),
@@ -387,7 +425,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 9 */
 		.name = DAI_NAME(10),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio10),
@@ -396,7 +438,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 10 */
 		.name = DAI_NAME(11),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio11),
@@ -405,7 +451,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 11 */
 		.name = DAI_NAME(12),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio12),
@@ -414,7 +464,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 12 */
 		.name = DAI_NAME(13),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio13),
@@ -423,7 +477,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 13 */
 		.name = DAI_NAME(14),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio14),
@@ -432,7 +490,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 14 */
 		.name = DAI_NAME(15),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio15),
@@ -441,7 +503,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 15 */
 		.name = DAI_NAME(16),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio16),
@@ -450,7 +516,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 16 */
 		.name = DAI_NAME(17),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio17),
@@ -459,7 +529,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 17 */
 		.name = DAI_NAME(18),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio18),
@@ -468,7 +542,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 18 */
 		.name = DAI_NAME(19),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio19),
@@ -477,7 +555,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 19 */
 		.name = DAI_NAME(20),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 0,
 		SND_SOC_DAILINK_REG(audio20),
@@ -486,7 +568,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 20 */
 		.name = "ADSP ADMAIF1",
 		.stream_name = "ADSP AFMAIF1",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif1),
 	},
@@ -494,7 +580,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 21 */
 		.name = "ADSP ADMAIF2",
 		.stream_name = "ADSP AFMAIF2",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif2),
 	},
@@ -502,7 +592,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 22 */
 		.name = "ADSP ADMAIF3",
 		.stream_name = "ADSP AFMAIF3",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif3),
 	},
@@ -510,7 +604,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 23 */
 		.name = "ADSP ADMAIF4",
 		.stream_name = "ADSP AFMAIF4",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif4),
 	},
@@ -518,7 +616,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 24 */
 		.name = "ADSP ADMAIF5",
 		.stream_name = "ADSP AFMAIF5",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif5),
 	},
@@ -526,7 +628,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 25 */
 		.name = "ADSP ADMAIF6",
 		.stream_name = "ADSP AFMAIF6",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif6),
 	},
@@ -534,7 +640,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 26 */
 		.name = "ADSP ADMAIF7",
 		.stream_name = "ADSP AFMAIF7",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif7),
 	},
@@ -542,7 +652,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 27 */
 		.name = "ADSP ADMAIF8",
 		.stream_name = "ADSP AFMAIF8",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif8),
 	},
@@ -550,7 +664,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 28 */
 		.name = "ADSP ADMAIF9",
 		.stream_name = "ADSP AFMAIF9",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif9),
 	},
@@ -558,7 +676,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 29 */
 		.name = "ADSP ADMAIF10",
 		.stream_name = "ADSP AFMAIF10",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif10),
 	},
@@ -566,7 +688,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 30 */
 		.name = "ADSP ADMAIF11",
 		.stream_name = "ADSP AFMAIF11",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif11),
 	},
@@ -574,7 +700,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 31 */
 		.name = "ADSP ADMAIF12",
 		.stream_name = "ADSP AFMAIF12",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif12),
 	},
@@ -582,7 +712,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 32 */
 		.name = "ADSP ADMAIF13",
 		.stream_name = "ADSP AFMAIF13",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif13),
 	},
@@ -590,7 +724,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 33 */
 		.name = "ADSP ADMAIF14",
 		.stream_name = "ADSP AFMAIF14",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif14),
 	},
@@ -598,7 +736,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 34 */
 		.name = "ADSP ADMAIF15",
 		.stream_name = "ADSP AFMAIF15",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif15),
 	},
@@ -606,7 +748,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 35 */
 		.name = "ADSP ADMAIF16",
 		.stream_name = "ADSP AFMAIF16",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif16),
 	},
@@ -614,7 +760,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 36 */
 		.name = "ADSP ADMAIF17",
 		.stream_name = "ADSP AFMAIF17",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif17),
 	},
@@ -622,7 +772,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 37 */
 		.name = "ADSP ADMAIF18",
 		.stream_name = "ADSP AFMAIF18",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif18),
 	},
@@ -630,7 +784,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 38 */
 		.name = "ADSP ADMAIF19",
 		.stream_name = "ADSP AFMAIF19",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif19),
 	},
@@ -638,7 +796,11 @@ static struct snd_soc_dai_link tegra_virt_t186ref_pcm_links[] = {
 		/* 39 */
 		.name = "ADSP ADMAIF20",
 		.stream_name = "ADSP AFMAIF20",
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &adsp_default_params,
+#else
 		.params = &adsp_default_params,
+#endif
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(adsp_admaif20),
 	},
@@ -756,7 +918,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 0 */
 		.name = DAI_NAME(1),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio1),
@@ -765,7 +931,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 1 */
 		.name = DAI_NAME(2),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio2),
@@ -774,7 +944,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 2 */
 		.name = DAI_NAME(3),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio3),
@@ -783,7 +957,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 3 */
 		.name = DAI_NAME(4),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio4),
@@ -792,7 +970,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 4 */
 		.name = DAI_NAME(5),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio5),
@@ -801,7 +983,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 5 */
 		.name = DAI_NAME(6),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio6),
@@ -810,7 +996,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 6 */
 		.name = DAI_NAME(7),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio7),
@@ -819,7 +1009,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 7 */
 		.name = DAI_NAME(8),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio8),
@@ -828,7 +1022,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 8 */
 		.name = DAI_NAME(9),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio9),
@@ -837,7 +1035,11 @@ static struct snd_soc_dai_link tegra_virt_t210ref_pcm_links[] = {
 		/* 9 */
 		.name = DAI_NAME(10),
 		.stream_name = STREAM_NAME,
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		.c2c_params = &default_params,
+#else
 		.params = &default_params,
+#endif
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 		SND_SOC_DAILINK_REG(audio10),
@@ -888,7 +1090,11 @@ void tegra_virt_machine_set_adsp_admaif_dai_params(
 	memcpy(&adsp_admaif_params[id], params,
 		sizeof(struct snd_soc_pcm_stream));
 
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+	link->c2c_params = &adsp_admaif_params[id];
+#else
 	link->params = &adsp_admaif_params[id];
+#endif
 }
 EXPORT_SYMBOL(tegra_virt_machine_set_adsp_admaif_dai_params);
 

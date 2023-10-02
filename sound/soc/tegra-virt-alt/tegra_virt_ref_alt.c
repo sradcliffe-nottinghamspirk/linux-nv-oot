@@ -3,6 +3,8 @@
  * Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/of.h>
@@ -35,7 +37,11 @@ static void tegra_virt_set_dai_params(
 		struct snd_soc_pcm_stream *user_params,
 		unsigned int dai_id)
 {
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+	dai_link[dai_id].c2c_params = user_params;
+#else
 	dai_link[dai_id].params = user_params;
+#endif
 }
 
 static struct tegra_virt_admaif_soc_data soc_data_tegra186 = {

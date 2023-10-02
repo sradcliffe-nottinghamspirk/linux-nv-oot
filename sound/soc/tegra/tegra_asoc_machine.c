@@ -2,9 +2,11 @@
 /*
  * tegra_asoc_machine.c - Tegra DAI links parser
  *
- * Copyright (c) 2014-2022 NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2023 NVIDIA CORPORATION.  All rights reserved.
  *
  */
+
+#include <nvidia/conftest.h>
 
 #include <linux/module.h>
 #include <linux/of.h>
@@ -395,7 +397,11 @@ static int parse_dai_link_params(struct platform_device *pdev,
 		}
 	}
 
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+	dai_link->c2c_params = params;
+#else
 	dai_link->params = params;
+#endif
 
 	return 0;
 }

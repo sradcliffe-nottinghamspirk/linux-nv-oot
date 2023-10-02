@@ -6684,6 +6684,24 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_REGISTER_SHRINKER_HAS_FMT_ARG" "" "types"
         ;;
 
+        snd_soc_dai_link_struct_has_c2c_params_arg)
+            #
+            # Determine if 'struct snd_soc_dai_link' has the 'c2c_params' member.
+            #
+            # In Linux v6.4, commits 7ddc7f91beb2 ("ASoC: soc.h: clarify Codec2Codec params")
+            # and 1ea63f29c277 ("ASoC: soc.h: remove unused params/num_params") replaced the
+            # 'params' member of the snd_soc_dai_link with the 'c2c_params' member.
+            #
+            CODE="
+            #include <sound/soc.h>
+            int conftest_snd_soc_dai_link_struct_has_c2c_params_args(void) {
+                return offsetof(struct snd_soc_dai_link, c2c_params);
+            }"
+
+            compile_check_conftest "$CODE" \
+                    "NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG" "" "types"
+        ;;
+
         tegra_ivc_struct_has_iosys_map)
             #
             # Determine if the 'tegra_ivc' structure has the 'map' argument.

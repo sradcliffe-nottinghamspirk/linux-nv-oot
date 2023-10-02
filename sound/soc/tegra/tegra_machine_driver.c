@@ -5,6 +5,8 @@
  * Tegra ASoC Machine driver
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/of_platform.h>
@@ -165,9 +167,15 @@ static int tegra_machine_dai_init(struct snd_soc_pcm_runtime *runtime,
 		 machine->audio_clock.set_pll_out, aud_mclk, srate);
 
 	list_for_each_entry(rtd, &card->rtd_list, list) {
+#if defined(NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG) /* Linux v6.4 */
+		if (!rtd->dai_link->c2c_params)
+			continue;
+		dai_params = (struct snd_soc_pcm_stream *)rtd->dai_link->c2c_params;
+#else
 		if (!rtd->dai_link->params)
 			continue;
 		dai_params = (struct snd_soc_pcm_stream *)rtd->dai_link->params;
+#endif
 		dai_params->rate_min = srate;
 		dai_params->channels_min = channels;
 		dai_params->formats = format_k;
