@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
+#include <nvidia/conftest.h>
+
 #include <linux/bitmap.h>
 #include <linux/cdev.h>
 #include <linux/dcache.h>
@@ -239,7 +241,7 @@ static int __init tegra_camchar_init(struct tegra_ivc_driver *drv)
 	}
 	tegra_camchar_major_number = MAJOR(start);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	tegra_camchar_class = class_create("camchar_class");
 #else
 	tegra_camchar_class = class_create(THIS_MODULE, "camchar_class");

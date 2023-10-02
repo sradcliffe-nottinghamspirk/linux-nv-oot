@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
+
+#include <nvidia/conftest.h>
 
 #include <linux/compiler.h>
 #include <linux/module.h>
@@ -15,7 +17,6 @@
 #include <soc/tegra/fuse.h>
 #include <soc/tegra/virt/hv-ivc.h>
 #include <uapi/linux/nvhvivc_mempool_ioctl.h>
-#include <linux/version.h>
 
 #include <linux/uaccess.h>
 
@@ -305,7 +306,7 @@ static int __init setup_ivc_mempool(void)
 	}
 
 	/* register ivc_user class with sysfs */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	ivc_mempool_class = class_create("tegra_uivc_mpool");
 #else
 	ivc_mempool_class = class_create(THIS_MODULE, "tegra_uivc_mpool");

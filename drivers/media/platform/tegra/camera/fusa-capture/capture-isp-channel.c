@@ -8,6 +8,8 @@
  * platform.
  */
 
+#include <nvidia/conftest.h>
+
 #include <asm/ioctls.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
@@ -601,7 +603,7 @@ EXPORT_SYMBOL(isp_channel_drv_unregister);
  */
 int isp_channel_drv_init(void)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	isp_channel_class = class_create("capture-isp-channel");
 #else
 	isp_channel_class = class_create(THIS_MODULE, "capture-isp-channel");

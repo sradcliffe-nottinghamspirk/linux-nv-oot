@@ -6312,6 +6312,24 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_BUS_TYPE_STRUCT_REMOVE_HAS_INT_RETURN_TYPE" "" "types"
         ;;
 
+        class_create_has_no_owner_arg)
+            #
+            # Determine if the class_create() function has the 'owner' argument.
+            #
+            # Commit 1aaba11da9aa ("driver core: class: remove module * from
+            # class_create()") removed the owner argument for the class_create
+            # function in Linux v6.4.
+            #
+            CODE="
+            #include <linux/device.h>
+            #include <linux/device/class.h>
+            struct class *conftest_class_create_has_no_owner_arg(const char *name) {
+                    return class_create(name);
+            }"
+
+            compile_check_conftest "$CODE" "NV_CLASS_CREATE_HAS_NO_OWNER_ARG" "" "types"
+        ;;
+
         class_struct_devnode_has_const_dev_arg)
             #
             # Determine if the 'class' structure devnode function pointer

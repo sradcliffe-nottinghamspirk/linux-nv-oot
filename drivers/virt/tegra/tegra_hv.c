@@ -3,6 +3,8 @@
  * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/types.h>
@@ -421,7 +423,11 @@ static int tegra_hv_setup(struct tegra_hv_data *hvd)
 		return -ENODEV;
 	}
 
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
+	hvd->hv_class = class_create("tegra_hv");
+#else
 	hvd->hv_class = class_create(THIS_MODULE, "tegra_hv");
+#endif
 	if (IS_ERR(hvd->hv_class)) {
 		ERR("class_create() failed\n");
 		return PTR_ERR(hvd->hv_class);

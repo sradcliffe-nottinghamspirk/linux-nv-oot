@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2021-2023, NVIDIA CORPORATION. All rights reserved.
 
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/types.h>
@@ -11,7 +13,6 @@
 #include <linux/kdev_t.h>
 #include <linux/mailbox_client.h>
 #include <linux/sched/signal.h>
-#include <linux/version.h>
 #include <uapi/linux/tegra-fsicom.h>
 #include <linux/pm.h>
 
@@ -298,7 +299,7 @@ static int fsicom_register_device(void)
 		return result;
 	}
 	device_file_major_number = result;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	dev_class = class_create("fsicom_client");
 #else
 	dev_class = class_create(THIS_MODULE, "fsicom_client");

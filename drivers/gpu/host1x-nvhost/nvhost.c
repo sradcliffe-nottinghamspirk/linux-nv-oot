@@ -3,6 +3,8 @@
  * Copyright (c) 2022-2023, NVIDIA Corporation. All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/clk.h>
 #include <linux/debugfs.h>
 #include <linux/dma-fence.h>
@@ -112,10 +114,10 @@ static struct device *nvhost_client_device_create(struct platform_device *pdev,
 	struct device *dev;
 	int err;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0))
-	pdata->nvhost_class = class_create(THIS_MODULE, pdev->dev.of_node->name);
-#else
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	pdata->nvhost_class = class_create(pdev->dev.of_node->name);
+#else
+	pdata->nvhost_class = class_create(THIS_MODULE, pdev->dev.of_node->name);
 #endif
 	if (IS_ERR(pdata->nvhost_class)) {
 		dev_err(&pdev->dev, "failed to create class\n");

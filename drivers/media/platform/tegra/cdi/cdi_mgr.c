@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2015-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+#include <nvidia/conftest.h>
+
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/module.h>
@@ -1875,7 +1878,11 @@ static int cdi_mgr_probe(struct platform_device *pdev)
 	}
 
 	/* poluate sysfs entries */
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
+	cdi_mgr->cdi_class = class_create(cdi_mgr->devname);
+#else
 	cdi_mgr->cdi_class = class_create(THIS_MODULE, cdi_mgr->devname);
+#endif
 	if (IS_ERR(cdi_mgr->cdi_class)) {
 		err = PTR_ERR(cdi_mgr->cdi_class);
 		cdi_mgr->cdi_class = NULL;

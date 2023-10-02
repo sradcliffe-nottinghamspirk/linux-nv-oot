@@ -18,7 +18,6 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/sync_file.h>
-#include <linux/version.h>
 
 #include "include/uapi/linux/host1x-fence.h"
 
@@ -436,10 +435,10 @@ static int host1x_uapi_init(struct host1x_uapi *uapi)
 	if (err)
 		return err;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0))
-	uapi->class = class_create(THIS_MODULE, "host1x-fence");
-#else
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	uapi->class = class_create("host1x-fence");
+#else
+	uapi->class = class_create(THIS_MODULE, "host1x-fence");
 #endif
 	if (IS_ERR(uapi->class)) {
 		err = PTR_ERR(uapi->class);

@@ -12,6 +12,8 @@
  *
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/interrupt.h>
@@ -1025,7 +1027,7 @@ static int nvpps_probe(struct platform_device *pdev)
 
 	/* character device setup */
 #ifndef NVPPS_NO_DT
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	s_nvpps_class = class_create("nvpps");
 #else
 	s_nvpps_class = class_create(THIS_MODULE, "nvpps");
@@ -1240,7 +1242,7 @@ static int __init nvpps_init(void)
 
 	printk("%s\n", __FUNCTION__);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	s_nvpps_class = class_create("nvpps");
 #else
 	s_nvpps_class = class_create(THIS_MODULE, "nvpps");

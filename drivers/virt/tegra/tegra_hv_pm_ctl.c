@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
+
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <linux/errno.h>
 #include <linux/of.h>
@@ -1065,7 +1068,7 @@ static int tegra_hv_pm_ctl_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	data->class = class_create(DRV_NAME);
 #else
 	data->class = class_create(THIS_MODULE, DRV_NAME);

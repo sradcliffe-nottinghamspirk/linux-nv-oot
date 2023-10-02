@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -737,7 +739,7 @@ static int nvvc_register_dev(nvvc_dev_t *nvvcdev)
 		goto err;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	nvvcdev->class = class_create("nvvc");
 #else
 	nvvcdev->class = class_create(THIS_MODULE, "nvvc");

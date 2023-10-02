@@ -3,6 +3,8 @@
 
 #define pr_fmt(fmt) "%s:%s(): " fmt, KBUILD_MODNAME, __func__
 
+#include <nvidia/conftest.h>
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kdev_t.h>
@@ -368,7 +370,7 @@ static int tegra_hv_vcpu_yield_probe(struct platform_device *pdev)
 	}
 
 	major = MAJOR(vcpu_yield_pdev->vcpu_yield_dev);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	vcpu_yield_class =
 		class_create("tegra_hv_vcpu_yield");
 #else

@@ -6,6 +6,8 @@
  * secure buffer sharing use case across processes.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/string.h>
@@ -20,7 +22,6 @@
 #include <linux/cred.h>
 #include <linux/of.h>
 #include <linux/fs.h>
-#include <linux/version.h>
 
 #ifdef CONFIG_TEGRA_VIRTUALIZATION
 #include <soc/tegra/virt/syscalls.h>
@@ -696,7 +697,7 @@ static int nvsciipc_probe(struct platform_device *pdev)
 	ctx->dev = &(pdev->dev);
 	platform_set_drvdata(pdev, ctx);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	ctx->nvsciipc_class = class_create(MODULE_NAME);
 #else
 	ctx->nvsciipc_class = class_create(THIS_MODULE, MODULE_NAME);

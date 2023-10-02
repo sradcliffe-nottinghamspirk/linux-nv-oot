@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2017-2022 NVIDIA Corporation.  All rights reserved.
+// Copyright (c) 2017-2023 NVIDIA Corporation.  All rights reserved.
 
 /**
  * @file drivers/media/platform/tegra/camera/fusa-capture/capture-vi-channel.c
@@ -7,6 +7,8 @@
  * @brief VI channel character device driver for the T186/T194 Camera RTCPU
  * platform.
  */
+
+#include <nvidia/conftest.h>
 
 #include <asm/ioctls.h>
 #include <linux/cdev.h>
@@ -743,7 +745,7 @@ EXPORT_SYMBOL(vi_channel_drv_unregister);
  */
 int vi_channel_drv_init(void)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	vi_channel_class = class_create("capture-vi-channel");
 #else
 	vi_channel_class = class_create(THIS_MODULE, "capture-vi-channel");

@@ -3,6 +3,8 @@
 
 #define pr_fmt(fmt)	"nvscic2c-pcie: endpoint: " fmt
 
+#include <nvidia/conftest.h>
+
 #include <linux/atomic.h>
 #include <linux/cdev.h>
 #include <linux/dma-fence.h>
@@ -1057,7 +1059,11 @@ endpoints_setup(struct driver_ctx_t *drv_ctx, void **endpoints_h)
 	if (ret < 0)
 		goto err;
 
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
+	eps_ctx->class = class_create(eps_ctx->drv_name);
+#else
 	eps_ctx->class = class_create(THIS_MODULE, eps_ctx->drv_name);
+#endif
 	if (IS_ERR_OR_NULL(eps_ctx->class)) {
 		ret = PTR_ERR(eps_ctx->class);
 		goto err;

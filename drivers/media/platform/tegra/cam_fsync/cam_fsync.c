@@ -3,6 +3,8 @@
  * Copyright (c) 2022-2023, NVIDIA CORPORATION. All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <asm/types.h>
 #include <linux/bitfield.h>
 #include <linux/bits.h>
@@ -22,7 +24,6 @@
 #include <linux/pm.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
-#include <linux/version.h>
 
 #include <uapi/media/cam_fsync.h>
 
@@ -911,10 +912,10 @@ static int cam_fsync_find_and_add_groups(struct cam_fsync_controller *controller
  */
 static int cam_fsync_chrdev_init(struct cam_fsync_controller *controller)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
-	controller->cam_fsync_class = class_create(THIS_MODULE, CAM_FSYNC_CLASS_NAME);
-#else
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	controller->cam_fsync_class = class_create(CAM_FSYNC_CLASS_NAME);
+#else
+	controller->cam_fsync_class = class_create(THIS_MODULE, CAM_FSYNC_CLASS_NAME);
 #endif
 	if (IS_ERR(controller->cam_fsync_class))
 		return PTR_ERR(controller->cam_fsync_class);

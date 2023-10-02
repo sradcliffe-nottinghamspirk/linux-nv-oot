@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
+
+#include <nvidia/conftest.h>
 
 #include <soc/tegra/virt/hv-ivc.h>
 #include <linux/module.h>
@@ -489,7 +491,7 @@ static int __init setup_ivc(void)
 		return result;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	ivc_class = class_create("ivc");
 #else
 	ivc_class = class_create(THIS_MODULE, "ivc");

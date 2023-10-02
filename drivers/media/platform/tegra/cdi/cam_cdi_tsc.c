@@ -4,6 +4,8 @@
  * cam_cdi_tsc.c - tsc driver.
  */
 
+#include <nvidia/conftest.h>
+
 #include <asm/types.h>
 #include <linux/bitfield.h>
 #include <linux/bits.h>
@@ -22,7 +24,6 @@
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
-#include <linux/version.h>
 
 #define DEVICE_NAME "cdi_tsc"
 #define CLASS_NAME "cdi_tsc_class"
@@ -555,7 +556,7 @@ static int cdi_tsc_probe(struct platform_device *pdev)
 		return majorNumber;
 	}
 	/*Create a class for the device*/
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG) /* Linux v6.4 */
 	tsc_charClass = class_create(CLASS_NAME);
 #else
 	tsc_charClass = class_create(THIS_MODULE, CLASS_NAME);
