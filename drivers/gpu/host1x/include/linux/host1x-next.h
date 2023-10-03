@@ -25,6 +25,7 @@ enum host1x_class {
 	HOST1X_CLASS_NVJPG = 0xC0,
 	HOST1X_CLASS_NVDEC = 0xF0,
 	HOST1X_CLASS_NVDEC1 = 0xF5,
+	HOST1X_CLASS_OFA = 0xF8,
 };
 
 enum host1x_actmon_wmark_event {

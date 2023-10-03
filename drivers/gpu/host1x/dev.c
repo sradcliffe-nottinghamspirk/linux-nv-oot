@@ -473,6 +473,13 @@ static const struct host1x_actmon_entry tegra234_actmon_table[] = {
 		.offset = 0x40000,
 		.num_modules = 1,
 	},
+	{
+		.classid = HOST1X_CLASS_OFA,
+		.name = "ofa",
+		.irq = 7,
+		.offset = 0x50000,
+		.num_modules = 1,
+	},
 };
 
 static const struct host1x_info host1x08_info = {
