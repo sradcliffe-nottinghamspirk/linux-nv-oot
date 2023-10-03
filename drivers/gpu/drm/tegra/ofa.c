@@ -25,8 +25,15 @@
 #include "hwpm.h"
 
 #define OFA_TFBIF_TRANSCFG		0x1444
+#define OFA_TFBIF_ACTMON_ACTIVE_MASK	0x144c
+#define OFA_TFBIF_ACTMON_ACTIVE_BORPS	0x1450
 #define OFA_SAFETY_RAM_INIT_REQ		0x3320
 #define OFA_SAFETY_RAM_INIT_DONE	0x3324
+
+#define OFA_TFBIF_ACTMON_ACTIVE_MASK_STARVED	BIT(0)
+#define OFA_TFBIF_ACTMON_ACTIVE_MASK_STALLED	BIT(1)
+#define OFA_TFBIF_ACTMON_ACTIVE_MASK_DELAYED	BIT(2)
+#define OFA_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE	BIT(7)
 
 struct ofa_config {
 	const char *firmware;
@@ -199,6 +206,18 @@ cleanup:
 	return err;
 }
 
+static void ofa_actmon_reg_init(struct ofa *ofa)
+{
+	ofa_writel(ofa,
+		   OFA_TFBIF_ACTMON_ACTIVE_MASK_STARVED |
+		   OFA_TFBIF_ACTMON_ACTIVE_MASK_STALLED |
+		   OFA_TFBIF_ACTMON_ACTIVE_MASK_DELAYED,
+		   OFA_TFBIF_ACTMON_ACTIVE_MASK);
+
+	ofa_writel(ofa,
+		   OFA_TFBIF_ACTMON_ACTIVE_BORPS_ACTIVE,
+		   OFA_TFBIF_ACTMON_ACTIVE_BORPS);
+}
 
 static __maybe_unused int ofa_runtime_resume(struct device *dev)
 {
@@ -219,6 +238,10 @@ static __maybe_unused int ofa_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
+	ofa_actmon_reg_init(ofa);
+
+	host1x_actmon_enable(&ofa->client.base);
+
 	return 0;
 
 disable:
@@ -233,6 +256,8 @@ static __maybe_unused int ofa_runtime_suspend(struct device *dev)
 	host1x_channel_stop(ofa->channel);
 
 	clk_disable_unprepare(ofa->clk);
+
+	host1x_actmon_disable(&ofa->client.base);
 
 	return 0;
 }
@@ -370,6 +395,10 @@ static int ofa_probe(struct platform_device *pdev)
 		goto exit_falcon;
 	}
 
+	err = host1x_actmon_register(&ofa->client.base);
+	if (err < 0)
+		dev_info(dev, "failed to register host1x actmon: %d\n", err);
+
 	ofa->hwpm.dev = dev;
 	ofa->hwpm.regs = ofa->regs;
 	tegra_drm_hwpm_register(&ofa->hwpm, pdev->resource[0].start,
@@ -395,6 +424,8 @@ static int ofa_remove(struct platform_device *pdev)
 
 	tegra_drm_hwpm_unregister(&ofa->hwpm, pdev->resource[0].start,
 		TEGRA_DRM_HWPM_IP_OFA);
+
+	host1x_actmon_unregister(&ofa->client.base);
 
 	host1x_client_unregister(&ofa->client.base);
 
