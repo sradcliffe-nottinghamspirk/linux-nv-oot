@@ -6702,6 +6702,23 @@ compile_test() {
                     "NV_SND_SOC_DAI_LINK_STRUCT_HAS_C2C_PARAMS_ARG" "" "types"
         ;;
 
+        tc_taprio_qopt_offload_struct_has_cmd)
+            #
+            # Determine if struct tc_taprio_qopt_offload has a member named cmd
+            #
+            # Commit 2d800bc500fb ("net/sched: taprio: replace tc_taprio_qopt_offload
+            # :: enable with a "cmd" enum") replace tc_taprio_qopt_offload structure member
+            # 'enable' with 'cmd' in Linux v6.4.5.
+            #
+            CODE="
+            #include <net/pkt_sched.h>
+            int conftest_tc_taprio_qopt_offload_struct_has_cmd(void) {
+                return offsetof(struct tc_taprio_qopt_offload, cmd);
+            }
+            "
+            compile_check_conftest "$CODE" "NV_TC_TAPRIO_QOPT_OFFLOAD_STRUCT_HAS_CMD" "" "types"
+        ;;
+
         tegra_ivc_struct_has_iosys_map)
             #
             # Determine if the 'tegra_ivc' structure has the 'map' argument.

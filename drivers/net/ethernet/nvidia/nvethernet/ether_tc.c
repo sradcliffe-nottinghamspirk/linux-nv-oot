@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
+/* Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved */
 
+#include <nvidia/conftest.h>
 #include "ether_linux.h"
 
 int ether_tc_setup_taprio(struct ether_priv_data *pdata,
@@ -57,12 +58,29 @@ int ether_tc_setup_taprio(struct ether_priv_data *pdata,
 
 	/* This code is to disable TSN, User space is asking to disable
 	 */
+#if defined(NV_TC_TAPRIO_QOPT_OFFLOAD_STRUCT_HAS_CMD) /* Linux v6.4.5 */
+	if (qopt->cmd == TAPRIO_CMD_DESTROY) {
+#else
 	if (!qopt->enable) {
+#endif //NV_TC_TAPRIO_QOPT_OFFLOAD_STRUCT_HAS_CMD
 		goto disable;
 	}
 
 	tc_ioctl_data.est.llr = qopt->num_entries;
+#if defined(NV_TC_TAPRIO_QOPT_OFFLOAD_STRUCT_HAS_CMD) /* Linux v6.4.5 */
+	switch (qopt->cmd) {
+	case TAPRIO_CMD_REPLACE:
+		tc_ioctl_data.est.en_dis = true;
+		break;
+	case TAPRIO_CMD_DESTROY:
+		tc_ioctl_data.est.en_dis = false;
+		break;
+	default:
+		return -EOPNOTSUPP;
+	}
+#else
 	tc_ioctl_data.est.en_dis = qopt->enable;
+#endif //NV_TC_TAPRIO_QOPT_OFFLOAD_STRUCT_HAS_CMD
 
 	for (i = 0U; i < tc_ioctl_data.est.llr; i++) {
 		cycle_time = qopt->entries[i].interval;
