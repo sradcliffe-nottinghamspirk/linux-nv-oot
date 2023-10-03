@@ -1300,7 +1300,9 @@ static int host1x_drm_probe(struct host1x_device *dev)
 	drm_mode_config_reset(drm);
 
 	if (drm->mode_config.num_crtc > 0) {
-#if defined(NV_DRM_APERTURE_REMOVE_FRAMEBUFFERS_HAS_DRM_DRIVER_ARG) /* Linux v5.15 */
+#if defined(NV_DRM_APERTURE_REMOVE_FRAMEBUFFERS_HAS_NO_PRIMARY_ARG) /* Linux v6.5 */
+		err = drm_aperture_remove_framebuffers(&tegra_drm_driver);
+#elif defined(NV_DRM_APERTURE_REMOVE_FRAMEBUFFERS_HAS_DRM_DRIVER_ARG) /* Linux v5.15 */
 		err = drm_aperture_remove_framebuffers(false, &tegra_drm_driver);
 #else
 		err = drm_aperture_remove_framebuffers(false, "tegradrmfb");

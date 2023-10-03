@@ -6419,24 +6419,38 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT" "" "functions"
         ;;
 
-        drm_aperture_remove_framebuffers_has_drm_driver_arg)
+        drm_aperture_remove_framebuffers)
             #
             # Determine if the function 'drm_aperture_remove_framebuffers'
             # has the 'struct drm_driver' argument.
             #
-            # Commit 97c9bfe3f660 ("drm/aperture: Pass DRM driver structure
-            # instead of driver name") updated the arguments for the function
-            # drm_aperture_remove_framebuffers to pass 'struct drm_driver' in
-            # Linux v5.15.
+            # Conftest #1: In Linux v5.15, commit 97c9bfe3f660 ("drm/aperture:
+            # Pass DRM driver structure instead of driver name") updated the
+            # arguments for the function drm_aperture_remove_framebuffers to
+            # pass 'struct drm_driver'.
             #
             CODE="
             #include <drm/drm_aperture.h>
-            int conftest_drm_aperture_remove_framebuffers_has_drm_driver_arg(
+            int conftest_drm_aperture_remove_framebuffers(
                     bool primary, const struct drm_driver *req_driver) {
                 return drm_aperture_remove_framebuffers(primary, req_driver);
             }"
 
             compile_check_conftest "$CODE" "NV_DRM_APERTURE_REMOVE_FRAMEBUFFERS_HAS_DRM_DRIVER_ARG" "" "types"
+
+            #
+            # Conftest #2: In Linux v6.5, commit 62aeaeaa1b26 ("drm/aperture:
+            # Remove primary argument") removed the 'primary' argument from the
+            # function drm_aperture_remove_framebuffers().
+            #
+            CODE="
+            #include <drm/drm_aperture.h>
+            int conftest_drm_aperture_remove_framebuffers(
+                    const struct drm_driver *req_driver) {
+                return drm_aperture_remove_framebuffers(req_driver);
+            }"
+
+            compile_check_conftest "$CODE" "NV_DRM_APERTURE_REMOVE_FRAMEBUFFERS_HAS_NO_PRIMARY_ARG" "" "types"
         ;;
 
         drm_driver_struct_has_irq_enabled_arg)
