@@ -2468,6 +2468,10 @@ compile_test() {
             # commit 768ae309a961 ("mm: replace get_user_pages() write/force
             # parameters with gup_flags") in v4.9 (2016-10-13)
             #
+            # Removed vmas parameter from get_user_pages() by commit 54d020692b34
+            # ("mm/gup: remove unused vmas parameter from get_user_pages()")
+            # in v6.5.
+            #
             # linux-4.4.168 cherry-picked commit 768ae309a961 without
             # c12d2da56d0e which is covered in Conftest #3.
             #
@@ -2477,22 +2481,28 @@ compile_test() {
             # passing conftest's
             #
             set_get_user_pages_defines () {
-                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE" ]; then
-                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE" | append_conftest "functions"
+                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS" ]; then
+                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS" | append_conftest "functions"
                 else
-                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE" | append_conftest "functions"
+                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS" | append_conftest "functions"
                 fi
 
-                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE" ]; then
-                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE" | append_conftest "functions"
+                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" ]; then
+                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
                 else
-                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE" | append_conftest "functions"
+                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
                 fi
 
-                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS" ]; then
-                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS" | append_conftest "functions"
+                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" ]; then
+                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
                 else
-                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS" | append_conftest "functions"
+                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
+                fi
+
+                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" ]; then
+                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" | append_conftest "functions"
+                else
+                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" | append_conftest "functions"
                 fi
 
                 if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_FLAGS" ]; then
@@ -2500,6 +2510,7 @@ compile_test() {
                 else
                     echo "#undef NV_GET_USER_PAGES_HAS_ARGS_FLAGS" | append_conftest "functions"
                 fi
+
             }
 
             # Conftest #1: Check if get_user_pages accepts 6 arguments.
@@ -2520,14 +2531,15 @@ compile_test() {
             $CC $CFLAGS -c conftest$$.c > /dev/null 2>&1
             rm -f conftest$$.c
             if [ -f conftest$$.o ]; then
-                set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE"
+                set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS"
                 rm -f conftest$$.o
                 return
             fi
 
             # Conftest #2: Check if get_user_pages has gup_flags instead of
             # write and force parameters. And that gup doesn't accept a
-            # task_struct and mm_struct as its first arguments.
+            # task_struct and mm_struct as its first arguments. get_user_pages
+            # has vm_area_struct as its last argument.
             # Return if available.
             # Fall through to conftest #3 on failure.
 
@@ -2545,16 +2557,17 @@ compile_test() {
             rm -f conftest$$.c
 
             if [ -f conftest$$.o ]; then
-                set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_FLAGS"
+                set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS"
                 rm -f conftest$$.o
                 return
             fi
 
             # Conftest #3: Check if get_user_pages has gup_flags instead of
-            # write and force parameters AND that gup has task_struct and
-            # mm_struct as its first arguments.
+            # write and force parameters. The gup has task_struct and
+            # mm_struct as its first arguments. get_user_pages
+            # has vm_area_struct as its last argument.
             # Return if available.
-            # Fall through to default case if absent.
+            # Fall through to conftest #4 on failure.
 
             echo "$CONFTEST_PREAMBLE
             #include <linux/mm.h>
@@ -2572,12 +2585,35 @@ compile_test() {
             rm -f conftest$$.c
 
             if [ -f conftest$$.o ]; then
-                set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS"
+                set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS"
                 rm -f conftest$$.o
                 return
             fi
 
-            set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE"
+            # Conftest #4: gup doesn't accept a task_struct and mm_struct as
+            # its first arguments. check if get_user_pages() does not take
+            # vmas argument.
+            # Fall through to default case otherwise.
+
+            echo "$CONFTEST_PREAMBLE
+            #include <linux/mm.h>
+            long get_user_pages(unsigned long start,
+                                unsigned long nr_pages,
+                                unsigned int gup_flags,
+                                struct page **pages) {
+                return 0;
+            }" > conftest$$.c
+
+            $CC $CFLAGS -c conftest$$.c > /dev/null 2>&1
+            rm -f conftest$$.c
+
+            if [ -f conftest$$.o ]; then
+                set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_FLAGS"
+                rm -f conftest$$.o
+                return
+            fi
+
+            set_get_user_pages_defines "NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS"
 
             return
         ;;

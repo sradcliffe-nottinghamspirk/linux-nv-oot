@@ -8,6 +8,8 @@
 #ifndef __VIDEO_TEGRA_NVMAP_NVMAP_H
 #define __VIDEO_TEGRA_NVMAP_NVMAP_H
 
+#include <nvidia/conftest.h>
+
 #include <linux/list.h>
 #include <linux/mm.h>
 #include <linux/mutex.h>
@@ -839,8 +841,13 @@ static inline int nvmap_get_user_pages(ulong vaddr,
 		}
 		pr_debug("vaddr %lu is_user_flags %d user_foll_flags %x foll_flags %x.\n",
 			vaddr, is_user_flags?1:0, user_foll_flags, foll_flags);
+#if defined(NV_GET_USER_PAGES_HAS_ARGS_FLAGS) /* Linux v6.5 */
+		user_pages = get_user_pages(vaddr & PAGE_MASK, nr_page,
+					    foll_flags, pages);
+#else
 		user_pages = get_user_pages(vaddr & PAGE_MASK, nr_page,
 					    foll_flags, pages, NULL);
+#endif
 	}
 	if (user_pages != nr_page) {
 		ret = user_pages < 0 ? user_pages : -ENOMEM;
