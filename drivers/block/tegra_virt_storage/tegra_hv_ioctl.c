@@ -3,6 +3,8 @@
  * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -131,7 +133,9 @@ int vblk_submit_ioctl_req(struct block_device *bdev,
 		goto free_ioctl_req;
 	}
 
+#if defined(NV_REQUEST_STRUCT_HAS_COMPLETION_DATA_ARG) /* Removed in Linux v6.5 */
 	rq->completion_data = (void *)ioctl_req;
+#endif
 
 #if KERNEL_VERSION(5, 17, 0) <= LINUX_VERSION_CODE
 	blk_execute_rq(rq, 0);

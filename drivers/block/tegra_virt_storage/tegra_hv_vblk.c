@@ -3,6 +3,8 @@
  * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
+#include <nvidia/conftest.h>
+
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -643,7 +645,11 @@ static bool submit_bio_req(struct vblk_dev *vblkdev)
 	} else {
 		if (vblkdev->config.blk_config.req_ops_supported & VS_BLK_IOCTL_OP_F
 			&& !vblk_prep_ioctl_req(vblkdev,
+#if defined(NV_REQUEST_STRUCT_HAS_COMPLETION_DATA_ARG) /* Removed in Linux v6.5 */
 			(struct vblk_ioctl_req *)bio_req->completion_data,
+#else
+			NULL,
+#endif
 			vsc_req)) {
 			vblkdev->inflight_ioctl_reqs++;
 		} else if (!(vblkdev->config.blk_config.req_ops_supported & VS_BLK_IOCTL_OP_F)) {
@@ -736,13 +742,23 @@ static blk_status_t vblk_request(struct blk_mq_hw_ctx *hctx,
 }
 
 /* Open and release */
+#if defined(NV_BLOCK_DEVICE_OPERATIONS_OPEN_HAS_GENDISK_ARG) /* Linux v6.5 */
+static int vblk_open(struct gendisk *disk, fmode_t mode)
+{
+	struct vblk_dev *vblkdev = disk->private_data;
+#else
 static int vblk_open(struct block_device *device, fmode_t mode)
 {
 	struct vblk_dev *vblkdev = device->bd_disk->private_data;
+#endif
 
 	spin_lock(&vblkdev->lock);
 	if (!vblkdev->users) {
+#if defined(NV_DISK_CHECK_MEDIA_CHANGE_PRESENT) /* Linux v6.5 */
+		disk_check_media_change(disk);
+#else
 		bdev_check_media_change(device);
+#endif
 	}
 	vblkdev->users++;
 
@@ -750,7 +766,11 @@ static int vblk_open(struct block_device *device, fmode_t mode)
 	return 0;
 }
 
+#if defined(NV_BLOCK_DEVICE_OPERATIONS_RELEASE_HAS_NO_MODE_ARG) /* Linux v6.5 */
+static void vblk_release(struct gendisk *disk)
+#else
 static void vblk_release(struct gendisk *disk, fmode_t mode)
+#endif
 {
 	struct vblk_dev *vblkdev = disk->private_data;
 
@@ -777,7 +797,14 @@ static const struct block_device_operations vblk_ops = {
 	.open            = vblk_open,
 	.release         = vblk_release,
 	.getgeo          = vblk_getgeo,
+#if defined(NV_REQUEST_STRUCT_HAS_COMPLETION_DATA_ARG) /* Removed in Linux v6.5 */
+	/*
+	 * FIXME: ioctl is not supported for Linux v6.5 where the
+	 * 'completion_data' member has been removed from the
+	 * 'request' structure.
+	 */
 	.ioctl           = vblk_ioctl
+#endif
 };
 
 static ssize_t

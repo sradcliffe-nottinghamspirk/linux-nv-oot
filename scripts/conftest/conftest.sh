@@ -6329,6 +6329,48 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_CRYPTO_PRESENT" "" "symbols"
         ;;
 
+        block_device_operations_open_has_gendisk_arg)
+            #
+            # Determine if the 'open' function pointer from the
+            # 'block_device_operations' structure has 'gendisk' type argument.
+            #
+            # In Linux v6.5, commit d32e2bf83791 ("block: pass a gendisk to ->open")
+            # updated the arguments for the open function pointer.
+            #
+            CODE="
+            #include <linux/blkdev.h>
+            int conftest_block_device_operations_open_has_gendisk_arg(
+                struct block_device_operations *ops,
+                struct gendisk *disk,
+                fmode_t mode) {
+                    return ops->open(disk, mode);
+            }"
+
+            compile_check_conftest "$CODE" \
+                    "NV_BLOCK_DEVICE_OPERATIONS_OPEN_HAS_GENDISK_ARG" "" "types"
+        ;;
+
+        block_device_operations_release_has_no_mode_arg)
+            #
+            # Determine if the 'release' function pointer from the
+            # 'block_device_operations' structure has an argument 'mode'.
+            #
+            # In Linux v6.5, commit ae220766d87c ("block: remove the unused mode
+            # argument to ->release") updated the arguments for the 'release'
+            # function pointer.
+            #
+            CODE="
+            #include <linux/blkdev.h>
+            void conftest_block_device_operations_release_has_no_mode_arg(
+                struct block_device_operations *ops,
+                struct gendisk *disk) {
+                    ops->release(disk);
+            }"
+
+            compile_check_conftest "$CODE" \
+                    "NV_BLOCK_DEVICE_OPERATIONS_RELEASE_HAS_NO_MODE_ARG" "" "types"
+        ;;
+
         bus_type_struct_remove_has_int_return_type)
             #
             # Determine if the 'remove' callback from the 'bus_type' structure
@@ -6417,6 +6459,22 @@ compile_test() {
             }"
 
             compile_check_conftest "$CODE" "NV_DEVM_THERMAL_OF_ZONE_REGISTER_PRESENT" "" "functions"
+        ;;
+
+        disk_check_media_change)
+            #
+            # Determine if the function 'disk_check_media_change' is present.
+            #
+            # In Linux v6.5, commit 444aa2c58cb3 ("block: pass a gendisk on
+            # bdev_check_media_change") renamed the function bdev_check_media_change()
+            # to disk_check_media_change() and changed the parameters.
+            CODE="
+            #include <linux/blkdev.h>
+            void conftest_disk_check_media_change(void) {
+                disk_check_media_change();
+            }"
+
+            compile_check_conftest "$CODE" "NV_DISK_CHECK_MEDIA_CHANGE_PRESENT" "" "functions"
         ;;
 
         drm_aperture_remove_framebuffers)
@@ -6732,6 +6790,23 @@ compile_test() {
             }"
 
             compile_check_conftest "$CODE" "NV_REGISTER_SHRINKER_HAS_FMT_ARG" "" "types"
+        ;;
+
+        request_struct_has_completion_data_arg)
+            #
+            # Determine if the 'struct request' has the 'completion_data' member.
+            #
+            # In Linux v6.5, commit dc8cbb65dc17 ("block: remove dead struc
+            # request->completion_data field") removes the 'completion_data' member
+            # from the 'struct request'.
+            #
+            CODE="
+            #include <linux/blk-mq.h>
+            int conftest_request_struct_has_completion_data_arg(void) {
+                return offsetof(struct request, completion_data);
+            }"
+
+            compile_check_conftest "$CODE" "NV_REQUEST_STRUCT_HAS_COMPLETION_DATA_ARG" "" "types"
         ;;
 
         snd_soc_dai_link_struct_has_c2c_params_arg)

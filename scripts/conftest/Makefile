@@ -88,11 +88,14 @@ endef
 # provided by the module-specific Kbuild files.
 #
 
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += block_device_operations_open_has_gendisk_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += block_device_operations_release_has_no_mode_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += bus_type_struct_remove_has_int_return_type
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += class_create_has_no_owner_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += class_struct_devnode_has_const_dev_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += define_semaphore_has_number_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += devm_thermal_of_zone_register
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += disk_check_media_change
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_aperture_remove_framebuffers
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_driver_struct_has_irq_enabled_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_fb_helper_alloc_info
@@ -118,7 +121,7 @@ NV_CONFTEST_FUNCTION_COMPILE_TESTS += tegra_ivc_struct_has_iosys_map
 NV_CONFTEST_GENERIC_COMPILE_TESTS ?=
 NV_CONFTEST_MACRO_COMPILE_TESTS ?=
 NV_CONFTEST_SYMBOL_COMPILE_TESTS ?=
-NV_CONFTEST_TYPE_COMPILE_TESTS ?=
+NV_CONFTEST_TYPE_COMPILE_TESTS += request_struct_has_completion_data_arg
 
 $(eval $(call NV_GENERATE_COMPILE_TEST_HEADER,functions,$(NV_CONFTEST_FUNCTION_COMPILE_TESTS)))
 $(eval $(call NV_GENERATE_COMPILE_TEST_HEADER,generic,$(NV_CONFTEST_GENERIC_COMPILE_TESTS)))
