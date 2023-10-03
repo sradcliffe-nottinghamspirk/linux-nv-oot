@@ -97,6 +97,10 @@
 #include <linux/seq_file.h>
 #endif
 
+#if defined(NV_NET_GSO_H_PRESENT)
+#include <net/gso.h>
+#endif
+
 #define FIRMWARE_8168D_1    "rtl_nic/rtl8168d-1.fw"
 #define FIRMWARE_8168D_2    "rtl_nic/rtl8168d-2.fw"
 #define FIRMWARE_8168E_1    "rtl_nic/rtl8168e-1.fw"

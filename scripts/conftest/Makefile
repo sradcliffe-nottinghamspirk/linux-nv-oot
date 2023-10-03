@@ -135,7 +135,8 @@ NV_HEADER_PRESENCE_TESTS = \
   drm/drm_dp_aux_bus.h \
   generated/autoconf.h \
   linux/kconfig.h \
-  linux/iosys-map.h
+  linux/iosys-map.h \
+  net/gso.h
 
 # Filename to store the define for the header in $(1); this is only consumed by
 # the rule below that concatenates all of these together.
