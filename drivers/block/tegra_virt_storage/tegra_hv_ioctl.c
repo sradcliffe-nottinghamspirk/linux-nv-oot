@@ -5,7 +5,6 @@
 
 #include <nvidia/conftest.h>
 
-#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -137,7 +136,7 @@ int vblk_submit_ioctl_req(struct block_device *bdev,
 	rq->completion_data = (void *)ioctl_req;
 #endif
 
-#if KERNEL_VERSION(5, 17, 0) <= LINUX_VERSION_CODE
+#if defined(NV_BLK_EXECUTE_RQ_HAS_NO_GENDISK_ARG) /* Linux v5.17 */
 	blk_execute_rq(rq, 0);
 #else
 	blk_execute_rq(vblkdev->gd, rq, 0);

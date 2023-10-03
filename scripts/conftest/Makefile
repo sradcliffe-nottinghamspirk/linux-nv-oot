@@ -88,12 +88,17 @@ endef
 # provided by the module-specific Kbuild files.
 #
 
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += __alloc_disk_node_has_lkclass_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += blk_execute_rq_has_no_gendisk_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += blk_mq_alloc_disk_for_queue
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += blk_mq_destroy_queue
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += block_device_operations_open_has_gendisk_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += block_device_operations_release_has_no_mode_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += bus_type_struct_remove_has_int_return_type
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += class_create_has_no_owner_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += class_struct_devnode_has_const_dev_arg
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += define_semaphore_has_number_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += device_add_disk_has_int_return_type
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += devm_thermal_of_zone_register
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += disk_check_media_change
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += drm_aperture_remove_framebuffers

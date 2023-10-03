@@ -5,7 +5,6 @@
 
 #include <nvidia/conftest.h>
 
-#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -1186,9 +1185,9 @@ static void setup_device(struct vblk_dev *vblkdev)
 	}
 
 	/* And the gendisk structure. */
-#if KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE
+#if defined(NV_BLK_MQ_ALLOC_DISK_FOR_QUEUE_PRESENT) /* Linux v6.0 */
 	vblkdev->gd = blk_mq_alloc_disk_for_queue(vblkdev->queue, NULL);
-#elif KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE
+#elif defined(NV___ALLOC_DISK_NODE_HAS_LKCLASS_ARG) /* Linux v5.15 */
 	vblkdev->gd = __alloc_disk_node(vblkdev->queue, NUMA_NO_NODE, NULL);
 #else
 	vblkdev->gd = __alloc_disk_node(VBLK_MINORS, NUMA_NO_NODE);
@@ -1238,7 +1237,7 @@ static void setup_device(struct vblk_dev *vblkdev)
 	}
 
 	set_capacity(vblkdev->gd, (vblkdev->size / SECTOR_SIZE));
-#if KERNEL_VERSION(5, 15, 0) <= LINUX_VERSION_CODE
+#if defined(NV_DEVICE_ADD_DISK_HAS_INT_RETURN_TYPE) /* Linux v5.15 */
 	if (device_add_disk(vblkdev->device, vblkdev->gd, NULL)) {
 		dev_err(vblkdev->device, "Error adding disk!\n");
 		return;
@@ -1465,8 +1464,10 @@ static int tegra_hv_vblk_remove(struct platform_device *pdev)
 		put_disk(vblkdev->gd);
 	}
 
-#if KERNEL_VERSION(5, 19, 0) >= LINUX_VERSION_CODE
 	if (vblkdev->queue)
+#if defined(NV_BLK_MQ_DESTROY_QUEUE_PRESENT) /* Linux v6.0 */
+		blk_mq_destroy_queue(vblkdev->queue);
+#else
 		blk_cleanup_queue(vblkdev->queue);
 #endif
 

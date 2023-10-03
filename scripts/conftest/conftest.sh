@@ -6329,6 +6329,76 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_CRYPTO_PRESENT" "" "symbols"
         ;;
 
+        __alloc_disk_node_has_lkclass_arg)
+            #
+            # Determine if the function __alloc_disk_node() has an 'lkclass'
+            # argument.
+            #
+            # In Linux v5.15, commit 4dcc4874deb4 ("block: cleanup the lockdep
+            # handling in *alloc_disk") added the 'lkclass' argument to the
+            # __alloc_disk_node() function.
+            #
+            CODE="
+            #include <linux/genhd.h>
+            struct gendisk *conftest___alloc_disk_node_has_lkclass_arg(
+                struct request_queue *q) {
+                    return __alloc_disk_node(q, 0, NULL);
+            }"
+
+            compile_check_conftest "$CODE" "NV___ALLOC_DISK_NODE_HAS_LKCLASS_ARG" "" "types"
+        ;;
+
+        blk_execute_rq_has_no_gendisk_arg)
+            #
+            # Determine if the function blk_execute_rq() has an argument of
+            # type 'gendisk'.
+            #
+            # In Linux v5.17, commit b84ba30b6c7a ("block: remove the gendisk
+            # argument to blk_execute_rq") removed the 'gendisk' argument from
+            # the blk_execute_rq().
+            #
+            CODE="
+            #include <linux/blk-mq.h>
+            void conftest_blk_execute_rq_has_no_gendisk_arg(struct request *r) {
+                    blk_execute_rq(r, false);
+            }"
+
+            compile_check_conftest "$CODE" "NV_BLK_EXECUTE_RQ_HAS_NO_GENDISK_ARG" "" "types"
+        ;;
+
+        blk_mq_alloc_disk_for_queue)
+            #
+            # Determine if function blk_mq_alloc_disk_for_queue() is present.
+            #
+            # In Linux v6.0, commit 6f8191fdf41d ("block: simplify disk shutdown")
+            # added the function blk_mq_alloc_disk_for_queue() and removed
+            # __alloc_disk_node().
+            #
+            CODE="
+            #include <linux/blk-mq.h>
+            void conftest_blk_mq_alloc_disk_for_queue(void) {
+                blk_mq_alloc_disk_for_queue();
+            }"
+
+            compile_check_conftest "$CODE" "NV_BLK_MQ_ALLOC_DISK_FOR_QUEUE_PRESENT" "" "functions"
+        ;;
+
+        blk_mq_destroy_queue)
+            #
+            # Determine whether function blk_mq_destroy_queue() is present.
+            #
+            # In Linux v6.0, commit 6f8191fdf41d ("block: simplify disk shutdown")
+            # renamed the function blk_cleanup_disk() to blk_mq_destroy_queue().
+            #
+            CODE="
+            #include <linux/blk-mq.h>
+            void conftest_blk_mq_destroy_queue(void) {
+                blk_mq_destroy_queue();
+            }"
+
+            compile_check_conftest "$CODE" "NV_BLK_MQ_DESTROY_QUEUE_PRESENT" "" "functions"
+        ;;
+
         block_device_operations_open_has_gendisk_arg)
             #
             # Determine if the 'open' function pointer from the
@@ -6442,6 +6512,24 @@ compile_test() {
             DEFINE_SEMAPHORE(my_sem, 1);"
 
             compile_check_conftest "$CODE" "NV_DEFINE_SEMAPHORE_HAS_NUMBER_ARG" "" "types"
+        ;;
+
+        device_add_disk_has_int_return_type)
+            #
+            # Determine if the function device_add_disk() returns an integer.
+            #
+            # In Linux v5.15, commit 83cbce957446 ("block: add error handling
+            # for device_add_disk / add_disk") updated the function
+            # device_add_disk() to return an integer.
+            #
+            CODE="
+            #include <linux/blkdev.h>
+            int conftest_device_add_disk_has_int_return_type(struct device *dev,
+                                                             struct gendisk *disk) {
+                    return device_add_disk(dev, disk, NULL);
+            }"
+
+            compile_check_conftest "$CODE" "NV_DEVICE_ADD_DISK_HAS_INT_RETURN_TYPE" "" "types"
         ;;
 
         devm_thermal_of_zone_register)
