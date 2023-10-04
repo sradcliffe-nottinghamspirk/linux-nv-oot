@@ -123,11 +123,7 @@ int vblk_submit_ioctl_req(struct block_device *bdev,
 	if (err)
 		goto free_ioctl_req;
 
-#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE
 	rq = blk_mq_alloc_request(vblkdev->queue, REQ_OP_DRV_IN, BLK_MQ_REQ_NOWAIT);
-#else
-	rq = blk_get_request(vblkdev->queue, REQ_OP_DRV_IN, BLK_MQ_REQ_NOWAIT);
-#endif
 	if (IS_ERR_OR_NULL(rq)) {
 		dev_err(vblkdev->device,
 			"Failed to get handle to a request!\n");
@@ -143,11 +139,7 @@ int vblk_submit_ioctl_req(struct block_device *bdev,
 	blk_execute_rq(vblkdev->gd, rq, 0);
 #endif
 
-#if KERNEL_VERSION(5, 16, 0) <= LINUX_VERSION_CODE
 	blk_mq_free_request(rq);
-#else
-	blk_put_request(rq);
-#endif
 
 	switch (cmd) {
 	case SG_IO:
