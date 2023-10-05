@@ -15,6 +15,9 @@
 #include <linux/memblock.h>
 #include <asm/page.h>
 #include <linux/types.h>
+#include <linux/platform_device.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
 
 static phys_addr_t tegra_bl_debug_data_start;
 static phys_addr_t tegra_bl_debug_data_size;
@@ -616,9 +619,96 @@ static int __init tegra_bl_args(char *options, phys_addr_t *tegra_bl_arg_size,
 	return 0;
 }
 
+static int tegra_bl_parse_dt_property(struct device_node *np,
+		const char *prop_name, u64 *base, u64 *size)
+{
+	int ret;
+
+	ret = of_property_read_u64(np, prop_name, base);
+	if (ret) {
+		pr_err("Failed to read '%s' property: %d\n", prop_name, ret);
+		return ret;
+	}
+
+	ret = of_property_read_u64_index(np, prop_name, 1, size);
+	if (ret) {
+		pr_err("Failed to read '%s' size property: %d\n", prop_name, ret);
+		return ret;
+	}
+
+	pr_info("Base address of %s: 0x%llx\n", prop_name, *base);
+	pr_info("Size of %s: 0x%llx\n", prop_name, *size);
+
+	return 0; // Return 0 for success
+}
+
+static int tegra_bl_debug_probe(struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	u64 base, size;
+	int ret;
+
+	pr_info("%s\n", __func__);
+
+	if (strncmp(bl_prof_dataptr, "0@0x0", 5) == 0 ||
+			strncmp(bl_prof_ro_ptr, "0@0x0", 5) == 0 ||
+			strncmp(bl_debug_data, "0@0x0", 5) == 0) {
+
+		if (!np) {
+			pr_err("Device tree node not found\n");
+			return -ENODEV;
+		}
+
+		ret = tegra_bl_parse_dt_property(np, "bl_prof_dataptr", &base, &size);
+		if (ret)
+			return ret;
+		tegra_bl_prof_start = base;
+		tegra_bl_prof_size = size;
+
+		base = size = 0;
+		ret = tegra_bl_parse_dt_property(np, "bl_prof_ro_ptr", &base, &size);
+		if (ret)
+			return ret;
+		tegra_bl_prof_ro_start = base;
+		tegra_bl_prof_ro_size = size;
+	}
+
+
+	return 0; // Return 0 for success
+}
+
+static int tegra_bl_debug_remove(struct platform_device *pdev)
+{
+	// Device removal code goes here
+	pr_info("%s\n", __func__);
+	return 0; // Return 0 for success
+}
+
+static const struct of_device_id tegra_bl_debug_of_match[] = {
+	{ .compatible = "tegra_bl_debug" },
+	{},
+};
+
+MODULE_DEVICE_TABLE(of, tegra_bl_debug_of_match);
+
+static struct platform_driver tegra_bl_debug_driver = {
+	.probe = tegra_bl_debug_probe,
+	.remove = tegra_bl_debug_remove,
+	.driver = {
+		.name = "tegra_bl_debug",
+		.of_match_table = tegra_bl_debug_of_match,
+	},
+};
+
 static int __init tegra_bl_debuginit_module_init(void)
 {
 	int err = 0;
+
+	err = platform_driver_register(&tegra_bl_debug_driver);
+	if (err < 0) {
+		pr_err("%s: Failed to register platform driver: %d\n", __func__, err);
+		return err;
+	}
 
 	err = tegra_bl_args(bl_prof_dataptr,
 			&tegra_bl_prof_size,
@@ -680,6 +770,8 @@ static void __exit tegra_bl_debuginit_module_exit(void)
 
 	if (usc)
 		iounmap(usc);
+
+	platform_driver_unregister(&tegra_bl_debug_driver);
 }
 
 module_param(bl_debug_data, charp, 0400);
