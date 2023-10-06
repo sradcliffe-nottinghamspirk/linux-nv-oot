@@ -256,11 +256,7 @@ struct tegra_spi_platform_data {
 	u8 def_chip_select;
 	int rx_trig_words;
 	int ls_bit;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	int gpio_slave_ready;
-#else
 	struct gpio_desc *gpio_slave_ready;
-#endif
 	bool slave_ready_active_high;
 	int max_dma_buffer_size;
 	const char *clk_pin;
@@ -314,11 +310,7 @@ struct tegra_spi_data {
 	bool					variable_length_transfer;
 
 	/* Slave Ready Polarity (true: Active High, false: Active Low) */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	int					gpio_slave_ready;
-#else
 	struct gpio_desc			*gpio_slave_ready;
-#endif
 	bool					slave_ready_active_high;
 
 	struct completion			rx_dma_complete;
@@ -815,13 +807,8 @@ static inline void tegra_spi_slave_busy(struct tegra_spi_data *tspi)
 		deassert_val = 1;
 
 	/* Deassert ready line to indicate Busy */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	if (gpio_is_valid(tspi->gpio_slave_ready))
-		gpio_set_value(tspi->gpio_slave_ready, deassert_val);
-#else
 	if (tspi->gpio_slave_ready)
 		gpiod_set_value(tspi->gpio_slave_ready, deassert_val);
-#endif
 }
 
 static inline void tegra_spi_slave_ready(struct tegra_spi_data *tspi)
@@ -834,13 +821,8 @@ static inline void tegra_spi_slave_ready(struct tegra_spi_data *tspi)
 		assert_val = 0;
 
 	/* Assert ready line to indicate Ready */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	if (gpio_is_valid(tspi->gpio_slave_ready))
-		gpio_set_value(tspi->gpio_slave_ready, assert_val);
-#else
 	if (tspi->gpio_slave_ready)
 		gpiod_set_value(tspi->gpio_slave_ready, assert_val);
-#endif
 }
 
 static inline int tegra_spi_ext_clk_enable(bool enable,
@@ -1896,9 +1878,6 @@ static struct tegra_spi_platform_data
 	struct tegra_spi_platform_data *pdata;
 	const __be32 *prop;
 	struct device_node *np = pdev->dev.of_node;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	enum of_gpio_flags gpio_flags;
-#endif
 
 	pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
@@ -1915,7 +1894,6 @@ static struct tegra_spi_platform_data
 	if (of_find_property(np, "nvidia,clock-always-on", NULL))
 		pdata->is_clkon_always = true;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 	pdata->gpio_slave_ready =
 		devm_gpiod_get_optional(&pdev->dev, "nvidia,slave-ready-gpio", 0);
 
@@ -1923,16 +1901,7 @@ static struct tegra_spi_platform_data
 		pdata->slave_ready_active_high = false;
 	else
 		pdata->slave_ready_active_high = true;
-#else
-	pdata->gpio_slave_ready =
-		of_get_named_gpio_flags(np, "nvidia,slave-ready-gpio", 0,
-				&gpio_flags);
 
-	if (gpio_flags & OF_GPIO_ACTIVE_LOW)
-		pdata->slave_ready_active_high = false;
-	else
-		pdata->slave_ready_active_high = true;
-#endif
 	return pdata;
 }
 
@@ -2040,13 +2009,8 @@ static int tegra_spi_probe(struct platform_device *pdev)
 	tspi->chip_data = chip_data;
 	tspi->gpio_slave_ready = pdata->gpio_slave_ready;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	if (gpio_is_valid(tspi->gpio_slave_ready))
-		if (gpio_cansleep(tspi->gpio_slave_ready)) {
-#else
 	if (tspi->gpio_slave_ready)
 		if (gpiod_cansleep(tspi->gpio_slave_ready)) {
-#endif
 			dev_err(&pdev->dev,
 				"Slave Ready GPIO is unusable as it can sleep\n");
 			ret = -EINVAL;
@@ -2055,28 +2019,12 @@ static int tegra_spi_probe(struct platform_device *pdev)
 
 	tspi->slave_ready_active_high = pdata->slave_ready_active_high;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	if (gpio_is_valid(tspi->gpio_slave_ready)) {
-		ret = devm_gpio_request(&pdev->dev,
-			    tspi->gpio_slave_ready, "gpio-spi-slave-ready");
-		if (ret) {
-			dev_err(&pdev->dev, "Slave Ready GPIO %d is busy\n",
-					tspi->gpio_slave_ready);
-			goto exit_free_master;
-		}
-	}
-#endif
-
 	if (tspi->slave_ready_active_high)
 		deassert_val = 0;
 	else
 		deassert_val = 1;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-	gpio_direction_output(tspi->gpio_slave_ready, deassert_val);
-#else
 	gpiod_direction_output(tspi->gpio_slave_ready, deassert_val);
-#endif
 
 	spin_lock_init(&tspi->lock);
 
