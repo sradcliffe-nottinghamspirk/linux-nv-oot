@@ -1165,9 +1165,12 @@ static void setup_device(struct vblk_dev *vblkdev)
 	blk_queue_max_hw_sectors(vblkdev->queue, max_io_bytes / SECTOR_SIZE);
 	blk_queue_flag_set(QUEUE_FLAG_NONROT, vblkdev->queue);
 
-#if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
 	if ((vblkdev->config.blk_config.req_ops_supported & VS_BLK_SECURE_ERASE_OP_F)
 	     || (vblkdev->config.blk_config.req_ops_supported & VS_BLK_ERASE_OP_F))
+#if defined(QUEUE_FLAG_SECERASE) /* Removed in Linux 5.19 */
+		/*
+		 * FIXME: Support for Linux v5.19+ kernels
+		 */
 		blk_queue_flag_set(QUEUE_FLAG_SECERASE, vblkdev->queue);
 #endif
 
@@ -1175,7 +1178,10 @@ static void setup_device(struct vblk_dev *vblkdev)
 	  || (((vblkdev->config.blk_config.req_ops_supported & VS_BLK_SECURE_ERASE_OP_F)
 	  || (vblkdev->config.blk_config.req_ops_supported & VS_BLK_ERASE_OP_F))
 	  && vblkdev->config.phys_dev == VSC_DEV_UFS)) {
-#if KERNEL_VERSION(5, 19, 0) > LINUX_VERSION_CODE
+#if defined(QUEUE_FLAG_DISCARD) /* Removed in Linux v5.19 */
+		/*
+		 * FIXME: Support for Linux v5.19+ kernels
+		 */
 		blk_queue_flag_set(QUEUE_FLAG_DISCARD, vblkdev->queue);
 #endif
 		blk_queue_max_discard_sectors(vblkdev->queue,
@@ -1202,7 +1208,7 @@ static void setup_device(struct vblk_dev *vblkdev)
 	vblkdev->gd->fops = &vblk_ops;
 	vblkdev->gd->queue = vblkdev->queue;
 	vblkdev->gd->private_data = vblkdev;
-#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
+#if defined(GENHD_FL_EXT_DEVT) /* Removed in Linux v5.17 */
 	vblkdev->gd->flags |= GENHD_FL_EXT_DEVT;
 #endif
 
@@ -1210,7 +1216,7 @@ static void setup_device(struct vblk_dev *vblkdev)
 	 * requests are not supported */
 	if (!(vblkdev->config.blk_config.req_ops_supported &
 				VS_BLK_READ_OP_F)) {
-#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
+#if defined(GENHD_FL_NO_PART_SCAN) /* Removed in Linux v5.17 */
 		vblkdev->gd->flags |= GENHD_FL_NO_PART_SCAN;
 #endif
 	}
