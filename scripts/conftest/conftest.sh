@@ -6566,6 +6566,23 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_DISK_CHECK_MEDIA_CHANGE_PRESENT" "" "functions"
         ;;
 
+        dma_slave_config_struct_has_slave_id)
+            #
+            # Determine if 'struct dma_slave_config' has the 'slave_id' member.
+            #
+            # In Linux v5.17, commit 3c2196440757 ("dmaengine: remove slave_id config field")
+            # removed the 'slave_id' member from the 'struct dma_slave_config'.
+            #
+            CODE="
+            #include <linux/dma-engine.h>
+            int conftest_dma_slave_config_struct_has_slave_id(void) {
+                return offsetof(struct dma_slave_config, slave_id);
+            }"
+
+            compile_check_conftest "$CODE" \
+                    "NV_DMA_SLAVE_CONFIG_STRUCT_HAS_SLAVE_ID" "" "types"
+        ;;
+
         drm_aperture_remove_framebuffers)
             #
             # Determine if the function 'drm_aperture_remove_framebuffers'
@@ -6914,6 +6931,47 @@ compile_test() {
             }"
 
             compile_check_conftest "$CODE" "NV_REQUEST_STRUCT_HAS_COMPLETION_DATA_ARG" "" "types"
+        ;;
+
+        snd_soc_card_jack_new_has_no_snd_soc_jack_pins)
+            #
+            # Determine if the function snd_soc_card_jack_new() has 'pins' and
+            # 'num_pins' arguments.
+            #
+            # In Linux v5,19, commit 19aed2d6cdb7 ("ASoC: soc-card: Create jack
+            # kcontrol without pins") removed the 'pins' and 'num_pins'
+            # arguments from the snd_soc_card_jack_new() function.
+            #
+            CODE="
+            #include <sound/jack.h>
+            #include <sound/soc.h>
+            int conftest_snd_soc_card_jack_new_has_no_snd_soc_jack_pins(struct snd_soc_card *card,
+                                                                        struct snd_soc_jack *jack) {
+                return snd_soc_card_jack_new(card, \"Jack\", SND_JACK_HEADSET, jack);
+            }"
+
+            compile_check_conftest "$CODE" \
+                    "NV_SND_SOC_CARD_JACK_NEW_HAS_NO_SND_SOC_JACK_PINS" "" "types"
+        ;;
+
+        snd_soc_component_driver_struct_has_non_legacy_dai_naming)
+            #
+            # Determine if 'struct snd_soc_component_driver' has the
+            # 'non_legacy_dai_naming' member.
+            #
+            # In Linux v6.0, commit 01936221278c ("ASoC: soc-component: Remove
+            # non_legacy_dai_naming flag") removed the 'non_legacy_dai_naming'
+            # flag from the 'struct snd_soc_component_driver'.
+            #
+            CODE="
+            #include <sound/soc-component.h>
+            unsigned int conftest_snd_soc_component_driver_struct_has_non_legacy_dai_naming(
+                struct snd_soc_component_driver *driver) {
+                    return driver->non_legacy_dai_naming;
+            }"
+
+            compile_check_conftest "$CODE" \
+                    "NV_SND_SOC_COMPONENT_DRIVER_STRUCT_HAS_NON_LEGACY_DAI_NAMING" "" "types"
         ;;
 
         snd_soc_dai_link_struct_has_c2c_params_arg)

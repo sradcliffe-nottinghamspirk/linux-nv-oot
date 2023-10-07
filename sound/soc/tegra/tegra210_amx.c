@@ -4,6 +4,8 @@
 //
 // Copyright (c) 2014-2023 NVIDIA CORPORATION.  All rights reserved.
 
+#include <nvidia/conftest.h>
+
 #include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/io.h>
@@ -672,7 +674,7 @@ static struct snd_soc_component_driver tegra210_amx_cmpnt = {
 	.num_dapm_routes = ARRAY_SIZE(tegra210_amx_routes),
 	.controls = tegra210_amx_controls,
 	.num_controls = ARRAY_SIZE(tegra210_amx_controls),
-#if (KERNEL_VERSION(6, 0, 0) > LINUX_VERSION_CODE)
+#if defined(NV_SND_SOC_COMPONENT_DRIVER_STRUCT_HAS_NON_LEGACY_DAI_NAMING) /* Linux v6.0 */
 	.non_legacy_dai_naming	= 1,
 #endif
 };

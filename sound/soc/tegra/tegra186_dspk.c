@@ -4,6 +4,8 @@
 //
 // Copyright (c) 2020-2023 NVIDIA CORPORATION. All rights reserved.
 
+#include <nvidia/conftest.h>
+
 #include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/module.h>
@@ -12,7 +14,6 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regmap.h>
-#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
@@ -564,7 +565,7 @@ static const struct snd_soc_component_driver tegra186_dspk_cmpnt = {
 	.num_dapm_routes = ARRAY_SIZE(tegra186_dspk_routes),
 	.controls = tegrat186_dspk_controls,
 	.num_controls = ARRAY_SIZE(tegrat186_dspk_controls),
-#if (KERNEL_VERSION(6, 0, 0) > LINUX_VERSION_CODE)
+#if defined(NV_SND_SOC_COMPONENT_DRIVER_STRUCT_HAS_NON_LEGACY_DAI_NAMING) /* Linux v6.0 */
 	.non_legacy_dai_naming	= 1,
 #endif
 };

@@ -5,6 +5,8 @@
 
 #define pr_fmt(msg) "Safety I2S: " msg
 
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <sound/core.h>
 #include <sound/dmaengine_pcm.h>
@@ -13,7 +15,6 @@
 #include <linux/dmaengine.h>
 #include <linux/clk.h>
 #include <linux/reset.h>
-#include <linux/version.h>
 
 #include "tegra_i2s.h"
 
@@ -456,7 +457,7 @@ static int gpcdma_hw_params(struct snd_pcm_substream *substream,
 		slave_config.src_maxburst = 2;
 	}
 
-#if (KERNEL_VERSION(5, 17, 0) > LINUX_VERSION_CODE)
+#if defined(NV_DMA_SLAVE_CONFIG_STRUCT_HAS_SLAVE_ID) /* Linux v5.17 */
 	//TODO: Read from DT later on
 	slave_config.slave_id = dma_data->req_sel;
 #endif
