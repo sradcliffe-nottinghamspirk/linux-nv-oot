@@ -6861,6 +6861,24 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_IIO_DEV_OPAQUE_HAS_LOCK" "" "types"
         ;;
 
+        kthread_complete_and_exit)
+            #
+            # Determine if function kthread_complete_and_exit() is present.
+            #
+            # This function was added in Linux v5.17 by commit cead18552660
+            # ("exit: Rename complete_and_exit to kthread_complete_and_exit").
+            #
+            CODE="
+            #include <linux/kthread.h>
+            void conftest_kthread_complete_and_exit(void)
+            {
+                    kthread_complete_and_exit();
+            }
+            "
+
+            compile_check_conftest "$CODE" "NV_KTHREAD_COMPLETE_AND_EXIT_PRESENT" "" "functions"
+        ;;
+
         register_shrinker_has_fmt_arg)
             #
             # Determine if the 'register_shrinker' function

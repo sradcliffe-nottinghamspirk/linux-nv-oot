@@ -114,6 +114,7 @@ NV_CONFTEST_FUNCTION_COMPILE_TESTS += ethtool_ops_get_set_ringparam_has_ringpara
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += get_user_pages
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += iio_dev_opaque_has_mlock
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += iommu_map_has_gfp_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += kthread_complete_and_exit
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += netif_set_tso_max_size
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += netif_napi_add_weight
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += pde_data

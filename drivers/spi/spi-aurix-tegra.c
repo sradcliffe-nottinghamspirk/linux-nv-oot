@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
+
+#include <nvidia/conftest.h>
 
 #include <linux/kthread.h>
 #include <linux/module.h>
@@ -244,10 +246,10 @@ ret:
 	spin_lock_irqsave(&aurix_data->lock, flags);
 	aurix_data->exited = true;
 	spin_unlock_irqrestore(&aurix_data->lock, flags);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-	complete_and_exit(NULL, err);
-#else
+#if defined(NV_KTHREAD_COMPLETE_AND_EXIT_PRESENT) /* Linux v5.17 */
 	kthread_complete_and_exit(NULL, err);
+#else
+	complete_and_exit(NULL, err);
 #endif
 }
 
