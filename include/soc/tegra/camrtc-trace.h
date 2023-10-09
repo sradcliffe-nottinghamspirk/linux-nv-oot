@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
  */
 
 #ifndef INCLUDE_CAMRTC_TRACE_H
@@ -231,7 +231,7 @@ struct camrtc_event_struct {
 
 // camrtc_trace_event_rtos_ids
 #define camrtc_trace_rtos_id(_subid) \
-        CAMRTC_EVENT_MAKE_ID(CAMRTC_EVENT_TYPE_ARRAY, \
+	CAMRTC_EVENT_MAKE_ID(CAMRTC_EVENT_TYPE_ARRAY, \
 		CAMRTC_EVENT_MODULE_RTOS, (_subid))
 #define camrtc_trace_rtos_task_switched_in \
 	camrtc_trace_rtos_id(1)

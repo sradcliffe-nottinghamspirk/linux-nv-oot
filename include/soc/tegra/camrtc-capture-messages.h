@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2016-2023, NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
  */
 
 /**

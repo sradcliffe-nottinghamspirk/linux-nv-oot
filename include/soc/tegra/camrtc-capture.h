@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
  */
 
 /**
@@ -889,6 +889,16 @@ struct engine_status_surface {
 } CAPTURE_IVC_ALIGN;
 
 /**
+ * @brief Watermark offset for specifying address within watermark ring buffer.
+ */
+struct watermark_mem_offset {
+	/** Index within watermark buffer */
+	uint32_t buff_idx;
+	/** Size of watermark */
+	uint32_t size;
+} CAPTURE_IVC_ALIGN;
+
+/**
  * @brief NVCSI error status
  *
  * Represents error reported from CSI source used by capture descriptor.
@@ -1435,16 +1445,6 @@ struct memoryinfo_surface {
 	/** Surface size. Must be a multiple of 16. */
 	uint64_t size;
 };
-
-/**
- * @brief Watermark offset for specifying address within watermark ring buffer.
- */
-struct watermark_mem_offset {
-	/** Index within watermark buffer */
-	uint32_t buff_idx;
-	/** Size of watermark */
-	uint32_t size;
-} CAPTURE_IVC_ALIGN;
 
 /**
  * @brief VI capture descriptor memory information
@@ -2759,7 +2759,7 @@ struct isp_capture_descriptor {
 	struct stats_surface h0_surface;
 	/** Histogram (H1) unit 1 statistics buffer */
 	struct stats_surface h1_surface;
-	/** Histogram (H2) unit 2 statistics buffer for ISP7 only */
+	/** Histogram (H2) unit 2 statistics buffer, for ISP7 only */
 	struct stats_surface h2_surface;
 	/** Pixel Replacement Unit (PRU) statistics buffer */
 	struct stats_surface pru_bad_surface;
@@ -2889,7 +2889,7 @@ struct isp_capture_descriptor_memoryinfo {
 	struct memoryinfo_surface h0_surface;
 	/** Histogram (H1) unit 1 statistics buffer */
 	struct memoryinfo_surface h1_surface;
-	/** Histogram (H2) unit 2 statistics buffer for ISP7 only */
+	/** Histogram (H2) unit 2 statistics buffer for ISP7 only*/
 	struct memoryinfo_surface h2_surface;
 	/** Pixel Replacement Unit (PRU) statistics buffer */
 	struct memoryinfo_surface pru_bad_surface;
