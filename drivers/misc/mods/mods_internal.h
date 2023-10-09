@@ -355,8 +355,10 @@ struct mods_priv {
 
 #if KERNEL_VERSION(5, 11, 0) <= MODS_KERNEL_VERSION
 #	define MODS_KMAP kmap_local_page
+#	define MODS_KUNMAP kunmap_local
 #else
 #	define MODS_KMAP kmap
+#	define MODS_KUNMAP kunmap
 #endif
 
 /* ************************************************************************* */

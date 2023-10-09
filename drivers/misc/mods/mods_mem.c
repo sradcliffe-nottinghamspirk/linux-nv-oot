@@ -428,7 +428,7 @@ static int setup_cache_attr(struct mods_client   *client,
 			else
 				err = MODS_SET_MEMORY_UC((unsigned long)ptr, 1);
 #endif
-			kunmap(ptr);
+			MODS_KUNMAP(ptr);
 			if (unlikely(err)) {
 				cl_error("set cache type failed\n");
 				return err;
@@ -547,7 +547,7 @@ static int restore_cache_one_chunk(struct page *p_page, u8 order)
 		if (likely(ptr))
 			err = MODS_SET_MEMORY_WB((unsigned long)ptr, 1);
 
-		kunmap(ptr);
+		MODS_KUNMAP(ptr);
 
 		if (likely(!final_err))
 			final_err = err;
@@ -2461,7 +2461,7 @@ static void clear_contiguous_cache(struct mods_client *client,
 	static u32 d_line_shift;
 
 	if (!d_line_shift) {
-#if KERNEL_VERSION(6, 0, 0) <= MODS_KERNEL_VERSION
+#ifdef CTR_EL0_DminLine_SHIFT
 		const u64 ctr_el0 = read_sanitised_ftr_reg(SYS_CTR_EL0);
 
 		d_line_shift =

@@ -1012,7 +1012,7 @@ static int mods_krnl_vma_access(struct vm_area_struct *vma,
 				else
 					memcpy(buf, bptr, len);
 
-				kunmap(ptr);
+				MODS_KUNMAP(ptr);
 
 				err = len;
 			} else
