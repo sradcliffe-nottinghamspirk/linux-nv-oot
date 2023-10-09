@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
+
+#include <nvidia/conftest.h>
 
 #include <linux/module.h>
 #include <soc/tegra/ivc_ext.h>
@@ -81,6 +83,14 @@ void tegra_ivc_channel_reset(struct tegra_ivc *ivc)
 }
 EXPORT_SYMBOL(tegra_ivc_channel_reset);
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+#define tegra_ivc_header_read_field(hdr, field) \
+	iosys_map_rd_field(hdr, 0, struct tegra_ivc_header, field)
+
+#define tegra_ivc_header_write_field(hdr, field, value) \
+	iosys_map_wr_field(hdr, 0, struct tegra_ivc_header, field, value)
+#endif
+
 static inline void tegra_ivc_invalidate(struct tegra_ivc *ivc, dma_addr_t phys)
 {
 	if (!ivc->peer)
@@ -90,16 +100,25 @@ static inline void tegra_ivc_invalidate(struct tegra_ivc *ivc, dma_addr_t phys)
 				DMA_FROM_DEVICE);
 }
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+bool tegra_ivc_empty(struct tegra_ivc *ivc, struct iosys_map *map)
+#else
 bool tegra_ivc_empty(struct tegra_ivc *ivc,
 				   struct tegra_ivc_header *header)
+#endif
 {
 	/*
 	 * This function performs multiple checks on the same values with
 	 * security implications, so create snapshots with READ_ONCE() to
 	 * ensure that these checks use the same values.
 	 */
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	u32 tx = tegra_ivc_header_read_field(map, tx.count);
+	u32 rx = tegra_ivc_header_read_field(map, rx.count);
+#else
 	u32 tx = READ_ONCE(header->tx.count);
 	u32 rx = READ_ONCE(header->rx.count);
+#endif
 
 	/*
 	 * Perform an over-full check to prevent denial of service attacks
@@ -118,11 +137,20 @@ bool tegra_ivc_empty(struct tegra_ivc *ivc,
 }
 EXPORT_SYMBOL(tegra_ivc_empty);
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+static inline bool tegra_ivc_full(struct tegra_ivc *ivc, struct iosys_map *map)
+#else
 static inline bool tegra_ivc_full(struct tegra_ivc *ivc,
 				  struct tegra_ivc_header *header)
+#endif
 {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	u32 tx = tegra_ivc_header_read_field(map, tx.count);
+	u32 rx = tegra_ivc_header_read_field(map, rx.count);
+#else
 	u32 tx = READ_ONCE(header->tx.count);
 	u32 rx = READ_ONCE(header->rx.count);
+#endif
 
 	/*
 	 * Invalid cases where the counters indicate that the queue is over
@@ -134,6 +162,8 @@ static inline bool tegra_ivc_full(struct tegra_ivc *ivc,
 static inline int tegra_ivc_check_read(struct tegra_ivc *ivc)
 {
 	unsigned int offset = offsetof(struct tegra_ivc_header, tx.count);
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	unsigned int state;
 
 	/*
 	 * tx.channel->state is set locally, so it is not synchronized with
@@ -143,7 +173,11 @@ static inline int tegra_ivc_check_read(struct tegra_ivc *ivc)
 	 * asynchronous transition of rx.channel->state to
 	 * TEGRA_IVC_STATE_ACK is not allowed.
 	 */
+	state = tegra_ivc_header_read_field(&ivc->tx.map, tx.state);
+	if (state != TEGRA_IVC_STATE_ESTABLISHED)
+#else
 	if (ivc->tx.channel->tx.state != TEGRA_IVC_STATE_ESTABLISHED)
+#endif
 		return -ECONNRESET;
 
 	/*
@@ -153,12 +187,20 @@ static inline int tegra_ivc_check_read(struct tegra_ivc *ivc)
 	 * Synchronization is only necessary when these pointers indicate
 	 * empty or full.
 	 */
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	if (!tegra_ivc_empty(ivc, &ivc->rx.map))
+#else
 	if (!tegra_ivc_empty(ivc, ivc->rx.channel))
+#endif
 		return 0;
 
 	tegra_ivc_invalidate(ivc, ivc->rx.phys + offset);
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	if (!tegra_ivc_empty(ivc, &ivc->rx.map))
+#else
 	if (tegra_ivc_empty(ivc, ivc->rx.channel))
+#endif
 		return -ENOSPC;
 
 	return 0;
@@ -167,16 +209,30 @@ static inline int tegra_ivc_check_read(struct tegra_ivc *ivc)
 static inline int tegra_ivc_check_write(struct tegra_ivc *ivc)
 {
 	unsigned int offset = offsetof(struct tegra_ivc_header, rx.count);
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	unsigned int state;
 
+	state = tegra_ivc_header_read_field(&ivc->tx.map, tx.state);
+	if (state != TEGRA_IVC_STATE_ESTABLISHED)
+#else
 	if (ivc->tx.channel->tx.state != TEGRA_IVC_STATE_ESTABLISHED)
+#endif
 		return -ECONNRESET;
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	if (!tegra_ivc_full(ivc, &ivc->tx.map))
+#else
 	if (!tegra_ivc_full(ivc, ivc->tx.channel))
+#endif
 		return 0;
 
 	tegra_ivc_invalidate(ivc, ivc->tx.phys + offset);
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	if (!tegra_ivc_full(ivc, &ivc->tx.map))
+#else
 	if (tegra_ivc_full(ivc, ivc->tx.channel))
+#endif
 		return -ENOSPC;
 
 	return 0;
@@ -196,21 +252,41 @@ EXPORT_SYMBOL(tegra_ivc_can_write);
 
 int tegra_ivc_read(struct tegra_ivc *ivc, void __user *usr_buf, void *buf, size_t max_read)
 {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	struct iosys_map map;
+	int err;
+#else
 	void *frame;
+#endif
 
 	BUG_ON(buf && usr_buf);
 
 	/* get next frame to be read from IVC channel */
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	err = tegra_ivc_read_get_next_frame(ivc, &map);
+	if (err)
+		return err;
+#else
 	frame = tegra_ivc_read_get_next_frame(ivc);
 	if (IS_ERR(frame)) {
 		return PTR_ERR(frame);
 	}
+#endif
 
 	/* update the buffer with read data*/
 	if (buf) {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+		iosys_map_memcpy_from(buf, &map, 0, max_read);
+#else
 		memcpy(buf, frame, max_read);
+#endif
 	} else if (usr_buf) {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+		// FIXME handle io address space
+		if (WARN_ON(map.is_iomem) || copy_to_user(usr_buf, map.vaddr, max_read))
+#else
 		if (copy_to_user(usr_buf, frame, max_read))
+#endif
 			return -EFAULT;
 	} else
 		BUG();
@@ -225,21 +301,41 @@ EXPORT_SYMBOL(tegra_ivc_read);
 
 int tegra_ivc_read_peek(struct tegra_ivc *ivc, void __user *usr_buf, void *buf, size_t offset, size_t size)
 {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	struct iosys_map map;
+	int err;
+#else
 	void *frame;
+#endif
 
 	BUG_ON(buf && usr_buf);
 
 	/* get next frame to be read from IVC channel */
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	err = tegra_ivc_read_get_next_frame(ivc, &map);
+	if (err)
+		return err;
+#else
 	frame = tegra_ivc_read_get_next_frame(ivc);
 	if (IS_ERR(frame)) {
 		return PTR_ERR(frame);
 	}
+#endif
 
 	/* update the buffer with read data*/
 	if (buf) {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+		iosys_map_memcpy_from(buf, &map, offset, size);
+#else
 		memcpy(buf, frame + offset, size);
+#endif
 	} else if (usr_buf) {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+		// FIXME handle io address space
+		if (WARN_ON(map.is_iomem) || copy_to_user(usr_buf, map.vaddr + offset, size))
+#else
 		if (copy_to_user(usr_buf, frame + offset, size))
+#endif
 			return -EFAULT;
 	} else
 		BUG();
@@ -250,21 +346,41 @@ EXPORT_SYMBOL(tegra_ivc_read_peek);
 
 int tegra_ivc_write(struct tegra_ivc *ivc, const void __user *usr_buf, const void *buf, size_t size)
 {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	struct iosys_map map;
+	int err;
+#else
 	void *frame;
+#endif
 
 	BUG_ON(buf && usr_buf);
 
 	/* get next frame to be written from IVC channel */
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+	err = tegra_ivc_write_get_next_frame(ivc, &map);
+	if (err)
+		return err;
+#else
 	frame = tegra_ivc_write_get_next_frame(ivc);
 	if (IS_ERR(frame)) {
 		return PTR_ERR(frame);
 	}
+#endif
 
 	/* update the write frame with data buffer*/
 	if (buf) {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+		iosys_map_memcpy_to(&map, 0, buf, size);
+#else
 		memcpy(frame, buf, size);
+#endif
 	} else if (usr_buf) {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+		// FIXME handle io address space
+		if (WARN_ON(map.is_iomem) || copy_from_user(map.vaddr, usr_buf, size))
+#else
 		if (copy_from_user(frame, usr_buf, size))
+#endif
 			return -EFAULT;
 	} else
 		BUG();
@@ -282,18 +398,35 @@ int tegra_ivc_channel_sync(struct tegra_ivc *ivc)
 	if ((ivc == NULL) || (ivc->num_frames == 0)) {
 		return -EINVAL;
 	} else {
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+		u32 count;
+
+		count = tegra_ivc_header_read_field(&ivc->tx.map, tx.count);
+		ivc->tx.position = count % ivc->num_frames;
+		count = tegra_ivc_header_read_field(&ivc->rx.map, rx.count);
+		ivc->rx.position = count % ivc->num_frames;
+#else
 		ivc->tx.position = ivc->tx.channel->tx.count % ivc->num_frames;
 		ivc->rx.position = ivc->rx.channel->rx.count % ivc->num_frames;
+#endif
 	}
+
 	return 0;
 }
 EXPORT_SYMBOL(tegra_ivc_channel_sync);
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+static inline u32 tegra_ivc_available(struct tegra_ivc *ivc, struct iosys_map *map)
+{
+	u32 tx = tegra_ivc_header_read_field(map, tx.count);
+	u32 rx = tegra_ivc_header_read_field(map, rx.count);
+#else
 static inline u32 tegra_ivc_available(struct tegra_ivc *ivc,
 				      struct tegra_ivc_header *header)
 {
 	u32 tx = READ_ONCE(header->tx.count);
 	u32 rx = READ_ONCE(header->rx.count);
+#endif
 
 	/*
 	 * This function isn't expected to be used in scenarios where an
@@ -304,10 +437,17 @@ static inline u32 tegra_ivc_available(struct tegra_ivc *ivc,
 	return tx - rx;
 }
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+uint32_t tegra_ivc_frames_available(struct tegra_ivc *ivc, struct iosys_map *map)
+{
+	return (ivc->num_frames - tegra_ivc_available(ivc, map));
+}
+#else
 uint32_t tegra_ivc_frames_available(struct tegra_ivc *ivc, struct tegra_ivc_header *header)
 {
 	return (ivc->num_frames - tegra_ivc_available(ivc, header));
 }
+#endif
 EXPORT_SYMBOL(tegra_ivc_frames_available);
 
 /* Inserting this driver as module to export

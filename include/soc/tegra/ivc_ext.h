@@ -6,11 +6,11 @@
 #ifndef __TEGRA_IVC_EXT_H
 #define __TEGRA_IVC_EXT_H
 
+#include <nvidia/conftest.h>
+
 #include <linux/types.h>
-#include <linux/version.h>
 #include <soc/tegra/ivc-priv.h>
 
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
 /**
  * tegra_ivc_channel_notified - notifies the peer device
  * @ivc		pointer of the IVC channel
@@ -29,6 +29,17 @@ int tegra_ivc_channel_notified(struct tegra_ivc *ivc);
  */
 void tegra_ivc_channel_reset(struct tegra_ivc *ivc);
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+/**
+ * tegra_ivc_empty - Checks whether channel is empty or not
+ * @map		pointer to iosys-map buffer for the IVC channel
+ *
+ * Checks whether channel is empty or not to read or write
+ *
+ * Returns true if channel is empty to read or write.
+ */
+bool tegra_ivc_empty(struct tegra_ivc *ivc, struct iosys_map *map);
+#else
 /**
  * tegra_ivc_empty - Checks whether channel is empty or not
  * @ivc		pointer of the IVC channel
@@ -38,6 +49,7 @@ void tegra_ivc_channel_reset(struct tegra_ivc *ivc);
  * Returns true if channel is empty to read or write.
  */
 bool tegra_ivc_empty(struct tegra_ivc *ivc, struct tegra_ivc_header *header);
+#endif
 
 /**
  * tegra_ivc_channel_sync - Syncs the IVC channel accross reboots.
@@ -49,6 +61,17 @@ bool tegra_ivc_empty(struct tegra_ivc *ivc, struct tegra_ivc_header *header);
  */
 int tegra_ivc_channel_sync(struct tegra_ivc *ivc);
 
+#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)
+/**
+ * tegra_ivc_frames_available - Checks number of available frames.
+ * @map		pointer to iosys-map buffer for the IVC channel
+ *
+ * Checks number of available frames.
+ *
+ * Returns integer value indicating number of available frames..
+ */
+uint32_t tegra_ivc_frames_available(struct tegra_ivc *ivc, struct iosys_map *map);
+#else
 /**
  * tegra_ivc_frames_available - Checks number of available frames.
  * @ivc		pointer of the IVC channel
@@ -58,6 +81,7 @@ int tegra_ivc_channel_sync(struct tegra_ivc *ivc);
  * Returns integer value indicating number of available frames..
  */
 uint32_t tegra_ivc_frames_available(struct tegra_ivc *ivc, struct tegra_ivc_header *header);
+#endif
 
 /**
  * tegra_ivc_can_read - Checks whether we can read from ivc channel
@@ -118,64 +142,5 @@ int tegra_ivc_read_peek(struct tegra_ivc *ivc, void __user *usr_buf, void *buf, 
  * Returns no. of bytes written to ivc channel else return error.
  */
 int tegra_ivc_write(struct tegra_ivc *ivc, const void __user *usr_buf, const void *buf, size_t size);
-#else
-static inline int tegra_ivc_channel_notified(struct tegra_ivc *ivc)
-{
-	return -ENOTSUPP;
-}
-
-static inline void tegra_ivc_channel_reset(struct tegra_ivc *ivc)
-{
-	return;
-}
-
-static inline bool tegra_ivc_empty(struct tegra_ivc *ivc,
-				   struct tegra_ivc_header *header)
-{
-	return true;
-}
-
-static inline int tegra_ivc_channel_sync(struct tegra_ivc *ivc)
-{
-	return -ENOTSUPP;
-}
-
-static inline uint32_t tegra_ivc_frames_available(struct tegra_ivc *ivc,
-		struct tegra_ivc_header *header)
-{
-	return 0;
-}
-
-static inline int tegra_ivc_can_read(struct tegra_ivc *ivc)
-{
-	return -ENOTSUPP;
-};
-
-static inline int tegra_ivc_can_write(struct tegra_ivc *ivc)
-{
-	return -ENOTSUPP;
-};
-
-static inline int tegra_ivc_read(struct tegra_ivc *ivc, void __user *usr_buf,
-				 void *buf, size_t max_read)
-{
-	return -ENOTSUPP;
-}
-
-static inline int tegra_ivc_read_peek(struct tegra_ivc *ivc,
-				      void __user *usr_buf, void *buf,
-				      size_t offset, size_t size)
-{
-	return -ENOTSUPP;
-};
-
-static inline int tegra_ivc_write(struct tegra_ivc *ivc,
-				  const void __user *usr_buf,
-				  const void *buf, size_t size)
-{
-	return -ENOTSUPP;
-};
-
-#endif /* (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE) */
 
 #endif /* __TEGRA_IVC_EXT_H */
