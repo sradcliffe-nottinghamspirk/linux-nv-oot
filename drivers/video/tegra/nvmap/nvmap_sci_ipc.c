@@ -186,8 +186,10 @@ int nvmap_create_sci_ipc_id(struct nvmap_client *client,
 	}
 unlock:
 	mutex_unlock(&nvmapsciipc->mlock);
-	if (!ret)
-		(void)nvmap_handle_get(h);
+	if (!ret) {
+		if (!nvmap_handle_get(h))
+			return -EINVAL;
+	}
 
 	return ret;
 }

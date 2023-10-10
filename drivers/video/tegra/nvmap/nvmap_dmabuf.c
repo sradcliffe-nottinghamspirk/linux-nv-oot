@@ -624,7 +624,11 @@ struct dma_buf *__nvmap_make_dmabuf(struct nvmap_client *client,
 		err = PTR_ERR(dmabuf);
 		goto err_export;
 	}
-	nvmap_handle_get(handle);
+
+	if (!nvmap_handle_get(handle)) {
+		err = -EINVAL;
+		goto err_export;
+	}
 
 	trace_nvmap_make_dmabuf(client->name, handle, dmabuf);
 	return dmabuf;

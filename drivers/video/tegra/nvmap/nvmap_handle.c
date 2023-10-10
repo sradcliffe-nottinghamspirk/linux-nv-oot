@@ -403,9 +403,13 @@ struct nvmap_handle_ref *nvmap_duplicate_handle(struct nvmap_client *client,
 
 	if (is_ro) {
 		ref->is_ro = true;
+		if (!h->dmabuf_ro)
+			goto exit;
 		get_dma_buf(h->dmabuf_ro);
 	} else {
 		ref->is_ro = false;
+		if (!h->dmabuf)
+			goto exit;
 		get_dma_buf(h->dmabuf);
 	}
 
@@ -413,6 +417,11 @@ out:
 	NVMAP_TAG_TRACE(trace_nvmap_duplicate_handle,
 		NVMAP_TP_ARGS_CHR(client, h, ref));
 	return ref;
+
+exit:
+	pr_err("dmabuf is NULL\n");
+	kfree(ref);
+	return ERR_PTR(-EINVAL);
 }
 
 struct nvmap_handle_ref *nvmap_create_handle_from_id(
