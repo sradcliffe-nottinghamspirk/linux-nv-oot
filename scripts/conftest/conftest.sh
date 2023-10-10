@@ -6339,10 +6339,11 @@ compile_test() {
             # __alloc_disk_node() function.
             #
             CODE="
-            #include <linux/genhd.h>
+            #include <linux/blkdev.h>
+            #include <linux/lockdep_types.h>
             struct gendisk *conftest___alloc_disk_node_has_lkclass_arg(
-                struct request_queue *q) {
-                    return __alloc_disk_node(q, 0, NULL);
+                struct request_queue *q, struct lock_class_key *lkclass) {
+                    return __alloc_disk_node(q, 0, lkclass);
             }"
 
             compile_check_conftest "$CODE" "NV___ALLOC_DISK_NODE_HAS_LKCLASS_ARG" "" "types"
