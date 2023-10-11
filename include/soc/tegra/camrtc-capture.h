@@ -1228,7 +1228,7 @@ struct vi_channel_config {
 	struct dpcm_rec {
 		/**
 		 * Number of pixels in the strip [0, UINT16_MAX] (@deprecated).
-		 * */
+		 */
 		uint16_t strip_width;
 
 		/**
@@ -1240,7 +1240,7 @@ struct vi_channel_config {
 		/**
 		 * Number of pixel packets in first generated chunk
 		 * (no OVERFETCH region) [0, UINT16_MAX].
-		 * */
+		 */
 		uint16_t chunk_first;
 
 		/**
@@ -1308,7 +1308,7 @@ struct vi_channel_config {
 		/**
 		 * DPCM chunk stride (distance from start of chunk to end of
 		 * chunk) [0, 0xFFFFF].
-		 * */
+		 */
 		uint32_t dpcm_chunk_stride;
 	} atomp;
 	/**< Memory output configuration. */
@@ -1469,16 +1469,17 @@ struct nvcsi_error_status {
 	 * reported by partition B of the CSI brick (CIL B).
 	 */
 	uint32_t cil_b_error_bits;
+	/** @} */
 
 	/**
 	 * @defgroup NvCsiCilErrors NVCSI CIL error bits
 	 */
 	/** @{ */
 
-	/** Escape mode sync error on lane 1. */
+	/** Escape mode LP sequence error on lane 1. */
 #define NVCSI_ERR_CIL_DATA_LANE_ESC_MODE_SYNC_ERR1	MK_BIT32(14)
 
-	/** Escape mode sync error on lane 0. */
+	/** Escape mode LP sequence error on lane 0. */
 #define NVCSI_ERR_CIL_DATA_LANE_ESC_MODE_SYNC_ERR0	MK_BIT32(13)
 
 	/**
@@ -2329,7 +2330,10 @@ struct vi_hsm_chansel_error_mask_config {
  * NvCSI Physical stream type
  * @{
  */
+/** Use MIPI CSI protocol. */
 #define NVPHY_TYPE_CSI		MK_U32(0)
+
+/** Use Sony SLVSEC protocol. @deprecated */
 #define NVPHY_TYPE_SLVSEC	MK_U32(1)
 /**@}*/
 
@@ -2340,22 +2344,38 @@ struct vi_hsm_chansel_error_mask_config {
  * @defgroup NvCsiPort NvCSI Port
  * @{
  */
-/** Port A maps to @ref NVCSI_STREAM_0 */
+/** Port A maps to @ref NVCSI_STREAM_0. */
 #define NVCSI_PORT_A		MK_U32(0x0)
-/** Port B maps to @ref NVCSI_STREAM_1 */
+
+/** Port B maps to @ref NVCSI_STREAM_1. */
 #define NVCSI_PORT_B		MK_U32(0x1)
-/** Port C maps to @ref NVCSI_STREAM_2 */
+
+/** Port C maps to @ref NVCSI_STREAM_2. */
 #define NVCSI_PORT_C		MK_U32(0x2)
-/** Port D maps to @ref NVCSI_STREAM_3 */
+
+/** Port D maps to @ref NVCSI_STREAM_3. */
 #define NVCSI_PORT_D		MK_U32(0x3)
-/** Port E maps to @ref NVCSI_STREAM_4 */
+
+/** Port E maps to @ref NVCSI_STREAM_4. */
 #define NVCSI_PORT_E		MK_U32(0x4)
-/** Port F maps to @ref NVCSI_STREAM_4 with a custom lane swizzle configuration */
+
+/**
+ * Port F maps to @ref NVCSI_STREAM_4 with a custom
+ * lane swizzle configuration to swap lanes A0 and A1 with B0 and B1.
+ * Not compatible with @ref nvcsi_brick_config::lane_swizzle setting.
+ */
 #define NVCSI_PORT_F		MK_U32(0x5)
-/** Port G maps to @ref NVCSI_STREAM_5 */
+
+/** Port G maps to @ref NVCSI_STREAM_5. */
 #define NVCSI_PORT_G		MK_U32(0x6)
-/** Port H maps to @ref NVCSI_STREAM_5 with a custom lane swizzle configuration */
+
+/**
+ * Port H maps to @ref NVCSI_STREAM_5 with a custom
+ * lane swizzle configuration to swap lanes A0 and A1 with B0 and B1.
+ * Not compatible with @ref nvcsi_brick_config::lane_swizzle setting.
+ */
 #define NVCSI_PORT_H		MK_U32(0x7)
+
 /** Port not specified. */
 #define NVCSI_PORT_UNSPECIFIED	MK_U32(0xFFFFFFFF)
 /**@}*/
@@ -2364,11 +2384,30 @@ struct vi_hsm_chansel_error_mask_config {
  * @defgroup NvCsiStream NVCSI stream id
  * @{
  */
+/** NVCSI stream 0 (brick 0 partition A). Maps to @ref NVCSI_PORT_A. */
 #define NVCSI_STREAM_0		MK_U32(0x0)
+
+/** NVCSI stream 1 (brick 0 partition B). Maps to @ref NVCSI_PORT_B. */
 #define NVCSI_STREAM_1		MK_U32(0x1)
+
+/** NVCSI stream 2 (brick 1 partition A). Maps to @ref NVCSI_PORT_C. */
 #define NVCSI_STREAM_2		MK_U32(0x2)
+
+/** NVCSI stream 3 (brick 1 partition B). Maps to @ref NVCSI_PORT_D. */
 #define NVCSI_STREAM_3		MK_U32(0x3)
+
+/**
+ * NVCSI stream 4 (brick 2). Maps to @ref NVCSI_PORT_E and to
+ * @ref NVCSI_PORT_F with a custom lane swizzle configuration to
+ * swap lanes A0 and A1 with B0 and B1.
+ */
 #define NVCSI_STREAM_4		MK_U32(0x4)
+
+/**
+ * NVCSI stream 5 (brick 3). Maps to @ref NVCSI_PORT_G and to
+ * @ref NVCSI_PORT_H with a custom lane swizzle configuration to
+ * swap lanes A0 and A1 with B0 and B1.
+ */
 #define NVCSI_STREAM_5		MK_U32(0x5)
 /**@}*/
 
@@ -2376,21 +2415,53 @@ struct vi_hsm_chansel_error_mask_config {
  * @defgroup NvCsiVirtualChannel NVCSI virtual channels
  * @{
  */
+
+/** CSI virtual channel 0 */
 #define NVCSI_VIRTUAL_CHANNEL_0		MK_U32(0x0)
+
+/** CSI virtual channel 1 */
 #define NVCSI_VIRTUAL_CHANNEL_1		MK_U32(0x1)
+
+/** CSI virtual channel 2 */
 #define NVCSI_VIRTUAL_CHANNEL_2		MK_U32(0x2)
+
+/** CSI virtual channel 3 */
 #define NVCSI_VIRTUAL_CHANNEL_3		MK_U32(0x3)
+
+/** CSI virtual channel 4 */
 #define NVCSI_VIRTUAL_CHANNEL_4		MK_U32(0x4)
+
+/** CSI virtual channel 5 */
 #define NVCSI_VIRTUAL_CHANNEL_5		MK_U32(0x5)
+
+/** CSI virtual channel 6 */
 #define NVCSI_VIRTUAL_CHANNEL_6		MK_U32(0x6)
+
+/** CSI virtual channel 7 */
 #define NVCSI_VIRTUAL_CHANNEL_7		MK_U32(0x7)
+
+/** CSI virtual channel 8 */
 #define NVCSI_VIRTUAL_CHANNEL_8		MK_U32(0x8)
+
+/** CSI virtual channel 9 */
 #define NVCSI_VIRTUAL_CHANNEL_9		MK_U32(0x9)
+
+/** CSI virtual channel 10 */
 #define NVCSI_VIRTUAL_CHANNEL_10	MK_U32(0xA)
+
+/** CSI virtual channel 11 */
 #define NVCSI_VIRTUAL_CHANNEL_11	MK_U32(0xB)
+
+/** CSI virtual channel 12 */
 #define NVCSI_VIRTUAL_CHANNEL_12	MK_U32(0xC)
+
+/** CSI virtual channel 13 */
 #define NVCSI_VIRTUAL_CHANNEL_13	MK_U32(0xD)
+
+/** CSI virtual channel 14 */
 #define NVCSI_VIRTUAL_CHANNEL_14	MK_U32(0xE)
+
+/** CSI virtual channel 15 */
 #define NVCSI_VIRTUAL_CHANNEL_15	MK_U32(0xF)
 /**@}*/
 
@@ -2398,11 +2469,22 @@ struct vi_hsm_chansel_error_mask_config {
  * @defgroup NvCsiConfigFlags NvCSI Configuration Flags
  * @{
  */
-/** NVCSI config flags */
+/**
+ * Brick configuration is present in
+ * @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ_MSG::brick_config.
+ */
 #define NVCSI_CONFIG_FLAG_BRICK		MK_BIT32(0)
-/** NVCSI config flags */
+
+/**
+ * CIL configuration is present in
+ * @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ_MSG::cil_config.
+ */
 #define NVCSI_CONFIG_FLAG_CIL		MK_BIT32(1)
-/** Enable user-provided error handling configuration */
+
+/**
+ * Error configuration is present in
+ * @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ_MSG::error_config.
+ */
 #define NVCSI_CONFIG_FLAG_ERROR		MK_BIT32(2)
 /**@}*/
 
@@ -2480,28 +2562,30 @@ struct vi_hsm_chansel_error_mask_config {
 /** @} */
 
 /**
- * @defgroup NvCsiDPhyPolarity NVCSI D-phy Polarity
+ * @defgroup NvCsiDPhyPolarity NVCSI DPHY lane polarity
  * @{
  */
+/** Do not swap lane polarity */
 #define NVCSI_DPHY_POLARITY_NOSWAP	MK_U32(0)
+/** Swap lane polarity */
 #define NVCSI_DPHY_POLARITY_SWAP	MK_U32(1)
 /** @} */
 
 /**
- * @defgroup NvCsiCPhyPolarity NVCSI C-phy Polarity
+ * @defgroup NvCsiCPhyPolarity NVCSI CPHY lane polarity
  * @{
  */
-/* 000 := A B C --> A B C */
+/** 000 := A B C --> A B C */
 #define NVCSI_CPHY_POLARITY_ABC	MK_U32(0x00)
-/* 001 := A B C --> A C B */
+/** 001 := A B C --> A C B */
 #define NVCSI_CPHY_POLARITY_ACB	MK_U32(0x01)
-/* 010 := A B C --> B C A */
+/** 010 := A B C --> B C A */
 #define NVCSI_CPHY_POLARITY_BCA	MK_U32(0x02)
-/* 011 := A B C --> B A C */
+/** 011 := A B C --> B A C */
 #define NVCSI_CPHY_POLARITY_BAC	MK_U32(0x03)
-/* 100 := A B C --> C A B */
+/** 100 := A B C --> C A B */
 #define NVCSI_CPHY_POLARITY_CAB	MK_U32(0x04)
-/* 101 := A B C --> C B A */
+/** 101 := A B C --> C B A */
 #define NVCSI_CPHY_POLARITY_CBA	MK_U32(0x05)
 /** @} */
 
@@ -2509,63 +2593,129 @@ struct vi_hsm_chansel_error_mask_config {
  * @brief NvCSI Brick configuration
  */
 struct nvcsi_brick_config {
-	/** Select PHY @ref NvCsiPhyType "mode" for both partitions */
+	/** Set @ref NvCsiPhyType "PHY mode" for both partitions. */
 	uint32_t phy_mode;
-	/** See @ref NvCsiLaneSwizzle "NVCSI Lane swizzles" control
-	 * for bricks. Valid for C-PHY and D-PHY modes.
+
+	/**
+	 * @ref NvCsiLaneSwizzle "NVCSI Lane swizzle" control for
+	 * rearranging lanes on bricks. Valid for C-PHY and D-PHY modes.
+	 *
+	 * @note This setting is not compatible with @ref NVCSI_PORT_F
+	 *       and @ref NVCSI_PORT_H. Must be zero for these ports.
 	 */
 	uint32_t lane_swizzle;
+
 	/**
-	 * Polarity control for each lane. Value depends on @a phy_mode.
-	 * See @ref NvCsiDPhyPolarity "NVCSI D-phy Polarity"
-	 * or @ref NvCsiCPhyPolarity "NVCSI C-phy Polarity"
+	 * Lane polarity control for each lane. Value depends on @ref phy_mode.
+	 * See @ref NvCsiDPhyPolarity "NVCSI DPHY lane polarity" or
+	 * @ref NvCsiCPhyPolarity "NVCSI CPHY lane polarity".
 	 */
 	uint8_t lane_polarity[NVCSI_BRICK_NUM_LANES];
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief NvCSI Control and Interface Logic Configuration
+ * @brief NvCSI CIL configuration for a brick partition.
  */
 struct nvcsi_cil_config {
-	/** Number of data lanes used (0-4) */
+	/**
+	 * Number of data lanes used [0,@ref NVCSI_BRICK_NUM_LANES].
+	 * @a num_lanes > 2 implies that both brick partitions (A and B)
+	 * are controlled by CIL A and CIL B is unused. @a num_lanes > 2
+	 * is not valid for CIL B.
+	 */
 	uint8_t num_lanes;
-	/** LP bypass mode (boolean) */
+
+	/**
+	 * Bypass LP control sequence and go directly to HS RX mode on
+	 * detecting LP00. (boolean)
+	 */
 	uint8_t lp_bypass_mode;
-	/** Set MIPI THS-SETTLE timing (LP clock cycles with SoC default clock rate) */
+
+	/**
+	 * Set MIPI THS-SETTLE timing (LP clock cycles with SoC default
+	 * clock rate) [0,255]. 0 = use default value calculated based
+	 * on @ref mipi_clock_rate.
+	 */
 	uint8_t t_hs_settle;
-	/** Set MIPI TCLK-SETTLE timing (LP clock cycles with SoC default clock rate) */
+
+	/**
+	 * Set MIPI TCLK-SETTLE timing (LP clock cycles with SoC default
+	 * clock rate) [0,127]. 0 = use default value calculated based
+	 * on @ref mipi_clock_rate.
+	 */
 	uint8_t t_clk_settle;
+
 	/** @deprecated  */
 	uint32_t cil_clock_rate CAMRTC_DEPRECATED;
-	/** MIPI clock rate for D-Phy. Symbol rate for C-Phy [kHz] */
+
+	/**
+	 * MIPI clock rate (= physical data rate / 2) for DPHY [0,1250] kHz.
+	 * MIPI symbol rate for CPHY [0,2500] kSps.
+	 */
 	uint32_t mipi_clock_rate;
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @defgroup HsmCsimuxErrors Bitmask for CSIMUX errors reported to HSM
+ * @defgroup ViHsmCsimuxErrors Bitmask for CSIMUX errors reported to HSM
  */
 /** @{ */
 /** Error bit indicating next packet after a frame end was not a frame start */
-#define VI_HSM_CSIMUX_ERROR_MASK_BIT_SPURIOUS_EVENT MK_BIT32(0)
+#define VI_HSM_CSIMUX_ERROR_MASK_BIT_SPURIOUS_EVENT	MK_BIT32(0)
+
 /** Error bit indicating FIFO for the stream has over flowed */
-#define VI_HSM_CSIMUX_ERROR_MASK_BIT_OVERFLOW MK_BIT32(1)
+#define VI_HSM_CSIMUX_ERROR_MASK_BIT_OVERFLOW		MK_BIT32(1)
+
 /** Error bit indicating frame start packet lost due to FIFO overflow */
-#define VI_HSM_CSIMUX_ERROR_MASK_BIT_LOF MK_BIT32(2)
+#define VI_HSM_CSIMUX_ERROR_MASK_BIT_LOF		MK_BIT32(2)
+
 /** Error bit indicating that an illegal packet has been sent from NVCSI */
-#define VI_HSM_CSIMUX_ERROR_MASK_BIT_BADPKT MK_BIT32(3)
+#define VI_HSM_CSIMUX_ERROR_MASK_BIT_BADPKT		MK_BIT32(3)
+/** @} */
+
+/**
+ * @defgroup ViHsmCsimuxDefaultMasks Default bitmask for
+ * CSIMUX errors reported to HSM
+ * @{
+ */
+/**
+ * Default value for
+ * @ref vi_hsm_csimux_error_mask_config::error_mask_correctable
+ */
+#define VI_HSM_CSIMUX_ERROR_CFG_DFLT_CORRECTABLE	MK_U32(0)
+
+/**
+ * Default value for
+ * @ref vi_hsm_csimux_error_mask_config::error_mask_uncorrectable
+ */
+#define VI_HSM_CSIMUX_ERROR_CFG_DFLT_UNCORRECTABLE (~(	\
+		VI_HSM_CSIMUX_ERROR_MASK_BIT_OVERFLOW |	\
+		VI_HSM_CSIMUX_ERROR_MASK_BIT_LOF))
 /** @} */
 
 /**
  * @brief VI EC/HSM error masking configuration
  */
 struct vi_hsm_csimux_error_mask_config {
-	/** Mask correctable CSIMUX. See @ref HsmCsimuxErrors "CSIMUX error bitmask". */
+	/**
+	 * Mask correctable CSIMUX. See @ref ViHsmCsimuxErrors "CSIMUX error bitmask".
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref VI_HSM_CSIMUX_ERROR_CFG_DFLT_CORRECTABLE.
+	 */
 	uint32_t error_mask_correctable;
-	/** Mask uncorrectable CSIMUX. See @ref HsmCsimuxErrors "CSIMUX error bitmask". */
+
+	/**
+	 * Mask uncorrectable CSIMUX. See @ref ViHsmCsimuxErrors "CSIMUX error bitmask".
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref VI_HSM_CSIMUX_ERROR_CFG_DFLT_UNCORRECTABLE.
+	 */
 	uint32_t error_mask_uncorrectable;
 } CAPTURE_IVC_ALIGN;
 
@@ -2578,180 +2728,428 @@ struct vi_hsm_csimux_error_mask_config {
 /** @} */
 
 /**
- * @defgroup NVCSI_STREAM_INTR_FLAGS NVCSI stream novc+vc interrupt flags
+ * @defgroup NVCSI_STREAM_INTR_FLAGS NVCSI stream interrupt flags
  * @{
  */
 /** Multi bit error in the DPHY packet header */
 #define NVCSI_INTR_FLAG_STREAM_NOVC_ERR_PH_ECC_MULTI_BIT	MK_BIT32(0)
+
 /** Error bit indicating both of the CPHY packet header CRC check fail */
 #define NVCSI_INTR_FLAG_STREAM_NOVC_ERR_PH_BOTH_CRC		MK_BIT32(1)
+
 /** Error bit indicating VC Pixel Parser (PP) FSM timeout for a pixel line.*/
 #define NVCSI_INTR_FLAG_STREAM_VC_ERR_PPFSM_TIMEOUT		MK_BIT32(2)
+
 /** Error bit indicating VC has packet with single bit ECC error in the packet header*/
 #define NVCSI_INTR_FLAG_STREAM_VC_ERR_PH_ECC_SINGLE_BIT		MK_BIT32(3)
+
 /** Error bit indicating VC has packet payload crc check fail */
 #define NVCSI_INTR_FLAG_STREAM_VC_ERR_PD_CRC			MK_BIT32(4)
+
 /** Error bit indicating VC has packet terminate before getting the expect word count data. */
 #define NVCSI_INTR_FLAG_STREAM_VC_ERR_PD_WC_SHORT		MK_BIT32(5)
+
 /** Error bit indicating VC has one of the CPHY packet header CRC check fail. */
 #define NVCSI_INTR_FLAG_STREAM_VC_ERR_PH_SINGLE_CRC		MK_BIT32(6)
+
+/** Error bit indicating VC has an embedded data CRC check fail. */
+#define NVCSI_INTR_FLAG_EMBEDDED_LINE_CRC			MK_BIT32(7)
 /** @} */
 
 /**
  * @defgroup NVCSI_CIL_INTR_FLAGS NVCSI phy/cil interrupt flags
  * @{
  */
+/** LP sequence error detected on clock lane. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DPHY_ERR_CLK_LANE_CTRL		MK_BIT32(0)
+
+/** Single bit error detected in the lane 0 sync word. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR0_SOT_SB		MK_BIT32(1)
+
+/** Multiple bit errors detected in the data lane 0 sync word */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR0_SOT_MB		MK_BIT32(2)
+
+/** LP sequence error detected on DATA lane 0. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR0_CTRL		MK_BIT32(3)
+
+/** Data lane 0 receive FIFO overflow. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR0_RXFIFO_FULL	MK_BIT32(4)
+
+/** Single bit error detected in the lane 1 sync word. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR1_SOT_SB		MK_BIT32(5)
+
+/** Multiple bit errors detected in the data lane 1 sync word. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR1_SOT_MB		MK_BIT32(6)
+
+/** LP sequence error detected on DATA lane 1. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR1_CTRL		MK_BIT32(7)
+
+/** Data lane 1 receive FIFO overflow. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR1_RXFIFO_FULL	MK_BIT32(8)
+
+/**
+ * DPHY skew calibration did not complete while sweeping the
+ * data lane 0 trimmer. This will happen if the calibration
+ * sequence is not long enough.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR_DPHY_DESKEW_CALIB_ERR_LANE0	MK_BIT32(9)
+
+/**
+ * DPHY skew calibration did not complete while sweeping the
+ * data lane 1 trimmer. This will happen if the calibration
+ * sequence is not long enough.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR_DPHY_DESKEW_CALIB_ERR_LANE1	MK_BIT32(10)
+
+/**
+ * DPHY skew calibration did not complete while sweeping the
+ * clock lane trimmer. This will happen if the calibration
+ * sequence is not long enough.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR_DPHY_DESKEW_CALIB_ERR_CTRL	MK_BIT32(11)
+
+/**
+ * Lane alignment error. Some lanes detected a sync word while
+ * other lanes did not.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR_DPHY_LANE_ALIGN_ERR		MK_BIT32(12)
+
+/** Escape mode sync error on lane 0. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR0_ESC_MODE_SYNC	MK_BIT32(13)
+
+/** Escape mode sync error on lane 1. */
 #define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR1_ESC_MODE_SYNC	MK_BIT32(14)
-#define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR0_SOT_2LSB_FULL	MK_BIT32(15)
-#define NVCSI_INTR_FLAG_CIL_INTR_DATA_LANE_ERR1_SOT_2LSB_FULL	MK_BIT32(16)
 /** @} */
 
 /**
  * @defgroup NVCSI_CIL_INTR0_FLAGS NVCSI phy/cil intr0 flags
  * @{
  */
+/** LP sequence error detected on clock lane. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_ERR_CLK_LANE_CTRL	MK_BIT32(0)
+
+/** Single bit error detected in the lane 0 sync word. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR0_SOT_SB		MK_BIT32(1)
+
+/** Multiple bit errors detected in the data lane 0 sync word */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR0_SOT_MB		MK_BIT32(2)
+
+/** LP sequence error detected on DATA lane 0. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR0_CTRL		MK_BIT32(3)
+
+/** Data lane 0 receive FIFO overflow. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR0_RXFIFO_FULL	MK_BIT32(4)
+
+/** Single bit error detected in the lane 1 sync word. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR1_SOT_SB		MK_BIT32(5)
+
+/** Multiple bit errors detected in the data lane 1 sync word. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR1_SOT_MB		MK_BIT32(6)
+
+/** LP sequence error detected on DATA lane 1. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR1_CTRL		MK_BIT32(7)
+
+/** Data lane 1 receive FIFO overflow. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR1_RXFIFO_FULL	MK_BIT32(8)
-#define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR0_SOT_2LSB_FULL	MK_BIT32(9)
-#define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR1_SOT_2LSB_FULL	MK_BIT32(10)
+
+/** Escape mode sync error on lane 0. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR0_ESC_MODE_SYNC	MK_BIT32(19)
+
+/** Escape mode sync error on lane 1. */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DATA_LANE_ERR1_ESC_MODE_SYNC	MK_BIT32(20)
+
+/** DPHY de-skew calibration done one lane 0 */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_DESKEW_CALIB_DONE_LANE0	MK_BIT32(22)
+
+/** DPHY de-skew calibration done one lane 1 */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_DESKEW_CALIB_DONE_LANE1	MK_BIT32(23)
+
+/** DPHY de-skew calibration done one clk lane */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_DESKEW_CALIB_DONE_CTRL	MK_BIT32(24)
+
+/**
+ * DPHY skew calibration did not complete while sweeping the
+ * data lane 0 trimmer. This will happen if the calibration
+ * sequence is not long enough.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_DESKEW_CALIB_ERR_LANE0	MK_BIT32(25)
+
+/**
+ * DPHY skew calibration did not complete while sweeping the
+ * data lane 1 trimmer. This will happen if the calibration
+ * sequence is not long enough.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_DESKEW_CALIB_ERR_LANE1	MK_BIT32(26)
+
+/**
+ * DPHY skew calibration did not complete while sweeping the
+ * clock lane trimmer. This will happen if the calibration
+ * sequence is not long enough.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_DESKEW_CALIB_ERR_CTRL	MK_BIT32(27)
+
+/**
+ * Lane alignment error. Some lanes detected a sync word while
+ * other lanes did not.
+ */
 #define NVCSI_INTR_FLAG_CIL_INTR0_DPHY_LANE_ALIGN_ERR		MK_BIT32(28)
-#define NVCSI_INTR_FLAG_CIL_INTR0_CPHY_CLK_CAL_DONE_TRIO0	MK_BIT32(29)
-#define NVCSI_INTR_FLAG_CIL_INTR0_CPHY_CLK_CAL_DONE_TRIO1	MK_BIT32(30)
 /** @} */
 
 /**
  * @defgroup NVCSI_CIL_INTR1_FLAGS NVCSI phy/cil intr1 flags
  * @{
  */
+/** DPHY: escape mode command received on lane 0 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_DATA_LANE_ESC_CMD_REC0	MK_BIT32(0)
+
+/** DPHY: escape mode data received on lane 0 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_DATA_LANE_ESC_DATA_REC0	MK_BIT32(1)
+
+/** DPHY: escape mode command received on lane 1 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_DATA_LANE_ESC_CMD_REC1	MK_BIT32(2)
+
+/** DPHY: escape mode data received on lane 1 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_DATA_LANE_ESC_DATA_REC1	MK_BIT32(3)
+
+/** DPHY: Remote reset trigger escape code detected on lane 0 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_REMOTERST_TRIGGER_INT0	MK_BIT32(4)
+
+/** DPHY: Ultra Low Power State escape code detected on lane 0 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_ULPS_TRIGGER_INT0		MK_BIT32(5)
+
+/** DPHY: Ultra Low Power Data Transmission escape code detected on lane 1 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_LPDT_INT0			MK_BIT32(6)
+
+/** DPHY: Remote reset trigger escape code detected on lane 1 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_REMOTERST_TRIGGER_INT1	MK_BIT32(7)
+
+/** DPHY: Ultra Low Power State escape code detected on lane 0 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_ULPS_TRIGGER_INT1		MK_BIT32(8)
+
+/** DPHY: Ultra Low Power Data Transmission escape code detected on lane 1 */
 #define NVCSI_INTR_FLAG_CIL_INTR1_LPDT_INT1			MK_BIT32(9)
+
+/** DPHY: Remote reset trigger escape code detected on clock lane */
 #define NVCSI_INTR_FLAG_CIL_INTR1_DPHY_CLK_LANE_ULPM_REQ	MK_BIT32(10)
 /** @} */
+
+/* Deprecated. Definitions needed only by RCE FW. */
+#define NVCSI_INTR_CONFIG_SHIFT_STREAM_NOVC	MK_U32(0x0)
+#define NVCSI_INTR_CONFIG_SHIFT_STREAM_VC	MK_U32(0x2)
+#define NVCSI_INTR_CONFIG_MASK_STREAM_NOVC	MK_U32(0x3)
+#define NVCSI_INTR_CONFIG_MASK_STREAM_VC	MK_U32(0xfc)
 
 /**
  * @defgroup NVCSI_INTR_CONFIG_MASK NVCSI interrupt config bit masks
  * @{
  */
+
+/** Mask for the bits in @ref NVCSI_HOST1X_INTR_FLAGS */
 #define NVCSI_INTR_CONFIG_MASK_HOST1X		MK_U32(0x1)
+
+/** Bit mask for @ref NvCsiVirtualChannel "NVCSI virtual channels" */
 #define NVCSI_INTR_CONFIG_MASK_STATUS2VI	MK_U32(0xffff)
-#define NVCSI_INTR_CONFIG_MASK_STREAM_NOVC	MK_U32(0x3)
-#define NVCSI_INTR_CONFIG_MASK_STREAM_VC	MK_U32(0x7c)
+
+/** Mask for the bits in @ref NVCSI_STREAM_INTR_FLAGS */
+#define NVCSI_INTR_CONFIG_MASK_STREAM		KM_U32(0xff)
+
+/** Mask for the bits in @ref NVCSI_CIL_INTR_FLAGS */
 #define NVCSI_INTR_CONFIG_MASK_CIL_INTR		MK_U32(0x1ffff)
-#define NVCSI_INTR_CONFIG_MASK_CIL_INTR0	MK_U32(0x7fd807ff)
+
+/** Mask for the bits in @ref NVCSI_CIL_INTR0_FLAGS */
+#define NVCSI_INTR_CONFIG_MASK_CIL_INTR0	MK_U32(0x1fd801ff)
+
+/** Mask for the bits in @ref NVCSI_CIL_INTR1_FLAGS */ 
 #define NVCSI_INTR_CONFIG_MASK_CIL_INTR1	MK_U32(0x7ff)
 /** @} */
 
 /**
- * @defgroup NVCSI_INTR_CONFIG_MASK_SHIFTS NVCSI interrupt config bit shifts
+ * @defgroup NVCSI_INTR_CONFIG_DEFAULTS NVCSI default error config
  * @{
  */
-#define NVCSI_INTR_CONFIG_SHIFT_STREAM_NOVC	MK_U32(0x0)
-#define NVCSI_INTR_CONFIG_SHIFT_STREAM_VC	MK_U32(0x2)
+
+/** Default value for @ref nvcsi_error_config::host1x_intr_mask_lic */
+#define NVCSI_ERROR_CFG_DFLT_HOST1X_LIC		MK_U32(0x0)
+
+/** Default value for @ref nvcsi_error_config::host1x_intr_mask_hsm */
+#define NVCSI_ERROR_CFG_DFLT_HOST1X_HSM		MK_U32(0x0)
+
+/** Default value for @ref nvcsi_error_config::host1x_intr_type_hsm */
+#define NVCSI_ERROR_CFG_DFLT_HOST1X_TYPE_HSM	NVCSI_INTR_CONFIG_MASK_HOST1X
+
+/** Default value for @ref nvcsi_error_config::status2vi_notify_mask */
+#define NVCSI_ERROR_CFG_DFLT_STATUS2VI		MK_U32(0x0000)
+
+/** Default value for @ref nvcsi_error_config::stream_intr_mask_lic */
+#define NVCSI_ERROR_CFG_DFLT_STREAM_LIC		MK_U32(0x00)
+
+/** Default value for @ref nvcsi_error_config::stream_intr_mask_hsm */
+#define NVCSI_ERROR_CFG_DFLT_STREAM_HSM		NVCSI_INTR_CONFIG_MASK_STREAM
+
+/** Default value for @ref nvcsi_error_config::stream_intr_type_hsm */
+#define NVCSI_ERROR_CFG_DFLT_STREAM_TYPE_HSM	MK_U32(0x00)
+
+/** Default value for @ref nvcsi_error_config::cil_intr_type_hsm */
+#define NVCSI_ERROR_CFG_DFLT_CIL_INTR_TYPE_HSM ( \
+	NVCSI_INTR_FLAG_CIL_INTR_DPHY_DESKEW_CALIB_ERR_LANE0 | \
+	NVCSI_INTR_FLAG_CIL_INTR_DPHY_DESKEW_CALIB_ERR_LANE1 | \
+	NVCSI_INTR_FLAG_CIL_INTR_DPHY_DESKEW_CALIB_ERR_CTRL)
+
+/** Default value for @ref nvcsi_error_config::cil_intr_mask_hsm */
+#define NVCSI_ERROR_CFG_DFLT_CIL_INTR_HSM \
+	(NVCSI_INTR_CONFIG_MASK_CIL_INTR & ~NVCSI_ERROR_CFG_DFLT_CIL_INTR_TYPE_HSM)
+
+/** Default value for @ref nvcsi_error_config::cil_intr0_mask_lic */
+#define NVCSI_ERROR_CFG_DFLT_CIL_INTR0_LIC	MK_U32(0x00000000)
+
+/** Default value for @ref nvcsi_error_config::cil_intr1_mask_lic */
+#define NVCSI_ERROR_CFG_DFLT_CIL_INTR1_LIC	MK_U32(0x000)
 /** @} */
 
 /**
  * @brief User-defined error configuration.
  *
- * Flag NVCSI_CONFIG_FLAG_ERROR must be set to enable these settings,
+ * Flag NVCSI_CONFIG_FLAG_ERROR must be set to apply these settings,
  * otherwise default settings will be used.
+ *
+ * The <em>name</em>_intr_mask_lic masks control error reporting
+ * inside RCE. The effect of these masks is primarily to suppress
+ * these errors from getting reported in RTCPU traces, for example
+ * in cases where the error interrupt occurs too frequently and is
+ * interfering with the readability of the traces. These masks
+ * have no practical effect on safety build, as tracing is not
+ * supported.
+ *
+ * The <em>name</em>_intr_mask_hsm masks control safety error
+ * reporting to SEH.
+ *
+ * The <em>name</em>_intr_type masks control the classification of
+ * safety errors reported to SEH (0 - corrected, 1 - uncorrected).
  */
 struct nvcsi_error_config {
 	/**
-	 * @brief Host1x client global interrupt mask (to LIC)
-	 * Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS
+	 * @brief Host1x client global interrupt mask.
+	 *        Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS.
+	 *        Mask host1x errors reported locally in RCE.
+	 *        @deprecated
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_HOST1X_LIC.
+	 *
+	 * @note RCE does not enable the host1x read access timeout,
+	 *       which is the only host1x error supported by the
+	 *       hardware, so this control has no effect in practise.
 	 */
 	uint32_t host1x_intr_mask_lic;
+
 	/**
-	 * @brief Host1x client global interrupt mask (to HSM)
-	 * Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS
+	 * @brief Host1x client global safety error mask.
+	 *        Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS.
+	 *        Mask host1x errors reported to SEH.
+	 *        @deprecated
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_HOST1X_HSM.
+	 *
+	 * @note RCE does not enable the host1x read access timeout,
+	 *       which is the only host1x error supported by the
+	 *       hardware, so this control has no effect in practise.
 	 */
 	uint32_t host1x_intr_mask_hsm;
+
 	/**
-	 * @brief Host1x client global interrupt error type classification
-	 * (to HSM)
-	 * Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS
-	 * (0 - corrected, 1 - uncorrected)
+	 * @brief Host1x client global safety error classification.
+	 *        Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS
+	 *        (0 - corrected, 1 - uncorrected). @deprecated
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_HOST1X_TYPE_HSM.
+	 *
+	 * @note RCE does not enable the host1x read access timeout,
+	 *       which is the only host1x error supported by the
+	 *       hardware, so this control has no effect in practise.
 	 */
 	uint32_t host1x_intr_type_hsm;
 
-	/** NVCSI status2vi forwarding mask (to VI NOTIFY) */
+	/**
+	 * @brief Setting BIT(@ref NvCsiVirtualChannel "NVCSI Virtual Channel")
+	 *        to 1 in this mask disables the reporting of
+	 *        @ref NvCsiVirtualChannelErrors "NVCSI virtual channel errors"
+	 *        to VI with frame-end for that channel.
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_STATUS2VI.
+	 */
 	uint32_t status2vi_notify_mask;
 
 	/**
-	 * @brief NVCSI stream novc+vc interrupt mask (to LIC)
-	 * Bit field mapping: @ref NVCSI_STREAM_INTR_FLAGS
+	 * @brief NVCSI stream error interrupt mask.
+	 *        Mask NVCSI stream errors reported locally in RCE.
+	 *        Bit field mapping: @ref NVCSI_STREAM_INTR_FLAGS.
+	 *        @deprecated
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_STREAM_LIC.
 	 */
 	uint32_t stream_intr_mask_lic;
+
 	/**
-	 * @brief NVCSI stream novc+vc interrupt mask (to HSM)
-	 * Bit field mapping: @ref NVCSI_STREAM_INTR_FLAGS
+	 * @brief NVCSI stream safety error mask.
+	 *        Mask NVCSI stream errors reported to SEH.
+	 *        Bit field mapping: @ref NVCSI_STREAM_INTR_FLAGS
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_STREAM_HSM.
 	 */
 	uint32_t stream_intr_mask_hsm;
+
 	/**
-	 * @brief NVCSI stream novc+vc interrupt error type classification
-	 * (to HSM)
-	 * Bit field mapping: @ref NVCSI_STREAM_INTR_FLAGS
-	 * (0 - corrected, 1 - uncorrected)
+	 * @brief NVCSI stream safety error classification.
+	 *        Bit field mapping: @ref NVCSI_STREAM_INTR_FLAGS
+	 *        (0 - corrected, 1 - uncorrected)
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_STREAM_TYPE_HSM.
 	 */
 	uint32_t stream_intr_type_hsm;
 
 	/**
-	 * @brief NVCSI phy/cil interrupt mask (to HSM)
-	 * Bit field mapping: @ref NVCSI_CIL_INTR_FLAGS
+	 * @brief NVCSI CIL safety error mask.
+	 *        Mask NVCSI CIL errors reported to SEH.
+	 *        Bit field mapping: @ref NVCSI_CIL_INTR_FLAGS.
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_CIL_INTR_HSM.
 	 */
 	uint32_t cil_intr_mask_hsm;
+
 	/**
-	 * @brief NVCSI phy/cil interrupt error type classification
-	 * (to HSM)
-	 * Bit field mapping: @ref NVCSI_CIL_INTR_FLAGS
-	 * (0 - corrected, 1 - uncorrected)
+	 * @brief NVCSI CIL safety error classification.
+	 *        Bit field mapping: @ref NVCSI_CIL_INTR_FLAGS
+	 *        (0 - corrected, 1 - uncorrected)
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_CIL_INTR_TYPE_HSM.
 	 */
 	uint32_t cil_intr_type_hsm;
+
 	/**
-	 * @brief NVCSI phy/cil intr0 interrupt mask (to LIC)
-	 * Bit field mapping: @ref NVCSI_CIL_INTR0_FLAGS
+	 * @brief NVCSI CIL interrupt mask 0.
+	 *        Mask NVCSI CIL errors reported locally in RCE.
+	 *        Bit field mapping: @ref NVCSI_CIL_INTR0_FLAGS.
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_CIL_INTR0_LIC.
 	 */
 	uint32_t cil_intr0_mask_lic;
+
 	/**
-	 * @brief NVCSI phy/cil intr1 interrupt mask (to LIC)
-	 * Bit field mapping: @ref NVCSI_CIL_INTR1_FLAGS
+	 * @brief NVCSI CIL interrupt mask 1.
+	 *        Mask NVCSI CIL events reported locally in RCE.
+	 *        Bit field mapping: @ref NVCSI_CIL_INTR1_FLAGS
+	 *
+	 * @note By default, this mask should be initialized to
+	 *       @ref NVCSI_ERROR_CFG_DFLT_CIL_INTR1_LIC.
 	 */
 	uint32_t cil_intr1_mask_lic;
 
@@ -2766,35 +3164,97 @@ struct nvcsi_error_config {
  * @defgroup NvCsiDataType NVCSI datatypes
  * @{
  */
+/** Datatype not specified */
 #define NVCSI_DATATYPE_UNSPECIFIED	MK_U32(0)
+
+/** UYV420 8-bit */
 #define NVCSI_DATATYPE_YUV420_8		MK_U32(24)
+
+/** YUV420 10-bit */
 #define NVCSI_DATATYPE_YUV420_10	MK_U32(25)
+
+/** YUV420 8-bit (Legacy */
 #define NVCSI_DATATYPE_LEG_YUV420_8	MK_U32(26)
+
+/** YUV420 8-bit (CSPS) */
 #define NVCSI_DATATYPE_YUV420CSPS_8	MK_U32(28)
+
+/** YUV420 10-bit (CSPS) */
 #define NVCSI_DATATYPE_YUV420CSPS_10	MK_U32(29)
+
+/** UYV422 8-bit */
 #define NVCSI_DATATYPE_YUV422_8		MK_U32(30)
+
+/** YUV422 10-bit */
 #define NVCSI_DATATYPE_YUV422_10	MK_U32(31)
+
+/** 12-bit RGB (RGB444) */
 #define NVCSI_DATATYPE_RGB444		MK_U32(32)
+
+/** 15-bit RGB (RGB555) */
 #define NVCSI_DATATYPE_RGB555		MK_U32(33)
+
+/** 16-bit RGB (RGB565) */
 #define NVCSI_DATATYPE_RGB565		MK_U32(34)
+
+/** 18-bit RGB (RGB666) */
 #define NVCSI_DATATYPE_RGB666		MK_U32(35)
+
+/** 24-bit RGB (RGB888) */
 #define NVCSI_DATATYPE_RGB888		MK_U32(36)
+
+/** 6-bit raw */
 #define NVCSI_DATATYPE_RAW6		MK_U32(40)
+
+/** 7-bit raw */
 #define NVCSI_DATATYPE_RAW7		MK_U32(41)
+
+/** 8-bit raw */
 #define NVCSI_DATATYPE_RAW8		MK_U32(42)
+
+/** 10-bit raw */
 #define NVCSI_DATATYPE_RAW10		MK_U32(43)
+
+/** 12-bit raw */
 #define NVCSI_DATATYPE_RAW12		MK_U32(44)
+
+/** 14-bit raw */
 #define NVCSI_DATATYPE_RAW14		MK_U32(45)
+
+/** 16-bit raw */
 #define NVCSI_DATATYPE_RAW16		MK_U32(46)
+
+/** 20-bit raw */
 #define NVCSI_DATATYPE_RAW20		MK_U32(47)
+
+/** 32-bit raw */
+#define NVCSI_DATATYPE_RAW32		MK_U32(63)
+
+/** User defined datatype UED U1 */
 #define NVCSI_DATATYPE_USER_1		MK_U32(48)
+
+/** User defined datatype UED U2 */
 #define NVCSI_DATATYPE_USER_2		MK_U32(49)
+
+/** User defined datatype UED U3 */
 #define NVCSI_DATATYPE_USER_3		MK_U32(50)
+
+/** User defined datatype UED U4 */
 #define NVCSI_DATATYPE_USER_4		MK_U32(51)
+
+/** User defined datatype UED R1 (reserved) */
 #define NVCSI_DATATYPE_USER_5		MK_U32(52)
+
+/** User defined datatype UED R2 (reserved) */
 #define NVCSI_DATATYPE_USER_6		MK_U32(53)
+
+/** User defined datatype UED R3 (reserved) */
 #define NVCSI_DATATYPE_USER_7		MK_U32(54)
+
+/** User defined datatype UED R4 (reserved) */
 #define NVCSI_DATATYPE_USER_8		MK_U32(55)
+
+/** Unknown datatype */
 #define NVCSI_DATATYPE_UNKNOWN		MK_U32(64)
 /** @} */
 
@@ -2830,29 +3290,67 @@ struct nvcsi_error_config {
 #define NVCSI_DATA_TYPE_RAW20			MK_U32(47)
 #define NVCSI_DATA_TYPE_Unknown			MK_U32(64)
 
-/* NVCSI DPCM ratio */
+/**
+ * @defgroup NvCsiDpcmRatio NVCSI DPCM ratio
+ * @{
+ */
+/** Bypass DPCM decompression */
 #define NVCSI_DPCM_RATIO_BYPASS		MK_U32(0)
+
+/** DPCM ratio 10-8-10 */
 #define NVCSI_DPCM_RATIO_10_8_10	MK_U32(1)
+
+/** DPCM ratio 10-7-10 */
 #define NVCSI_DPCM_RATIO_10_7_10	MK_U32(2)
+
+/** DPCM ratio 10-7-10 */
 #define NVCSI_DPCM_RATIO_10_6_10	MK_U32(3)
+
+/** DPCM ratio 12-8-12 */
 #define NVCSI_DPCM_RATIO_12_8_12	MK_U32(4)
+
+/** DPCM ratio 12-7-12 */
 #define NVCSI_DPCM_RATIO_12_7_12	MK_U32(5)
+
+/** DPCM ratio 12-6-12 */
 #define NVCSI_DPCM_RATIO_12_6_12	MK_U32(6)
+
+/** DPCM ratio 14-10-14 */
 #define NVCSI_DPCM_RATIO_14_10_14	MK_U32(7)
+
+/** DPCM ratio 14-8-14 */
 #define NVCSI_DPCM_RATIO_14_8_14	MK_U32(8)
+
+/** DPCM ratio 12-10-12 */
 #define NVCSI_DPCM_RATIO_12_10_12	MK_U32(9)
+/**@}*/
 
 /**
  * @defgroup NvCsiParamType NvCSI Parameter Type
  * @{
  */
+/** Unspecified parameter set */
 #define NVCSI_PARAM_TYPE_UNSPECIFIED	MK_U32(0)
+
+/**
+ * DPCM parameter set is present in
+ * @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG::dpcm_config.
+ * (non-safety).
+ */
 #define NVCSI_PARAM_TYPE_DPCM		MK_U32(1)
+
+/**
+ * Watchdog timeout parameter set is present in
+ * @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG::watchdog_config.
+ */
 #define NVCSI_PARAM_TYPE_WATCHDOG	MK_U32(2)
 /**@}*/
 
 struct nvcsi_dpcm_config {
+	/** @ref NvCsiDpcmRatio "NVCSI DPCM ratio" */
 	uint32_t dpcm_ratio;
+
+	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
 
@@ -2862,9 +3360,11 @@ struct nvcsi_dpcm_config {
 struct nvcsi_watchdog_config {
 	/** Enable/disable the pixel parser watchdog */
 	uint8_t enable;
+
 	/** Reserved */
 	uint8_t pad8__[3];
-	/** The watchdog timer timeout period */
+
+	/** Pixel line timeout period in LP clock cycles [0, 0x7FFFFFFF]. */
 	uint32_t period;
 } CAPTURE_IVC_ALIGN;
 
@@ -3086,7 +3586,7 @@ struct nvcsi_tpg_config_tpg_ng {
 	 * 17:12	SOL_ECC		This field is for the SOL short packet ECC.
 	 * 23:18	EOL_ECC		This field is for the EOL short packet ECC.
 	 * 29:24	LINE_ECC	This field is for the long packet header ECC.
-	 * */
+	 */
 	uint32_t override_ecc_ph;
 	/** Reserved size */
 	uint32_t reserved;

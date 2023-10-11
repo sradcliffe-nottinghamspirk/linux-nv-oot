@@ -766,55 +766,62 @@ struct CAPTURE_SYNCGEN_DISABLE_RESP_MSG {
 	capture_result result;
 } CAPTURE_IVC_ALIGN;
 
-
 /**
- * @brief Open an NVCSI stream request message
+ * @brief Message data for @ref CAPTURE_PHY_STREAM_OPEN_REQ message.
  * @deprecated
  */
 struct CAPTURE_PHY_STREAM_OPEN_REQ_MSG {
-	/** See NvCsiStream "NVCSI stream id" */
+	/** @ref NvCsiStream "NvCSI Stream ID" */
 	uint32_t stream_id;
-	/** See NvCsiPort "NvCSI Port" */
+
+	/** @ref NvCsiPort "CSI Port" */
 	uint32_t csi_port;
+
 	/** See @ref NvPhyType "NvCSI Physical stream type" */
 	uint32_t phy_type;
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief NVCSI stream open response message
+ * @brief Message data for @ref CAPTURE_PHY_STREAM_OPEN_RESP message.
  * @deprecated
  */
 struct CAPTURE_PHY_STREAM_OPEN_RESP_MSG {
-	/** Stream open request status. See @ref CapErrorCodes "Return values". */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	uint32_t result;
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief NVCSI stream close request message
+ * @brief Message data for @ref CAPTURE_PHY_STREAM_CLOSE_REQ message.
  * @deprecated
  */
 struct CAPTURE_PHY_STREAM_CLOSE_REQ_MSG {
-	/** NVCSI stream Id */
+	/** @ref NvCsiStream "NvCSI Stream ID" */
 	uint32_t stream_id;
-	/** NVCSI port */
+
+	/** @ref NvCsiPort "CSI Port" */
 	uint32_t csi_port;
+
 	/** See @ref NvPhyType "NvCSI Physical stream type" */
 	uint32_t phy_type;
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief NVCSI stream close response message
+ * @brief Message data for @ref CAPTURE_PHY_STREAM_CLOSE_RESP message.
  * @deprecated
  */
 struct CAPTURE_PHY_STREAM_CLOSE_RESP_MSG {
-	/** Stream close request status. See @ref CapErrorCodes "Return values". */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	uint32_t result;
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
@@ -825,6 +832,7 @@ struct CAPTURE_PHY_STREAM_CLOSE_RESP_MSG {
 struct CAPTURE_PHY_STREAM_DUMPREGS_REQ_MSG {
 	/** NVCSI stream Id */
 	uint32_t stream_id;
+
 	/** NVCSI port */
 	uint32_t csi_port;
 } CAPTURE_IVC_ALIGN;
@@ -839,62 +847,92 @@ struct CAPTURE_PHY_STREAM_DUMPREGS_RESP_MSG {
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief Set NVCSI stream configuration request message.
+ * @brief Message data for @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ message.
  */
 struct CAPTURE_CSI_STREAM_SET_CONFIG_REQ_MSG {
-	/** NVCSI stream Id */
+	/** @ref NvCsiStream "NvCSI Stream ID" */
 	uint32_t stream_id;
-	/** NVCSI port */
+
+	/** @ref NvCsiPort "CSI Port" */
 	uint32_t csi_port;
-	/** @ref See NvCsiConfigFlags "NVCSI Configuration Flags" */
+
+	/** See @ref NvCsiConfigFlags "NVCSI Configuration Flags" */
 	uint32_t config_flags;
+
 	/** Reserved */
 	uint32_t pad32__;
-	/** NVCSI super control and interface logic (SCIL aka brick) configuration */
+
+	/**
+	 * NVCSI brick configuration. Configuration is present if
+	 * flag @ref NVCSI_CONFIG_FLAG_BRICK is set in @ref config_flags.
+	 */
 	struct nvcsi_brick_config brick_config;
-	/** NVCSI control and interface logic (CIL) partition configuration */
+
+	/**
+	 * NVCSI CIL (brick partition) configuration. Configuration is present
+	 * if flag @ref NVCSI_CONFIG_FLAG_CIL is set in @ref config_flags.
+	 */
 	struct nvcsi_cil_config cil_config;
-	/** User-defined error configuration */
+
+	/**
+	 * User-defined error configuration. Configuration is present if
+	 * flag @ref NVCSI_CONFIG_FLAG_ERROR is set in @ref config_flags.
+	 */
 	struct nvcsi_error_config error_config;
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief Set NVCSI stream configuration response message.
+ * @brief Message data for @ref CAPTURE_CSI_STREAM_SET_CONFIG_RESP message.
  */
 struct CAPTURE_CSI_STREAM_SET_CONFIG_RESP_MSG {
-	/** NVCSI stream config request status. See @ref CapErrorCodes "Return values". */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	uint32_t result;
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief Set NVCSI stream parameter request message.
+ * @brief Message data for @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ message.
  */
 struct CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG {
-	/** NVCSI stream Id */
+	/** @ref NvCsiStream "NvCSI Stream ID" */
 	uint32_t stream_id;
-	/** NVCSI stream virtual channel id */
+
+	/** @ref NvCsiVirtualChannel "CSI Virtual Channel ID" */
 	uint32_t virtual_channel_id;
-	/** The parameter to set. See @ref NvCsiParamType "NVCSI Parameter Type" */
+
+	/** @ref NvCsiParamType "NVCSI parameter type". */
 	uint32_t param_type;
+
 	/** Reserved */
 	uint32_t pad32__;
+
 	/** @anon_union */
 	union {
-		/** Set DPCM config for an NVCSI stream @anon_union_member */
+		/**
+		 * DPCM configuration for an NVCSI stream. Present if
+		 * @ref param_type is @ref NVCSI_PARAM_TYPE_DPCM. (non-safety)
+		 * @anon_union_member
+		 */
 		struct nvcsi_dpcm_config dpcm_config;
-		/** NVCSI watchdog timer config @anon_union_member */
+
+		/**
+		 * NVCSI watchdog timer configugration. Present if
+		 * @ref param_type is @ref NVCSI_PARAM_TYPE_WATCHDOG.
+		 * @anon_union_member
+		 */
 		struct nvcsi_watchdog_config watchdog_config;
 	};
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @brief Set NVCSI stream parameter response message.
+ * @brief Message data for @ref CAPTURE_CSI_STREAM_SET_PARAM_RESP message.
  */
 struct CAPTURE_CSI_STREAM_SET_PARAM_RESP_MSG {
-	/** NVCSI set stream parameter request status. See @ref CapErrorCodes "Return values". */
+	/** Request result code. See @ref CapErrorCodes "result codes". */
 	uint32_t result;
+
 	/** Reserved */
 	uint32_t pad32__;
 } CAPTURE_IVC_ALIGN;
@@ -1082,9 +1120,106 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  * @defgroup PhyStreamMsgType NVCSI PHY Control Message Types
  * @{
  */
+
+/**
+ * @brief CSI stream open request. @deprecated
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * open a CSI stream.
+ *
+ * This message is deprecated and should not be used. The client
+ * should instead set the @ref CAPTURE_CHANNEL_FLAG_CSI in
+ * @ref capture_channel_config::channel_flags and provide the
+ * @ref csi_stream_config "CSI stream configuration" in
+ * @ref capture_channel_config::csi_stream.
+ *
+ * @pre The capture-control IVC channel has been set up during
+ *      boot using the @ref CAMRTC_HSP_CH_SETUP command.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_PHY_STREAM_OPEN_REQ
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" = <em>unique ID</em>
+ *
+ * @par Payload
+ * - @ref CAPTURE_PHY_STREAM_OPEN_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_PHY_STREAM_OPEN_RESP
+ */
 #define CAPTURE_PHY_STREAM_OPEN_REQ		MK_U32(0x36)
+
+/**
+ * @brief CSI stream open response. @deprecated
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" received in
+ * response to a @ref CAPTURE_PHY_STREAM_OPEN_REQ message.
+ *
+ * This message is deprecated and should not be used. See
+ * @ref CAPTURE_PHY_STREAM_OPEN_REQ.
+ *
+ * @pre A @ref CAPTURE_PHY_STREAM_OPEN_REQ message has been sent.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_PHY_STREAM_OPEN_RESP
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" =
+ *     @ref CAPTURE_PHY_STREAM_OPEN_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::transaction "transaction"
+ *
+ * @par Payload
+ *  - @ref CAPTURE_PHY_STREAM_OPEN_RESP_MSG
+ */
 #define CAPTURE_PHY_STREAM_OPEN_RESP		MK_U32(0x37)
+
+/**
+ * @brief CSI stream close request. @deprecated
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * close a CSI stream.
+ *
+ * This message is deprecated and should not be used. The client
+ * should instead set the @ref CAPTURE_CHANNEL_FLAG_CSI in
+ * @ref capture_channel_config::channel_flags and provide the
+ * @ref csi_stream_config "CSI stream configuration" in
+ * @ref capture_channel_config::csi_stream. The CSI stream will
+ * then be closed when the VI capture channel is closed.
+ *
+ * @pre A CSI stream has been opened with the
+ *      @ref CAPTURE_PHY_STREAM_OPEN_REQ message.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_PHY_STREAM_CLOSE_REQ
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" = <em>unique ID</em>
+ *
+ * @par Payload
+ * - @ref CAPTURE_PHY_STREAM_CLOSE_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_PHY_STREAM_CLOSE_RESP
+ */
 #define CAPTURE_PHY_STREAM_CLOSE_REQ		MK_U32(0x38)
+
+/**
+ * @brief CSI stream close response. @deprecated
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" received in
+ * response to a @ref CAPTURE_PHY_STREAM_CLOSE_REQ message.
+ *
+ * This message is deprecated and should not be used. See
+ * @ref CAPTURE_PHY_STREAM_CLOSE_REQ.
+ *
+ * @pre A @ref CAPTURE_PHY_STREAM_CLOSE_REQ message has been sent.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_PHY_STREAM_CLOSE_RESP
+ *   - @ref CAPTURE_MSG_HEADER::transaction "transaction" =
+ *     @ref CAPTURE_PHY_STREAM_CLOSE_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::transaction "transaction"
+ *
+ * @par Payload
+ *  - @ref CAPTURE_PHY_STREAM_CLOSE_RESP_MSG
+ */
 #define CAPTURE_PHY_STREAM_CLOSE_RESP		MK_U32(0x39)
 /** @} */
 
@@ -1100,9 +1235,89 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  * @defgroup NvCsiMsgType NVCSI Configuration Message Types
  * @{
  */
+
+/**
+ * @brief CSI stream set configuration request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * set CSI stream configuration.
+ *
+ * @pre A VI capture channel has been set up with
+ *      @ref CAPTURE_CHANNEL_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CSI_STREAM_SET_CONFIG_RESP
+ */
 #define CAPTURE_CSI_STREAM_SET_CONFIG_REQ	MK_U32(0x40)
+
+/**
+ * @brief CSI stream set configuration response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" received in
+ * response to a @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ message.
+ *
+ * @pre A @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ message has been sent.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CSI_STREAM_SET_CONFIG_RESP
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CSI_STREAM_SET_CONFIG_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ *  - @ref CAPTURE_CSI_STREAM_SET_CONFIG_RESP_MSG
+ */
 #define CAPTURE_CSI_STREAM_SET_CONFIG_RESP	MK_U32(0x41)
+
+/**
+ * @brief CSI stream set parameters request.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" to
+ * set CSI stream parameters.
+ *
+ * @pre A VI capture channel has been set up with
+ *      @ref CAPTURE_CHANNEL_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_CSI_STREAM_SET_PARAM_RESP
+ */
 #define CAPTURE_CSI_STREAM_SET_PARAM_REQ	MK_U32(0x42)
+
+/**
+ * @brief CSI stream set parameters response.
+ *
+ * This is a @ref CapCtrlMsgType "capture control message" received in
+ * response to a @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ message.
+ *
+ * @pre A @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ message has been sent.
+ *
+ * @par Header
+ * - @ref CAPTURE_CONTROL_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_CSI_STREAM_SET_PARAM_RESP
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CSI_STREAM_SET_PARAM_REQ_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ *  - @ref CAPTURE_CSI_STREAM_SET_PARAM_RESP_MSG
+ */
 #define CAPTURE_CSI_STREAM_SET_PARAM_RESP	MK_U32(0x43)
 /** @} */
 
