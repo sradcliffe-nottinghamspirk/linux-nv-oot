@@ -1,13 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
-LINUX_VERSION := $(shell expr $(VERSION) \* 256 + $(PATCHLEVEL))
-LINUX_VERSION_6_2 := $(shell expr 6 \* 256 + 2)
-
 ccflags-y += -Wframe-larger-than=2048
 
-# capture-ivc is currently broken for Linux v6.2 and so skip for Linux v6.2+
-ifeq ($(shell test $(LINUX_VERSION) -lt $(LINUX_VERSION_6_2); echo $$?),0)
+ifneq ($(CONFIG_TEGRA_IVC_LEGACY_DISABLE),y)
 obj-m += capture-ivc.o
 endif
 obj-m += ivc-bus.o

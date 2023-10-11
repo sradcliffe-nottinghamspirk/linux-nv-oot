@@ -1,11 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
-LINUX_VERSION := $(shell expr $(VERSION) \* 256 + $(PATCHLEVEL))
-LINUX_VERSION_6_3 := $(shell expr 6 \* 256 + 3)
-
-# cdi_gpio/mgr is currently broken for Linux v6.3 and so skip for Linux v6.3+
-ifeq ($(shell test $(LINUX_VERSION) -lt $(LINUX_VERSION_6_3); echo $$?),0)
+ifneq ($(CONFIG_TEGRA_GPIO_LEGACY_DISABLE),y)
 obj-m	+= cdi_gpio.o
 obj-m	+= cdi_mgr.o
 endif

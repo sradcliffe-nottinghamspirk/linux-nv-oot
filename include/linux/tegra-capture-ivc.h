@@ -9,7 +9,7 @@
 #include <linux/types.h>
 #include <linux/version.h>
 
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
+#if !defined(CONFIG_TEGRA_IVC_LEGACY_DISABLE)
 /**
  * @brief Submit the control message binary blob to capture-IVC driver,
  *	which is to be transferred over control IVC channel to RTCPU.
@@ -187,6 +187,6 @@ static inline int tegra_capture_ivc_unregister_capture_cb(
 {
 	return -ENOTSUPP;
 };
-#endif /* (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE) */
+#endif /* !defined(CONFIG_TEGRA_IVC_LEGACY_DISABLE) */
 
 #endif /* INCLUDE_CAPTURE_IVC_H */
