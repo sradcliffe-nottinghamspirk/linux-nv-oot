@@ -1,12 +1,23 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ *
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #ifndef __UAPI_TEGRA_IVC_DEV_H
 #define __UAPI_TEGRA_IVC_DEV_H
 
 #include <linux/ioctl.h>
+
+#define IVC_INVALID_IPA 0U
+#define IVC_TRAP_IPA 1U
+#define IVC_MSI_IPA 2U
 
 struct nvipc_ivc_info {
 	uint32_t nframes;
@@ -17,6 +28,7 @@ struct nvipc_ivc_info {
 	bool     rx_first;
 	uint64_t noti_ipa;
 	uint16_t noti_irq;
+	uint16_t noti_type; /* IVC_TRAP_IPA, IVC_MSI_IPA */
 };
 
 /*  IOCTL magic number */
@@ -37,5 +49,6 @@ struct nvipc_ivc_info {
 #define NVIPC_IVC_IOCTL_NUMBER_MAX 3
 
 int ivc_cdev_get_peer_vmid(uint32_t qid, uint32_t *peer_vmid);
+int ivc_cdev_get_noti_type(uint32_t qid, uint32_t *noti_type);
 
 #endif

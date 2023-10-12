@@ -1,6 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ *
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
  */
 
 #include <nvidia/conftest.h>
@@ -283,10 +290,13 @@ static long ivc_dev_ioctl(struct file *filp, unsigned int cmd,
 		info.queue_offset = ivcd->qd->offset;
 		info.area_size = ivc_area_size;
 #ifdef SUPPORTS_TRAP_MSI_NOTIFICATION
-		if (ivcd->qd->msi_ipa != 0)
+		if (ivcd->qd->msi_ipa != 0) {
 			info.noti_ipa = ivcd->qd->msi_ipa;
-		else
+			info.noti_type = IVC_MSI_IPA;
+		} else {
 			info.noti_ipa = ivcd->qd->trap_ipa;
+			info.noti_type = IVC_TRAP_IPA;
+		}
 
 		info.noti_irq = ivcd->qd->raise_irq;
 #endif /* SUPPORTS_TRAP_MSI_NOTIFICATION */
@@ -623,6 +633,39 @@ exit:
 	return ret;
 }
 EXPORT_SYMBOL(ivc_cdev_get_peer_vmid);
+
+int ivc_cdev_get_noti_type(uint32_t qid, uint32_t *noti_type)
+{
+	uint32_t i;
+	int32_t ret = -ENOENT;
+
+	if ((s_infop == NULL) || (s_guestid == INVALID_VMID)) {
+		ERR("ivc info or VMID is NOT initialized yet");
+		ret = -EFAULT;
+		goto exit;
+	}
+
+	for (i = 0; i < s_infop->nr_queues; i++) {
+		struct ivc_dev *ivc = &ivc_dev_array[i];
+
+		if (ivc->qd->id == qid) {
+			if (ivc->qd->msi_ipa != 0)
+				*noti_type = IVC_MSI_IPA;
+			else
+				*noti_type = IVC_TRAP_IPA;
+			ret = 0;
+			DBG("found qid %d: noti_type=%d\n", qid, *noti_type);
+			break;
+		}
+	}
+
+	if (ret != 0)
+		INFO("qid %d not found\n", qid);
+
+exit:
+	return ret;
+}
+EXPORT_SYMBOL(ivc_cdev_get_noti_type);
 
 module_init(ivc_init);
 module_exit(ivc_exit);

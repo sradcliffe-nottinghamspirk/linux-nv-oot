@@ -1,5 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2019-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2019-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ *
+ * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
+ * property and proprietary rights in and to this material, related
+ * documentation and any modifications thereto. Any use, reproduction,
+ * disclosure or distribution of this material and related documentation
+ * without an express license agreement from NVIDIA CORPORATION or
+ * its affiliates is strictly prohibited.
+ */
 
 /*
  * This is NvSciIpc kernel driver. At present its only use is to support
@@ -508,11 +517,15 @@ static int nvsciipc_ioctl_set_db(struct nvsciipc *ctx, unsigned int cmd,
 			entry->vuid = vuid64.value;
 
 			/* fill peer vmid */
-			if (entry->backend == NVSCIIPC_BACKEND_IVC)
+			if (entry->backend == NVSCIIPC_BACKEND_IVC) {
 				/* Sometimes it fails to find vmid due to bad configuration
 				 * in PCT but it is not error. Hence ignore result
 				 */
 				(void)ivc_cdev_get_peer_vmid(entry->id, &entry->peer_vmid);
+				(void)ivc_cdev_get_noti_type(entry->id, &entry->noti_type);
+			} else {
+				entry->noti_type = IVC_INVALID_IPA;
+			}
 		}
 	}
 #endif /* CONFIG_TEGRA_VIRTUALIZATION */
@@ -654,14 +667,14 @@ static ssize_t nvsciipc_dbg_read(struct file *filp, char __user *buf,
 	}
 
 	for (i = 0; i < ctx->num_eps; i++) {
-		INFO("EP[%03d]: ep_name: %s, dev_name: %s, backend: %u, nframes: %u, "
-		"frame_size: %u, id: %u\n", i,
-		ctx->db[i]->ep_name,
-		ctx->db[i]->dev_name,
-		ctx->db[i]->backend,
-		ctx->db[i]->nframes,
-		ctx->db[i]->frame_size,
-		ctx->db[i]->id);
+		INFO("EP[%03d]: ep:%s,dev:%s,be:%u,nfrm:%u,fsz:%u,id:%u,noti:%d(TRAP:1,MSI:2)\n", i,
+			ctx->db[i]->ep_name,
+			ctx->db[i]->dev_name,
+			ctx->db[i]->backend,
+			ctx->db[i]->nframes,
+			ctx->db[i]->frame_size,
+			ctx->db[i]->id,
+			ctx->db[i]->noti_type);
 	}
 
 	return 0;
