@@ -61,7 +61,7 @@ obj-m += ras/
 obj-m += regulator/
 obj-m += rtc/
 obj-m += cpuidle/
-ifdef CONFIG_SCSI
+ifdef CONFIG_SCSI_UFSHCD
 obj-m += scsi/ufs/
 endif
 obj-m += soc/tegra/
