@@ -218,8 +218,8 @@ static int tegra_sha_prep_cmd(struct tegra_se *se, u32 *cpuvaddr,
 	u64 msg_len, msg_left;
 	int i = 0;
 
-	msg_len = rctx->total_len * 8;
-	msg_left = rctx->datbuf.size * 8;
+	msg_len = (u64)rctx->total_len * 8;
+	msg_left = (u64)rctx->datbuf.size * 8;
 
 	/*
 	 * If IN_ADDR_HI_0.SZ > SHA_MSG_LEFT_[0-3] to the HASH engine,
@@ -377,7 +377,7 @@ static int tegra_sha_do_one_req(struct crypto_engine *engine, void *areq)
 	struct crypto_ahash *tfm = crypto_ahash_reqtfm(req);
 	struct tegra_sha_ctx *ctx = crypto_ahash_ctx(tfm);
 	struct tegra_se *se = ctx->se;
-	int ret;
+	int ret = -EINVAL;
 
 	if (rctx->task & SHA_UPDATE) {
 		ret = tegra_sha_do_update(req);

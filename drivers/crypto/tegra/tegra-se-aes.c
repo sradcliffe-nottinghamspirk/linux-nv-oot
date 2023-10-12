@@ -1216,8 +1216,6 @@ static int tegra_ccm_do_one_req(struct crypto_engine *engine, void *areq)
 			goto out;
 	} else {
 		rctx->cryptlen = req->cryptlen - ctx->authsize;
-		if (ret)
-			goto out;
 
 		/* CTR operation */
 		ret = tegra_ccm_do_ctr(ctx, rctx);
@@ -1614,7 +1612,7 @@ static int tegra_cmac_do_one_req(struct crypto_engine *engine, void *areq)
 	struct crypto_ahash *tfm = crypto_ahash_reqtfm(req);
 	struct tegra_cmac_ctx *ctx = crypto_ahash_ctx(tfm);
 	struct tegra_se *se = ctx->se;
-	int ret;
+	int ret = -EINVAL;
 
 	if (rctx->task & SHA_UPDATE) {
 		ret = tegra_cmac_do_update(req);

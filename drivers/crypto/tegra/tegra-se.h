@@ -440,9 +440,9 @@ struct tegra_se {
 	struct device *dev;
 	unsigned int opcode_addr;
 	unsigned int stream_id;
-	unsigned int num_clks;
 	unsigned int syncpt_id;
 	void __iomem *base;
+	int num_clks;
 	u32 owner;
 };
 
