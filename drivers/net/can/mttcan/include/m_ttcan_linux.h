@@ -31,9 +31,7 @@
 #include <linux/net_tstamp.h>
 #include <linux/spinlock.h>
 #include <linux/clocksource.h>
-#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
 #include <linux/tegra-oot-prod.h>
-#endif
 #include <linux/platform/tegra/ptp-notifier.h>
 #include <linux/mailbox_client.h>
 #ifdef CONFIG_CLK_SRC_TEGRA18_US_TIMER

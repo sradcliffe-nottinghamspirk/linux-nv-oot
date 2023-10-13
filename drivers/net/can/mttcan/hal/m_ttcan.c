@@ -9,10 +9,8 @@
 
 #define MTTCAN_INIT_TIMEOUT 1000
 
-#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
 #define MTTCAN_SPEED_5MBPS  5000000
 #define MTTCAN_SPEED_8MBPS  8333333
-#endif
 
 void ttcan_print_version(struct ttcan_controller *ttcan)
 {
@@ -293,7 +291,7 @@ inline u32 ttcan_read_ecr(struct ttcan_controller *ttcan)
 	return ttcan_read32(ttcan, ADR_MTTCAN_ECR);
 }
 
-#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 static void tegra_mttcan_config_prod_settings(struct mttcan_priv *priv)
 {
 	struct ttcan_controller *ttcan = priv->ttcan;
@@ -317,6 +315,47 @@ static void tegra_mttcan_config_prod_settings(struct mttcan_priv *priv)
 	if (ret == 0)
 		dev_dbg(priv->device, "setting prod: %s\n", prod_name);
 }
+#else
+static void tegra_mttcan_write_prod_settings(struct mttcan_priv *priv, const char *prod_name)
+{
+	struct ttcan_controller *ttcan = priv->ttcan;
+	struct tegra_prod_reg_info *reg_info;
+	struct tegra_prod_cfg_info *prod_cfg;
+	u32 rval;
+	int i;
+
+	prod_cfg = tegra_prod_get_by_name_from_list(priv->device, ttcan->prod_list, prod_name);
+	if (prod_cfg == NULL)
+		return;
+
+	reg_info = prod_cfg->reg_info;
+	for (i = 0; i < prod_cfg->num_reg_info; ++i) {
+		rval = ttcan_read32(ttcan, reg_info[i].reg_offset);
+		rval &= ~reg_info[i].reg_mask;
+		rval |= reg_info[i].reg_value;
+		ttcan_write32(ttcan, reg_info[i].reg_offset, rval);
+	}
+}
+
+static void tegra_mttcan_config_prod_settings(struct mttcan_priv *priv)
+{
+	struct ttcan_controller *ttcan = priv->ttcan;
+	char *prod_name;
+
+	switch (ttcan->bt_config.data.bitrate) {
+	case MTTCAN_SPEED_5MBPS:
+		prod_name = "prod_c_can_5m";
+		break;
+	case MTTCAN_SPEED_8MBPS:
+		prod_name = "prod_c_can_8m";
+		break;
+	default:
+		prod_name = "prod_c_can_2m_1m";
+		break;
+	}
+
+	tegra_mttcan_write_prod_settings(priv, prod_name);
+}
 #endif
 
 int ttcan_set_bitrate(struct mttcan_priv *priv)
@@ -327,9 +366,6 @@ int ttcan_set_bitrate(struct mttcan_priv *priv)
 	u32 cccr_reg;
 	u32 nbtp_reg;
 	u32 dbtp_reg;
-#if KERNEL_VERSION(5, 16, 0) < LINUX_VERSION_CODE
-	u32 tdcr_reg;
-#endif
 
 	nbtp_reg = ((ttcan->bt_config.nominal.phase_seg2 - 1) <<
 		    MTT_NBTP_NTSEG2_SHIFT) & MTT_NBTP_NTSEG2_MASK;
@@ -366,12 +402,6 @@ int ttcan_set_bitrate(struct mttcan_priv *priv)
 		dbtp_reg |= (ttcan->bt_config.data.tdc << MTT_DBTP_TDC_SHIFT) &
 		    MTT_DBTP_TDC_MASK;
 
-#if KERNEL_VERSION(5, 16, 0) < LINUX_VERSION_CODE
-		tdcr_reg = (ttcan->bt_config.data.tdc_offset <<
-			MTT_TDCR_TDCO_SHIFT) & MTT_TDCR_TDCO_MASK;
-
-		tdcr_reg |= ttcan->tdc_offset;
-#endif
 		dev_dbg(priv->device, "%s DBTP(0x%x) value (0x%x)\n", __func__,
 			ADR_MTTCAN_DBTP, dbtp_reg);
 		ret = ttcan_write32_check(ttcan, ADR_MTTCAN_DBTP,
@@ -381,18 +411,8 @@ int ttcan_set_bitrate(struct mttcan_priv *priv)
 			return ret;
 		}
 
-#if KERNEL_VERSION(5, 16, 0) >= LINUX_VERSION_CODE
 		if (ttcan->prod_list)
 			tegra_mttcan_config_prod_settings(priv);
-#else
-		ret = ttcan_write32_check(ttcan, ADR_MTTCAN_TDCR,
-					tdcr_reg, MTTCAN_TDCR_MSK);
-		if (ret) {
-			dev_err(priv->device, "%s: Fast bitrate configuration failed\n",
-			       __func__);
-			return ret;
-		}
-#endif
 
 		temp_reg = cccr_reg = ttcan_read32(ttcan, ADR_MTTCAN_CCCR);
 		if (ttcan->bt_config.fd_flags & CAN_FD_FLAG)
