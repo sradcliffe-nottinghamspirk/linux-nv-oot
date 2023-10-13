@@ -1,10 +1,15 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2014-2023, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
  */
 
-#ifndef _TEGRA_PRODS_H
-#define _TEGRA_PRODS_H
+#ifndef TEGRA_PROD_LEGACY_DUMMY_H__
+#define TEGRA_PROD_LEGACY_DUMMY_H__
+
+/**
+ * Implement the tegra prod APIs as static inline with success to avoid
+ * the failure in client side due to prod.
+ */
 
 struct tegra_prod;
 
@@ -16,13 +21,12 @@ struct tegra_prod;
  *
  * Configure all the prod configuration listed on prod-setting nodes.
  *
- * Returns 0 on success otherwise negive error number for failed case.
+ * Returns 0 on success otherwise negative error number for failed case.
  */
 static inline int tegra_prod_set_list(void __iomem **base, struct tegra_prod *tegra_prod)
 {
-	return -ENOTSUPP;
+	return 0;
 }
-
 
 /**
  * tegra_prod_set_boot_init(): Set all prods configurations which has boot init
@@ -33,11 +37,12 @@ static inline int tegra_prod_set_list(void __iomem **base, struct tegra_prod *te
  *
  * Configure all the prod configuration listed on prod-setting nodes.
  *
- * Returns 0 on success otherwise negive error number for failed case.
+ * Returns 0 on success otherwise negative error number for failed case.
  */
-static inline int tegra_prod_set_boot_init(void __iomem **base, struct tegra_prod *tegra_prod)
+static inline int tegra_prod_set_boot_init(void __iomem **base,
+			     struct tegra_prod *tegra_prod)
 {
-	return -ENOTSUPP;
+	return 0;
 }
 
 /**
@@ -51,12 +56,12 @@ static inline int tegra_prod_set_boot_init(void __iomem **base, struct tegra_pro
  * Configure prod configuration with specific prod name for conditional
  * prod configurations.
  *
- * Returns 0 on success otherwise negive error number for failed case.
+ * Returns 0 on success otherwise negative error number for failed case.
  */
 static inline int tegra_prod_set_by_name(void __iomem **base, const char *name,
 			   struct tegra_prod *tegra_prod)
 {
-	return -ENOTSUPP;
+	return 0;
 }
 
 /**
@@ -79,7 +84,7 @@ static inline int tegra_prod_set_by_name_partially(void __iomem **base, const ch
 				     struct tegra_prod *tegra_prod, u32 index,
 				     u32 offset, u32 mask)
 {
-	return -ENOTSUPP;
+	return 0;
 }
 
 /**
@@ -94,7 +99,7 @@ static inline int tegra_prod_set_by_name_partially(void __iomem **base, const ch
 static inline bool tegra_prod_by_name_supported(struct tegra_prod *tegra_prod,
                                   const char *name)
 {
-	return false;
+	return true;
 }
 
 /**
@@ -110,7 +115,7 @@ static inline bool tegra_prod_by_name_supported(struct tegra_prod *tegra_prod,
  */
 static inline struct tegra_prod *devm_tegra_prod_get(struct device *dev)
 {
-	return ERR_PTR(-ENOTSUPP);
+	return (struct tegra_prod *)dev;
 }
 
 /**
@@ -131,6 +136,7 @@ static inline struct tegra_prod *devm_tegra_prod_get(struct device *dev)
 static inline struct tegra_prod *devm_tegra_prod_get_from_node(struct device *dev,
 						 struct device_node *np)
 {
-	return ERR_PTR(-ENOTSUPP);
+	return (struct tegra_prod *)dev;
 }
-#endif
+
+#endif /* TEGRA_PROD_LEGACY_DUMMY_H__ */

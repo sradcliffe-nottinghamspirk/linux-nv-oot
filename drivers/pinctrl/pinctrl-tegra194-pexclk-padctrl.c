@@ -13,7 +13,7 @@
 #include <linux/pinctrl/pinconf-generic.h>
 #include <linux/pinctrl/pinmux.h>
 #include <linux/slab.h>
-#include <linux/tegra-prod.h>
+#include <linux/tegra-oot-prod.h>
 
 #define PCIE_PEXCLK_PADCTL1_REFCLK_OVRD_0	0x8
 #define CFG2TMC_SW_CTL				BIT(0)
