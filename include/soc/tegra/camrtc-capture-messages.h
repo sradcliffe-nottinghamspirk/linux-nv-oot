@@ -27,6 +27,7 @@
 struct CAPTURE_MSG_HEADER {
 	/** Message identifier (See @ref CapCtrlMsgType). */
 	uint32_t msg_id;
+
 	/** @anon_union */
 	union {
 		/**
@@ -36,6 +37,7 @@ struct CAPTURE_MSG_HEADER {
 		 * must be a valid ID previously assigned by RCE FW.
 		 */
 		uint32_t channel_id;
+
 		/**
 		 * @anon_union_member
 		 * Transaction id [0, UINT32_MAX]. Used when the message is not
@@ -437,7 +439,8 @@ struct CAPTURE_MSG_HEADER {
  * This is a @ref CapMsgType "capture channel message" to
  * submit a VI capture request. The capture request provides
  * a reference to a @ref capture_descriptor in shared memory,
- * containing the detailed parameters for the capture.
+ * containing the detailed parameters for the capture. The request
+ * is asynchronous and will be queued by RCE for execution.
  *
  * Capture completion is indicated to downstream engines by
  * incrementing the <em>progress syncpoint</em> (see @ref
@@ -542,11 +545,217 @@ struct CAPTURE_MSG_HEADER {
  * @defgroup IspCapMsgType Message types for ISP capture channel IVC messages.
  * @{
  */
+
+/**
+ * @brief Submit a new ISP request on an ISP capture channel.
+ *
+ * This is a @ref CapMsgType "capture channel message" to
+ * submit an ISP request. The ISP request message provides
+ * a reference to a @ref isp_capture_descriptor in shared memory,
+ * containing the detailed parameters for the request. The request
+ * is asynchronous and will be queued by RCE for execution.
+ *
+ * ISP request completion is indicated to downstream engines by
+ * incrementing the <em>progress syncpoint</em> (see @ref
+ * capture_channel_config::progress_sp) a pre-calculated number of
+ * times (1 + <em>number of sub-frames</em>). The syncpoint is
+ * incremented once for each completed @em subframe and once
+ * when the task is complete. The number of @em subframes
+ * used in the capture is chosen by the client and is implemented
+ * by programming the height if the subframe into
+ * @ref surface_configs::slice_height in @ref isp_capture_descriptor.
+ * When the last <em>progress syncpoint</em> increment of the frame
+ * occurs, the optional @ref isp_capture_descriptor::engine_status
+ * record is guaranteed to be populated if a buffer for it was
+ * provided by the client.
+ *
+ * If @ref CAPTURE_ISP_FLAG_STATUS_REPORT_ENABLE
+ * is set in @ref isp_capture_descriptor::capture_flags, RCE will store
+ * the capture status into @ref isp_capture_descriptor::status. RCE will
+ * also send a @ref CAPTURE_ISP_STATUS_IND message to indicate that the
+ * ISP request was completed. The status record contains information
+ * about the capture, such as frame number, a general success or fail
+ * status, as well as more details of detected errors.
+ *
+ * If @ref CAPTURE_ISP_FLAG_ERROR_REPORT_ENABLE is set in
+ * @ref isp_capture_descriptor::capture_flags, RCE will send a
+ * @ref CAPTURE_ISP_STATUS_IND message upon an error, even if
+ * @ref CAPTURE_ISP_FLAG_STATUS_REPORT_ENABLE is not set.
+ *
+ * If @ref CAPTURE_ISP_FLAG_ISP_PROGRAM_BINDING
+ * is set in @ref isp_capture_descriptor::capture_flags, the
+ * @ref CAPTURE_ISP_STATUS_IND message is replaced by the
+ * @ref CAPTURE_ISP_EX_STATUS_IND message which combines the separate
+ * @ref CAPTURE_ISP_STATUS_IND and @ref CAPTURE_ISP_PROGRAM_STATUS_IND
+ * messages into a single message.
+ *
+ * @pre A VI capture channel has been set up with
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_ISP_REQUEST_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_ISP_REQUEST_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_ISP_STATUS_IND (asynchronous)
+ * - @ref CAPTURE_ISP_EX_STATUS_IND (asynchronous)
+ */
 #define CAPTURE_ISP_REQUEST_REQ			MK_U32(0x04)
+
+/**
+ * @brief ISP request status indication.
+ *
+ * This is a @ref CapMsgType "capture channel message"
+ * received in response to a @ref CAPTURE_ISP_REQUEST_REQ
+ * message when the ISP request has been completed and the
+ * capture status record has been written into
+ * @ref isp_capture_descriptor::status.
+ *
+ * @pre A @ref CAPTURE_ISP_REQUEST_REQ has been sent with
+ *      @ref CAPTURE_ISP_FLAG_STATUS_REPORT_ENABLE or
+ *      @ref CAPTURE_ISP_FLAG_ERROR_REPORT_ENABLE set in
+ *      @ref isp_capture_descriptor::capture_flags.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_ISP_STATUS_IND
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_ISP_STATUS_IND_MSG
+ */
 #define CAPTURE_ISP_STATUS_IND			MK_U32(0x05)
+
+/**
+ * @brief Submit a new ISP program on an ISP capture channel.
+ *
+ * This is a @ref CapMsgType "capture channel message" to submit
+ * an ISP program request. The ISP program request message provides
+ * a reference to a @ref isp_program_descriptor in shared memory,
+ * containing detailed ISP programming. The ISP program will be
+ * used for multiple ISP processing requests until superceded
+ * by a newer ISP program.
+ *
+ * Once the ISP program is expired and RCE FW has deleted all
+ * references to it, it will send the asynchronous @ref
+ * CAPTURE_ISP_PROGRAM_STATUS_IND back to indicate that the
+ * ISP program buffer can be released.
+ *
+ * If the ISP program has been associated with a single ISP request
+ * by setting the @ref CAPTURE_ISP_FLAG_ISP_PROGRAM_BINDING flag
+ * in the @ref isp_capture_descriptor::capture_flags field of
+ * a @ref CAPRURE_ISP_REQUEST_REQ "ISP request message", the
+ * @ref CAPTURE_ISP_PROGRAM_STATUS_IND message is replaced by the
+ * @ref CAPTURE_ISP_EX_STATUS_IND message which combines the separate
+ * @ref CAPTURE_ISP_STATUS_IND and @ref CAPTURE_ISP_PROGRAM_STATUS_IND
+ * messages into a single message.
+ *
+ * @pre A VI capture channel has been set up with
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_REQ.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_ISP_PROGRAM_REQUEST_REQ
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_ISP_PROGRAM_REQUEST_REQ_MSG
+ *
+ * @par Response
+ * - @ref CAPTURE_ISP_PROGRAM_STATUS_IND (asynchronous)
+ * - @ref CAPTURE_ISP_EX_STATUS_IND (asynchronous)
+ */
 #define CAPTURE_ISP_PROGRAM_REQUEST_REQ		MK_U32(0x06)
+
+/**
+ * @brief ISP program status indication.
+ *
+ * This is a @ref CapMsgType "capture channel message" received
+ * in response to a @ref CAPTURE_ISP_PROGRAM_REQUEST_REQ
+ * message when the ISP program is no longer in use by RCE FW
+ * and the ISP program status record has been written into
+ * @ref isp_program_descriptor::isp_program_status. The ISP
+ * program buffer can be discarded after this message has been
+ * received.
+ *
+ * @pre A @ref CAPTURE_ISP_PROGRAM_REQUEST_REQ has been sent
+ *      and the ISP program has been bound to a single ISP request
+ *      by setting the @ref CAPTURE_ISP_FLAG_ISP_PROGRAM_BINDING
+ *      flag in @ref isp_capture_descriptor::capture_flags.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_ISP_PROGRAM_STATUS_IND
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_ISP_PROGRAM_STATUS_IND_MSG
+ */
 #define CAPTURE_ISP_PROGRAM_STATUS_IND		MK_U32(0x07)
+
+/**
+ * @brief ISP capture channel reset barrier indication.
+ *
+ * This is a @ref CapMsgType "capture channel message" sent on
+ * the @em capture IVC channel in conjuncation with a
+ * @ref CAPTURE_CHANNEL_ISP_RESET_REQ message sent on the
+ * <em>capture-control</em> IVC channel to reset an ISP capture
+ * channel. This indication defines a boundary between ISP requests
+ * submitted before the reset request and capture ISP requests submitted
+ * after it. ISP requests submitted after the reset request are
+ * not affected by the reset operation.
+ *
+ * @pre A VI capture channel has been set up with a
+ *      @ref CAPTURE_CHANNEL_ISP_SETUP_REQ and a
+ *      @ref CAPTURE_CHANNEL_ISP_RESET_REQ
+ *      has been sent to the channel.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_ISP_RESET_BARRIER_IND
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ */
 #define CAPTURE_ISP_RESET_BARRIER_IND		MK_U32(0x08)
+
+/**
+ * @brief ISP extended request status indication.
+ *
+ * This is a @ref CapMsgType "capture channel message" received in response
+ * to a @ref CAPTURE_ISP_REQUEST_REQ message when the ISP request has been
+ * completed and the capture status record has been written into
+ * @ref isp_capture_descriptor::status.
+ *
+ * This message also signals the expiration of an ISP program submitted
+ * earlier with an @ref ISP_PROGRAM_REQUEST_REQ "ISP program request
+ * message" and bound explicitly to the associated ISP request by setting
+ * the @ref CAPTURE_ISP_FLAG_ISP_PROGRAM_BINDING flag in
+ * @ref isp_capture_descriptor::capture_flags and specifying the
+ * @ref CAPTURE_ISP_PROGRAM_REQUEST_REQ_MSG::buffer_index "buffer index"
+ * of the ISP program in @ref isp_capture_descriptor::program_buffer_index.
+ *
+ * @pre A @ref CAPTURE_ISP_REQUEST_REQ has been sent with
+ *      @ref CAPTURE_ISP_FLAG_STATUS_REPORT_ENABLE and
+ *      @ref CAPTURE_ISP_FLAG_ISP_PROGRAM_BINDING set in
+ *      @ref isp_capture_descriptor::capture_flags.
+ *
+ * @par Header
+ * - @ref CAPTURE_MSG@b::@ref CAPTURE_MSG_HEADER "header"
+ *   - @ref CAPTURE_MSG_HEADER::msg_id "msg_id" = @ref CAPTURE_ISP_STATUS_IND
+ *   - @ref CAPTURE_MSG_HEADER::channel_id "channel_id" =
+ *     @ref CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG@b::@ref CAPTURE_MSG_HEADER "header"@b::@ref CAPTURE_MSG_HEADER::channel_id "channel_id"
+ *
+ * @par Payload
+ * - @ref CAPTURE_ISP_STATUS_IND_MSG
+ */
 #define CAPTURE_ISP_EX_STATUS_IND		MK_U32(0x09)
 /** @} */
 /** @} */
@@ -599,8 +808,10 @@ struct CAPTURE_CHANNEL_SETUP_REQ_MSG {
 struct CAPTURE_CHANNEL_SETUP_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+
 	/** Capture channel identifier for the new channel [0, UINT32_MAX]. */
 	uint32_t channel_id;
+
 	/** 1-hot encoded bitmask indicating the allocated VI hardware
 	 *  channel [0, 0xFFFFFFFFF ]. LSB is VI channel 0.
 	 */
@@ -619,6 +830,7 @@ struct CAPTURE_CHANNEL_SETUP_RESP_MSG {
 struct CAPTURE_CHANNEL_RESET_REQ_MSG {
 	/** See @ref CapResetFlags "reset flags". */
 	uint32_t reset_flags;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -627,6 +839,8 @@ struct CAPTURE_CHANNEL_RESET_REQ_MSG {
 struct CAPTURE_CHANNEL_RESET_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+
+	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
@@ -634,6 +848,7 @@ struct CAPTURE_CHANNEL_RESET_RESP_MSG {
 struct CAPTURE_CHANNEL_RELEASE_REQ_MSG {
 	/** Unused */
 	uint32_t reset_flags;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -642,6 +857,7 @@ struct CAPTURE_CHANNEL_RELEASE_REQ_MSG {
 struct CAPTURE_CHANNEL_RELEASE_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -768,7 +984,11 @@ struct CAPTURE_SYNCGEN_DISABLE_RESP_MSG {
 
 /**
  * @brief Message data for @ref CAPTURE_PHY_STREAM_OPEN_REQ message.
+ *
  * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
+ *
  */
 struct CAPTURE_PHY_STREAM_OPEN_REQ_MSG {
 	/** @ref NvCsiStream "NvCSI Stream ID" */
@@ -786,7 +1006,10 @@ struct CAPTURE_PHY_STREAM_OPEN_REQ_MSG {
 
 /**
  * @brief Message data for @ref CAPTURE_PHY_STREAM_OPEN_RESP message.
+ *
  * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
  */
 struct CAPTURE_PHY_STREAM_OPEN_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
@@ -798,7 +1021,10 @@ struct CAPTURE_PHY_STREAM_OPEN_RESP_MSG {
 
 /**
  * @brief Message data for @ref CAPTURE_PHY_STREAM_CLOSE_REQ message.
+ *
  * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
  */
 struct CAPTURE_PHY_STREAM_CLOSE_REQ_MSG {
 	/** @ref NvCsiStream "NvCSI Stream ID" */
@@ -816,7 +1042,10 @@ struct CAPTURE_PHY_STREAM_CLOSE_REQ_MSG {
 
 /**
  * @brief Message data for @ref CAPTURE_PHY_STREAM_CLOSE_RESP message.
+ *
  * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
  */
 struct CAPTURE_PHY_STREAM_CLOSE_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
@@ -1122,7 +1351,7 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  */
 
 /**
- * @brief CSI stream open request. @deprecated
+ * @brief CSI stream open request.
  *
  * This is a @ref CapCtrlMsgType "capture control message" to
  * open a CSI stream.
@@ -1146,11 +1375,15 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  *
  * @par Response
  * - @ref CAPTURE_PHY_STREAM_OPEN_RESP
+ *
+ * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
  */
 #define CAPTURE_PHY_STREAM_OPEN_REQ		MK_U32(0x36)
 
 /**
- * @brief CSI stream open response. @deprecated
+ * @brief CSI stream open response.
  *
  * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_PHY_STREAM_OPEN_REQ message.
@@ -1168,11 +1401,15 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  *
  * @par Payload
  *  - @ref CAPTURE_PHY_STREAM_OPEN_RESP_MSG
+ *
+ * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
  */
 #define CAPTURE_PHY_STREAM_OPEN_RESP		MK_U32(0x37)
 
 /**
- * @brief CSI stream close request. @deprecated
+ * @brief CSI stream close request.
  *
  * This is a @ref CapCtrlMsgType "capture control message" to
  * close a CSI stream.
@@ -1197,11 +1434,15 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  *
  * @par Response
  * - @ref CAPTURE_PHY_STREAM_CLOSE_RESP
+ *
+ * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
  */
 #define CAPTURE_PHY_STREAM_CLOSE_REQ		MK_U32(0x38)
 
 /**
- * @brief CSI stream close response. @deprecated
+ * @brief CSI stream close response.
  *
  * This is a @ref CapCtrlMsgType "capture control message" received in
  * response to a @ref CAPTURE_PHY_STREAM_CLOSE_REQ message.
@@ -1219,6 +1460,10 @@ struct CAPTURE_CHANNEL_EI_RESET_RESP_MSG {
  *
  * @par Payload
  *  - @ref CAPTURE_PHY_STREAM_CLOSE_RESP_MSG
+ *
+ * @deprecated
+ * This message may be removed in the future. The client should populate
+ * @ref capture_channel_config::csi_stream instead.
  */
 #define CAPTURE_PHY_STREAM_CLOSE_RESP		MK_U32(0x39)
 /** @} */
@@ -1409,6 +1654,7 @@ struct CAPTURE_HSM_CHANSEL_ERROR_MASK_REQ_MSG {
 struct CAPTURE_HSM_CHANSEL_ERROR_MASK_RESP_MSG {
 	/** Request result. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -1424,6 +1670,7 @@ struct CAPTURE_CHANNEL_ISP_SETUP_REQ_MSG {
 struct CAPTURE_CHANNEL_ISP_SETUP_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+
 	/** ISP channel identifier for the new channel [0, UINT32_MAX]. */
 	uint32_t channel_id;
 } CAPTURE_IVC_ALIGN;
@@ -1441,6 +1688,7 @@ typedef struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG
 struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG {
 	/** Unused */
 	uint32_t reset_flags;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -1449,6 +1697,7 @@ struct CAPTURE_CHANNEL_ISP_RESET_REQ_MSG {
 struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -1457,6 +1706,7 @@ struct CAPTURE_CHANNEL_ISP_RESET_RESP_MSG {
 struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG {
 	/** Unused */
 	uint32_t reset_flags;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -1465,6 +1715,7 @@ struct CAPTURE_CHANNEL_ISP_RELEASE_REQ_MSG {
 struct CAPTURE_CHANNEL_ISP_RELEASE_RESP_MSG {
 	/** Request result code. See @ref CapErrorCodes "result codes". */
 	capture_result result;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -1653,6 +1904,7 @@ struct CAPTURE_REQUEST_REQ_MSG {
 	 * buffer_index * @ref capture_channel_config::request_size "request_size";
 	 */
 	uint32_t buffer_index;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
@@ -1666,168 +1918,97 @@ struct CAPTURE_STATUS_IND_MSG {
 	 * buffer_index * @ref capture_channel_config::request_size "request_size";
 	 */
 	uint32_t buffer_index;
+
 	/** Reserved */
 	uint32_t pad__;
 } CAPTURE_IVC_ALIGN;
 
 
-/**
- * @brief Send new isp_capture request on a capture channel.
- *
- * The request contains channel identifier and the capture sequence
- * number (ring-buffer index), which are required to schedule the
- * isp capture request.
- * The actual capture programming is stored in isp_capture_descriptor,
- * stored in DRAM ring buffer, which includes the sequence, ISP
- * surfaces' details, surface related configs, ISP PB2 iova, input prefences,
- * and isp_capture status written by RCE.
- *
- * NvCapture UMD allocates the pool of isp_capture descriptors in setup call,
- * where each isp_capture_desc is followed by corresponding PB2 memory
- * (ATOM aligned).
- * RCE would generate the PB2 using surface details found in isp_capture
- * descriptor.
- * The ring-buffer (pool) would look like below:
- *
- * [isp_capture_desc][PB2][isp_capture_desc][PB2][isp_capture_desc]...
- *
- * The isp_capture_descriptor with buffer_index=N can be located within
- * the ring buffer as follows:
- *
- * isp_capture_descriptor *desc = requests + buffer_index * request_size;
- *
- * Note, here request_size = sizeof (isp_capture_descriptor) + sizeof (PB2).
- *
- * UMD fills isp_capture_desc and submits the request to KMD which pins the
- * surfaces and PB and then does the in-place replacement with iovas' within
- * isp_capture_descriptor.
- * KMD then sends the isp_capture request to RCE over capture ivc channel.
- *
- * The isp capture request message is asynchronous. Capture completion is
- * indicated by incrementing the progress syncpoint a pre-calculated
- * number of times = <number of sub-frames>. The progress-syncpoint is
- * used to synchronize with down-stream engines. This model assumes that
- * the capture client knows the number of subframes used in the capture and has
- * programmed the ISP accordingly.
- * All stats completion are indicated by incrementing stats progress syncpoint
- * a number of times = <num-stats-enabled>.
- *
- * If the flag CAPTURE_FLAG_ISP_STATUS_REPORT_ENABLE is set in the isp
- * capture descriptor, RCE will store the capture status into status field
- * of the descriptor. RCE will also send a CAPTURE_ISP_STATUS_IND
- * message to indicate that capture has completed.
- *
- * If the flag CAPTURE_FLAG_ISP_ERROR_REPORT_ENABLE is set, RCE will send a
- * CAPTURE_ISP_STATUS_IND upon an error, even if
- * CAPTURE_FLAG_ISP_STATUS_REPORT_ENABLE is not set.
- *
- * Typedef-ed CAPTURE_REQUEST_REQ_MSG.
- *
- * The buffer_index field is isp_capture_descriptor index in ring buffer.
- */
-typedef struct CAPTURE_REQUEST_REQ_MSG CAPTURE_ISP_REQUEST_REQ_MSG;
+/** @brief Message data for @ref CAPTURE_ISP_REQUEST_REQ message. */
+struct CAPTURE_ISP_REQUEST_REQ_MSG {
+	/**
+	 * Buffer index identifying the location of an ISP capture descriptor:
+	 * struct @ref isp_capture_descriptor *desc =
+	 * @ref capture_isp_channel_config::requests "requests" +
+	 * buffer_index * @ref capture_isp_channel_config::request_size
+	 * "request_size";
+	 */
+	uint32_t buffer_index;
 
-/**
- * @brief ISP Capture status indication.
- *
- * The message is sent after the capture status record has been
- * written into the capture request descriptor.
- *
- * The buffer_index	in this case is identifying the ISP capture descriptor.
- */
-typedef struct CAPTURE_STATUS_IND_MSG CAPTURE_ISP_STATUS_IND_MSG;
+	/** Reserved */
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+typedef struct CAPTURE_ISP_REQUEST_REQ_MSG CAPTURE_ISP_REQUEST_REQ_MSG;
 
-/**
- * @brief Extended ISP capture status indication.
- *
- * The message is sent after the capture status record has been
- * written into the capture request descriptor.
- */
+/** @brief Message data for @ref CAPTURE_ISP_STATUS_IND message. */
+struct CAPTURE_ISP_STATUS_IND_MSG {
+	/**
+	 * Buffer index identifying the location of an ISP capture descriptor:
+	 * struct @ref isp_capture_descriptor *desc =
+	 * @ref capture_isp_channel_config::requests "requests" +
+	 * buffer_index * @ref capture_isp_channel_config::request_size
+	 * "request_size";
+	 */
+	uint32_t buffer_index;
+
+	/** Reserved */
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+typedef struct CAPTURE_ISP_STATUS_IND_MSG CAPTURE_ISP_STATUS_IND_MSG;
+
+/** @brief Message data for @ref CAPTURE_ISP_EX_STATUS_IND message. */
 struct CAPTURE_ISP_EX_STATUS_IND_MSG {
-	/** Buffer index identifying ISP process descriptor. */
+	/**
+	 * Buffer index identifying the location of an ISP capture descriptor:
+	 * struct @ref isp_capture_descriptor *desc =
+	 * @ref capture_isp_channel_config::requests "requests" +
+	 * buffer_index * @ref capture_isp_channel_config::request_size
+	 * "request_size";
+	 */
 	uint32_t process_buffer_index;
-	/** Buffer index identifying ISP program descriptor. */
+
+	/**
+	 * Buffer index identifying the location of an ISP program descriptor:
+	 * struct @ref isp_program_descriptor *pdesc =
+	 * @ref capture_isp_channel_config::programs "programs" +
+	 * buffer_index * @ref capture_isp_channel_config::program_size
+	 * "program_size";
+	 */
 	uint32_t program_buffer_index;
 } CAPTURE_IVC_ALIGN;
 
-/**
- * @brief Send new isp_program request on a capture ivc channel.
- *
- * The request contains channel identifier and the program sequence
- * number (ring-buffer index).
- * The actual programming details is stored in isp_program
- * descriptor, which includes the offset to isp_program
- * buffer (which has PB1 containing ISP HW settings), sequence,
- * settings-id, activation-flags, isp_program buffer size, iova's
- * of ISP PB1 and isp_program status written by RCE.
- *
- * NvCapture UMD allocates the pool of isp_program descriptors in setup call,
- * where each isp_pgram_descriptor is followed by corresponding isp_program
- * buffer (ATOM aligned).
- * The ring-buffer (pool) would look like below:
- *
- * [isp_prog_desc][isp_program][isp_prog_desc][isp_program][isp_prog_desc]...
- *
- * The isp_program_descriptor with buffer_index=N can be located within
- * the ring buffer as follows:
- *
- * isp_program_descriptor *desc = programs + buffer_index * program_size;
- *
- * Note, program_size = sizeof (isp_program_descriptor) + sizeof (isp_program).
- *
- * NvISP fills these and submits the isp_program request to KMD which pins the
- * PB and then does the in-place replacement with iova within
- * isp_program_descriptor.
- * KMD then sends the isp_program request to RCE over capture ivc channel.
- *
- * The sequence is the frame_id which tells RCE, that the given isp_program
- * must be used from that frame_id onwards until UMD provides new one.
- * So RCE will use the sequence field to select the correct isp_program from
- * the isp_program descriptors' ring buffer for given frame request and will
- * keep on using it for further frames until the new isp_program (desc) is
- * provided to be used.
- * RCE populates both matched isp_program (reads from isp program desc) and
- * isp capture descriptor and forms single task descriptor for given frame
- * request and feeds it to falcon, which further programs it to ISP.
- *
- * settings_id is unique id for isp_program, NvCapture and RCE will use
- * the ring buffer array index as settings_id.
- * It can also be used to select the correct isp_program for the given
- * frame, in that case, UMD writes this unique settings_id to sensor's
- * scratch register, and sensor will send back it as part of embedded data,
- * when the given settings/gains are applied on that particular frame
- * coming from sensor.
- *
- * RCE reads this settings_id back from embedded data and uses it to select
- * the corresponding isp_program from the isp_program desc ring buffer.
- * The activation_flags tells the RCE which id (sequence or settings_id) to
- * use to select correct isp_program for the given frame.
- *
- * As same isp_program can be used for multiple frames, it can not be freed
- * when the frame capture is done. RCE will send a separate status
- * indication CAPTURE_ISP_PROGRAM_STATUS_IND message to CCPEX to notify
- * that the given isp_program is no longer in use and can be freed or reused.
- * settings_id (ring-buffer index) field is used to uniquely identify the
- * correct isp_program.
- * RCE also writes the isp_program status in isp program descriptor.
- *
- * Typedef-ed CAPTURE_REQUEST_REQ_MSG.
- *
- * The buffer_index field is the isp_program descriptor index in ring buffer.
- */
-typedef struct CAPTURE_REQUEST_REQ_MSG CAPTURE_ISP_PROGRAM_REQUEST_REQ_MSG;
+/** @brief Message data for @ref CAPTURE_ISP_PROGRAM_REQUEST_REQ message. */
+struct CAPTURE_ISP_PROGRAM_REQUEST_REQ_MSG {
+	/**
+	 * Buffer index identifying the location of an ISP program descriptor:
+	 * struct @ref isp_program_descriptor *desc =
+	 * @ref capture_isp_channel_config::programs "programs" +
+	 * buffer_index * @ref capture_isp_channel_config::program_size
+	 * "program_size";
+	 */
+	uint32_t buffer_index;
 
-/**
- * @brief ISP program status indication.
- *
- * The message is sent to notify CCPLEX about the isp_program which is expired
- * so UMD client can free or reuse it.
- *
- * Typedef-ed CAPTURE_STATUS_IND_MSG.
- *
- * The buffer_index field in this case is identifying ISP program descriptor.
- */
-typedef struct CAPTURE_STATUS_IND_MSG CAPTURE_ISP_PROGRAM_STATUS_IND_MSG;
+	/** Reserved */
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+typedef struct CAPTURE_ISP_PROGRAM_REQUEST_REQ_MSG
+	CAPTURE_ISP_PROGRAM_REQUEST_REQ_MSG;
+
+/** @brief Message data for @ref CAPTURE_ISP_PROGRAM_STATUS_IND message. */
+struct CAPTURE_ISP_PROGRAM_STATUS_IND_MSG {
+	/**
+	 * Buffer index identifying the location of an ISP program descriptor:
+	 * struct @ref isp_program_descriptor *desc =
+	 * @ref capture_isp_channel_config::programs "programs" +
+	 * buffer_index * @ref capture_isp_channel_config::program_size
+	 * "program_size";
+	 */
+	uint32_t buffer_index;
+
+	/** Reserved */
+	uint32_t pad__;
+} CAPTURE_IVC_ALIGN;
+typedef struct CAPTURE_ISP_PROGRAM_STATUS_IND_MSG CAPTURE_ISP_PROGRAM_STATUS_IND_MSG;
 
 /**
  * @brief Message frame for capture IVC channel.

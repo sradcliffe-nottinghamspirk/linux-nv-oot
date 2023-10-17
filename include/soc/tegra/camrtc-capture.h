@@ -16,16 +16,28 @@
 
 #pragma GCC diagnostic error "-Wpadded"
 
+/** Shared memory structure alignment */
 #define CAPTURE_IVC_ALIGNOF		MK_ALIGN(8)
-#define CAPTURE_DESCRIPTOR_ALIGN_BYTES (64)	/**< Descriptor alignment in shared memory */
+
+/** Capture descriptor alignment requirement */
+#define CAPTURE_DESCRIPTOR_ALIGN_BYTES (64)
+
+/** Capture descriptor alignment */
 #define CAPTURE_DESCRIPTOR_ALIGNOF	MK_ALIGN(CAPTURE_DESCRIPTOR_ALIGN_BYTES)
 
+/** Shared memory structure alignment specifier */
 #define CAPTURE_IVC_ALIGN		CAMRTC_ALIGN(CAPTURE_IVC_ALIGNOF)
+
+/** Shared memory structure alignment specifier */
 #define CAPTURE_DESCRIPTOR_ALIGN	CAMRTC_ALIGN(CAPTURE_DESCRIPTOR_ALIGNOF)
 
+/** IOVA address type */
 typedef uint64_t iova_t CAPTURE_IVC_ALIGN;
 
+/** Invalid syncpoint ID */
 #define SYNCPOINT_ID_INVALID	MK_U32(0)
+
+/** Invalid Grid-of-Semaphores index */
 #define GOS_INDEX_INVALID	MK_U8(0xFF)
 
 #pragma GCC diagnostic warning "-Wdeprecated-declarations"
@@ -35,22 +47,43 @@ typedef uint64_t iova_t CAPTURE_IVC_ALIGN;
 #define STATUS_FENCE_SUPPORT
 
 typedef struct syncpoint_info {
-	/** Syncpoint ID */
+	/** Syncpoint ID or @ref SYNCPOINT_ID_INVALID. */
 	uint32_t id;
+
 	/** Syncpoint threshold when storing a fence [0, UIN32_MAX] */
 	uint32_t threshold;
-	/** Grid-of-Semaphores (GoS) SMMU stream id [1, 127] (non-safety) */
-	uint8_t gos_sid;
+
 	/**
-	 * Index into a table of GoS page base pointers (see @ref
-	 * capture_channel_config::vi_gos_tables) (non-safety)
+	 * Grid-of-Semaphores (GoS) SMMU stream id [1, 127] (non-safety).
+	 *
+	 * @deprecated This field may be removed in the future.
+	 */
+	uint8_t gos_sid;
+
+	/**
+	 * Index into a table of GoS page base pointers or
+	 * @ref GOS_INDEX_INVALID.
+	 * (see @ref capture_channel_config::vi_gos_tables) (non-safety)
+	 *
+	 * @deprecated This field may be removed in the future.
 	 */
 	uint8_t gos_index;
-	/** Offset of a semaphore within a Grid-of-Semaphores [0, 63] (non-safety) */
+
+	/**
+	 * Offset of a semaphore within a Grid-of-Semaphores [0, 63].
+	 * (non-safety)
+	 *
+	 * @deprecated This field may be removed in the future.
+	 */
 	uint16_t gos_offset;
+
 	/** Reserved */
 	uint32_t pad_;
-	/** IOVA address of the Host1x syncpoint register. Must be a multiple of 4. */
+
+	/**
+	 * IOVA address of the Host1x syncpoint register.
+	 * Must be a multiple of 4.
+	 */
 	iova_t shim_addr;
 } syncpoint_info_t CAPTURE_IVC_ALIGN;
 
@@ -81,18 +114,25 @@ typedef struct syncpoint_info {
  */
 /** Statistics unit hardware header size in bytes */
 #define ISP5_STATS_HW_HEADER_SIZE	MK_SIZE(32)
+
 /** Flicker band (FB) unit statistics data size in bytes */
 #define ISP5_STATS_FB_MAX_SIZE		MK_SIZE(1056)
+
 /** Focus Metrics (FM) unit statistics data size in bytes */
 #define ISP5_STATS_FM_MAX_SIZE		MK_SIZE(32800)
+
 /** Auto Focus Metrics (AFM) unit statistics data size in bytes */
 #define ISP5_STATS_AFM_ROI_MAX_SIZE	MK_SIZE(48)
+
 /** Local Average Clipping (LAC) unit statistics data size in bytes */
 #define ISP5_STATS_LAC_ROI_MAX_SIZE	MK_SIZE(32800)
+
 /** Histogram unit statistics data size in bytes */
 #define ISP5_STATS_HIST_MAX_SIZE	MK_SIZE(4144)
+
 /** Pixel Replacement Unit (PRU) unit statistics data size in bytes */
 #define ISP5_STATS_OR_MAX_SIZE		MK_SIZE(64)
+
 /** Local Tone Mapping (LTM) unit statistics data size in bytes */
 #define ISP5_STATS_LTM_MAX_SIZE		MK_SIZE(1056)
 
@@ -102,36 +142,45 @@ typedef struct syncpoint_info {
 
 /** Flicker band (FB) unit statistics data offset */
 #define ISP5_STATS_FB_OFFSET		MK_SIZE(0)
+
 /** Focus Metrics (FM) unit statistics data offset */
 #define ISP5_STATS_FM_OFFSET \
 	(ISP5_STATS_FB_OFFSET + ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_FB_MAX_SIZE))
+
 /** Auto Focus Metrics (AFM) unit statistics data offset */
 #define ISP5_STATS_AFM_OFFSET \
 	(ISP5_STATS_FM_OFFSET + ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_FM_MAX_SIZE))
+
 /** Local Average Clipping (LAC0) unit statistics data offset */
 #define ISP5_STATS_LAC0_OFFSET \
 	(ISP5_STATS_AFM_OFFSET + \
 	(ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_AFM_ROI_MAX_SIZE) * MK_SIZE(8)))
+
 /** Local Average Clipping (LAC1) unit statistics data offset */
 #define ISP5_STATS_LAC1_OFFSET \
 	(ISP5_STATS_LAC0_OFFSET + \
 	(ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_LAC_ROI_MAX_SIZE) * MK_SIZE(4)))
+
 /** Histogram unit (H0) statistics data offset */
 #define ISP5_STATS_HIST0_OFFSET \
 	(ISP5_STATS_LAC1_OFFSET + \
 	(ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_LAC_ROI_MAX_SIZE) * MK_SIZE(4)))
+
 /** Histogram unit (H1) statistics data offset */
 #define ISP5_STATS_HIST1_OFFSET \
 	(ISP5_STATS_HIST0_OFFSET + \
 	ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_HIST_MAX_SIZE))
+
 /** Pixel Replacement Unit (PRU) unit statistics data offset */
 #define ISP5_STATS_OR_OFFSET \
 	(ISP5_STATS_HIST1_OFFSET + \
 	ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_HIST_MAX_SIZE))
+
 /** Local Tone Mapping (LTM) unit statistics data offset */
 #define ISP5_STATS_LTM_OFFSET \
 	(ISP5_STATS_OR_OFFSET + \
 	ISP5_ALIGN_STAT_OFFSET(ISP5_STATS_OR_MAX_SIZE))
+
 /** Total statistics data size in bytes */
 #define ISP5_STATS_TOTAL_SIZE \
 	(ISP5_STATS_LTM_OFFSET + ISP5_STATS_LTM_MAX_SIZE)
@@ -167,62 +216,81 @@ typedef struct syncpoint_info {
  */
 /** Statistics unit hardware header size in bytes */
 #define ISP6_STATS_HW_HEADER_SIZE	MK_SIZE(32)
+
 /** Flicker band (FB) unit statistics data size in bytes */
 #define ISP6_STATS_FB_MAX_SIZE		MK_SIZE(2080)
+
 /** Focus Metrics (FM) unit statistics data size in bytes */
 #define ISP6_STATS_FM_MAX_SIZE		MK_SIZE(32800)
+
 /** Auto Focus Metrics (AFM) unit statistics data size in bytes */
 #define ISP6_STATS_AFM_ROI_MAX_SIZE	MK_SIZE(48)
+
 /** Local Average Clipping (LAC) unit statistics data size in bytes */
 #define ISP6_STATS_LAC_ROI_MAX_SIZE	MK_SIZE(32800)
+
 /** Histogram unit statistics data size in bytes */
 #define ISP6_STATS_HIST_MAX_SIZE	MK_SIZE(4144)
+
 /** Pixel Replacement Unit (PRU) unit statistics data size in bytes */
 #define ISP6_STATS_OR_MAX_SIZE		MK_SIZE(64)
+
 /** PRU histogram (HIST_RAW24) unit statistics data size in bytes */
 #define ISP6_STATS_HIST_RAW24_MAX_SIZE	MK_SIZE(1056)
+
 /** Local Tone Mapping (LTM) unit statistics data size in bytes */
 #define ISP6_STATS_LTM_MAX_SIZE		MK_SIZE(1056)
+
 /* Stats buffer addresses muse be aligned to 64 byte (ATOM) boundaries */
 #define ISP6_ALIGN_STAT_OFFSET(_offset) \
 	(((uint32_t)(_offset) + MK_U32(63)) & ~(MK_U32(63)))
 
 /** Flicker band (FB) unit statistics data offset */
 #define ISP6_STATS_FB_OFFSET		MK_SIZE(0)
+
 /** Focus Metrics (FM) unit statistics data offset */
 #define ISP6_STATS_FM_OFFSET \
 	(ISP6_STATS_FB_OFFSET + ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_FB_MAX_SIZE))
+
 /** Auto Focus Metrics (AFM) unit statistics data offset */
 #define ISP6_STATS_AFM_OFFSET \
 	(ISP6_STATS_FM_OFFSET + ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_FM_MAX_SIZE))
+
 /** Local Average Clipping (LAC0) unit statistics data offset */
 #define ISP6_STATS_LAC0_OFFSET \
 	(ISP6_STATS_AFM_OFFSET + \
 	(ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_AFM_ROI_MAX_SIZE) * MK_SIZE(8)))
+
 /** Local Average Clipping (LAC1) unit statistics data offset */
 #define ISP6_STATS_LAC1_OFFSET \
 	(ISP6_STATS_LAC0_OFFSET + \
 	(ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_LAC_ROI_MAX_SIZE) * MK_SIZE(4)))
+
 /** Histogram unit (H0) statistics data offset */
 #define ISP6_STATS_HIST0_OFFSET \
 	(ISP6_STATS_LAC1_OFFSET + \
 	(ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_LAC_ROI_MAX_SIZE) * MK_SIZE(4)))
+
 /** Histogram unit (H1) statistics data offset */
 #define ISP6_STATS_HIST1_OFFSET \
 	(ISP6_STATS_HIST0_OFFSET + \
 	ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_HIST_MAX_SIZE))
+
 /** Outlier replacement (OR) unit statistics data offset */
 #define ISP6_STATS_OR_OFFSET \
 	(ISP6_STATS_HIST1_OFFSET + \
 	ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_HIST_MAX_SIZE))
+
 /** Raw data 24 bit histogram (HIST_RAW24) unit statistics data offset */
 #define ISP6_STATS_HIST_RAW24_OFFSET \
 	(ISP6_STATS_OR_OFFSET + \
 	ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_OR_MAX_SIZE))
+
 /** Local Tone Mapping (LTM) unit statistics data offset */
 #define ISP6_STATS_LTM_OFFSET \
 	(ISP6_STATS_HIST_RAW24_OFFSET + \
 	ISP6_ALIGN_STAT_OFFSET(ISP6_STATS_HIST_RAW24_MAX_SIZE))
+
 /** Total statistics data size in bytes */
 #define ISP6_STATS_TOTAL_SIZE \
 	(ISP6_STATS_LTM_OFFSET + ISP6_STATS_LTM_MAX_SIZE)
@@ -255,65 +323,84 @@ typedef struct syncpoint_info {
  */
 /** Statistics unit hardware header size in bytes */
 #define ISP7_STATS_HW_HEADER_SIZE	MK_SIZE(32)
+
 /** Flicker band (FB) unit statistics data size in bytes */
 #define ISP7_STATS_FB_MAX_SIZE		MK_SIZE(2080)
+
 /** Focus Metrics (FM) unit statistics data size in bytes */
 #define ISP7_STATS_FM_MAX_SIZE		MK_SIZE(32800)
+
 /** Auto Focus Metrics (AFM) unit statistics data size in bytes */
 #define ISP7_STATS_AFM_ROI_MAX_SIZE	MK_SIZE(48)
+
 /** Local Average Clipping (LAC) unit statistics data size in bytes */
 #define ISP7_STATS_LAC_ROI_MAX_SIZE	MK_SIZE(32800)
+
 /** Histogram unit statistics data size in bytes */
 #define ISP7_STATS_HIST_MAX_SIZE	MK_SIZE(4144)
+
 /** Pixel Replacement Unit (PRU) unit statistics data size in bytes */
 #define ISP7_STATS_DPC_MAX_SIZE		MK_SIZE(128)
+
 /** Local Tone Mapping (LTM) unit statistics data size in bytes */
 #define ISP7_STATS_LTM_MAX_SIZE		MK_SIZE(1056)
+
 /* Stats buffer addresses must be aligned to 64 byte (ATOM) boundaries */
 #define ISP7_ALIGN_STAT_OFFSET(_offset) \
 	(((uint32_t)(_offset) + MK_U32(63)) & ~(MK_U32(63)))
 
 /** Flicker band (FB) unit statistics data offset */
 #define ISP7_STATS_FB_OFFSET		MK_SIZE(0)
+
 /** Focus Metrics (FM) unit statistics data offset */
 #define ISP7_STATS_FM_OFFSET \
 	(ISP7_STATS_FB_OFFSET + ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_FB_MAX_SIZE))
+
 /** Auto Focus Metrics (AFM) unit statistics data offset */
 #define ISP7_STATS_AFM_OFFSET \
 	(ISP7_STATS_FM_OFFSET + ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_FM_MAX_SIZE))
+
 /** Local Average Clipping (LAC0) unit statistics data offset */
 #define ISP7_STATS_LAC0_OFFSET \
 	(ISP7_STATS_AFM_OFFSET + \
 	(ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_AFM_ROI_MAX_SIZE) * MK_SIZE(8)))
+
 /** Local Average Clipping (LAC1) unit statistics data offset */
 #define ISP7_STATS_LAC1_OFFSET \
 	(ISP7_STATS_LAC0_OFFSET + \
 	(ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_LAC_ROI_MAX_SIZE) * MK_SIZE(4)))
+
 /** Histogram unit (H0) statistics data offset */
 #define ISP7_STATS_HIST0_OFFSET \
 	(ISP7_STATS_LAC1_OFFSET + \
 	(ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_LAC_ROI_MAX_SIZE) * MK_SIZE(4)))
+
 /** Histogram unit (H1) statistics data offset */
 #define ISP7_STATS_HIST1_OFFSET \
 	(ISP7_STATS_HIST0_OFFSET + \
 	ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_HIST_MAX_SIZE))
+
 /** Histogram unit (H2) statistics data offset */
 #define ISP7_STATS_HIST2_OFFSET \
 	(ISP7_STATS_HIST1_OFFSET + \
 	ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_HIST_MAX_SIZE))
+
 /** Outlier replacement (OR) unit statistics data offset */
 #define ISP7_STATS_DPC_OFFSET \
 	(ISP7_STATS_HIST2_OFFSET + \
 	ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_HIST_MAX_SIZE))
+
 /** Local Tone Mapping (LTM) unit statistics data offset */
 #define ISP7_STATS_LTM_OFFSET \
 	(ISP7_STATS_DPC_OFFSET + \
 	ISP7_ALIGN_STAT_OFFSET(ISP7_STATS_DPC_MAX_SIZE))
+
 /** Total statistics data size in bytes */
 #define ISP7_STATS_TOTAL_SIZE \
 	(ISP7_STATS_LTM_OFFSET + ISP7_STATS_LTM_MAX_SIZE)
 /**@}*/
 
+/** Maximum number of Grid-of-Semaphores tables supported by ISP */
 #define ISP_NUM_GOS_TABLES	MK_U32(8)
 
 /**
@@ -327,9 +414,16 @@ typedef struct syncpoint_info {
 #define ISP_UNIT_ISP1                             MK_U32(0x0001)
 /**@}*/
 
+/** Maximum number of Grid-of-semaphores tables supported by VI */
 #define VI_NUM_GOS_TABLES	MK_U32(12)
+
+/** Maximum number of output surfaces supported by VI */
 #define VI_NUM_ATOMP_SURFACES	4U
+
+/** Maximum number of engine status surfaces support by VI */
 #define VI_NUM_STATUS_SURFACES	1U
+
+/** Maximum number of PFSD surfaces supported by VI */
 #define VI_NUM_VI_PFSD_SURFACES	2U
 
 /**
@@ -338,8 +432,10 @@ typedef struct syncpoint_info {
  */
 /** Output surface plane 0 */
 #define VI_ATOMP_SURFACE0				0U
+
 /** Output surface plane 1 */
 #define VI_ATOMP_SURFACE1				1U
+
 /** Output surface plane 2 */
 #define VI_ATOMP_SURFACE2				2U
 
@@ -348,15 +444,19 @@ typedef struct syncpoint_info {
 
 /** RAW pixels */
 #define VI_ATOMP_SURFACE_MAIN				VI_ATOMP_SURFACE0
+
 /** PDAF pixels */
 #define VI_ATOMP_SURFACE_PDAF				VI_ATOMP_SURFACE1
 
 /** YUV - Luma plane */
 #define VI_ATOMP_SURFACE_Y				VI_ATOMP_SURFACE0
+
 /** Semi-planar - UV plane */
 #define	VI_ATOMP_SURFACE_UV				VI_ATOMP_SURFACE1
+
 /** Planar - U plane */
 #define	VI_ATOMP_SURFACE_U				VI_ATOMP_SURFACE1
+
 /** Planar - V plane */
 #define	VI_ATOMP_SURFACE_V				VI_ATOMP_SURFACE2
 
@@ -507,6 +607,7 @@ typedef struct syncpoint_info {
 /**@{*/
 /** VI unit 0 */
 #define VI_UNIT_VI					MK_U32(0x0000)
+
 /** VI unit 1 */
 #define VI_UNIT_VI2					MK_U32(0x0001)
 /**@}*/
@@ -517,13 +618,16 @@ typedef struct syncpoint_info {
 struct csi_stream_config {
 	/** See @ref NvCsiStream "NvCSI Stream ID" */
 	uint32_t stream_id;
+
 	/**
 	 * See @ref NvCsiPort "CSI Port". If the CSI port is specified,
 	 * the value must map correctly to the @ref stream_id value.
 	 */
 	uint32_t csi_port;
+
 	/** See @ref NvCsiVirtualChannel "CSI Virtual Channel". */
 	uint32_t virtual_channel;
+
 	/** Reserved */
 	uint32_t pad__;
 };
@@ -627,8 +731,10 @@ struct capture_channel_config {
 
 	/** SLVS-EC main stream (non-safety) */
 	uint8_t slvsec_stream_main;
+
 	/** SLVS-EC sub stream (non-safety) */
 	uint8_t slvsec_stream_sub;
+
 	/** Reserved */
 	uint16_t reserved1;
 
@@ -636,16 +742,22 @@ struct capture_channel_config {
 	/**
 	 * Number of elements in @ref vi_gos_tables array
 	 * [0, @ref VI_NUM_GOS_TABLES].
+	 *
+	 * @deprecated This field may be removed in the future.
 	 */
 	uint32_t num_vi_gos_tables;
+
 	/**
 	 * Array of IOVA pointers to VI Grid-of-Semaphores (GoS) tables
 	 * (non-safety).
 	 *
 	 * GoS table configuration, if present, must be the same on all
 	 * active channels. The IOVA addresses must be a multiple of 256.
+	 *
+	 * @deprecated This field may be removed in the future.
 	 */
 	iova_t vi_gos_tables[VI_NUM_GOS_TABLES];
+
 	/**
 	 * Capture progress syncpoint information. The progress syncpoint
 	 * is incremented on Start-Of-Frame, whenever a slice of pixel
@@ -658,6 +770,7 @@ struct capture_channel_config {
 	 * value of the hardware syncpoint on channel setup.
 	 **/
 	struct syncpoint_info progress_sp;
+
 	/**
 	 * Embedded data syncpoint information. The embedded data syncpoint
 	 * is incremented whenever the sensor embedded data for a captured
@@ -671,6 +784,7 @@ struct capture_channel_config {
 	 * value of the hardware syncpoint on channel setup.
 	 **/
 	struct syncpoint_info embdata_sp;
+
 	/**
 	 * VI line timer syncpoint info. The line timer syncpoint is
 	 * incremented whenever the frame readout reaches a specified
@@ -686,6 +800,7 @@ struct capture_channel_config {
 	 * value of the hardware syncpoint on channel setup.
 	 **/
 	struct syncpoint_info linetimer_sp;
+
 	/**
 	 * Error mask for suppressing uncorrected safety errors (see @ref
 	 * CaptureChannelErrMask "VI error numbers"). If the mask is set to
@@ -705,6 +820,7 @@ struct capture_channel_config {
 	 * a default error mask will be used.
 	 */
 	uint32_t error_mask_uncorrectable;
+
 	/**
 	 * This error mask applies only to errors that are masked in @ref
 	 * error_mask_uncorrectable. By default, all such errors are reported
@@ -722,6 +838,7 @@ struct capture_channel_config {
 	 * a default error mask will be used.
 	 */
 	uint32_t error_mask_correctable;
+
 	/**
 	 * When a capture error is detected, the capture channel will
 	 * enter an error state if the corresponding error bit
@@ -1227,7 +1344,8 @@ struct vi_channel_config {
 
 	struct dpcm_rec {
 		/**
-		 * Number of pixels in the strip [0, UINT16_MAX] (@deprecated).
+		 * @deprecated
+		 * Not required from T194 onwards.
 		 */
 		uint16_t strip_width;
 
@@ -1282,7 +1400,8 @@ struct vi_channel_config {
 			 *
 			 * In the UMD-KMD shared memory interface this carries
 			 * an offset into the memory buffer identified by
-			 * a memory handle stored in @ref offset_hi.
+			 * a memory handle stored in @ref offset_hi. Must be
+			 * a multiple of 64.
 			 */
 			uint32_t offset;
 
@@ -1302,7 +1421,10 @@ struct vi_channel_config {
 		 * content is undefined for the RCE-FW interface.
 		 */
 
-		/** Line stride of the surface in bytes [0, 0xFFFFF]. */
+		/**
+		 * Line stride of the surface in bytes [0, 0xFFFFF].
+		 * Must be a multiple of 64.
+		 */
 		uint32_t surface_stride[VI_NUM_ATOMP_SURFACES];
 
 		/**
@@ -1319,6 +1441,97 @@ struct vi_channel_config {
 } CAPTURE_IVC_ALIGN;
 
 /**
+ * @defgroup CapViEngineStatus VI engine status bits
+ * @{
+ */
+
+/**
+ * Start of frame capture timed out. The timeout is measured
+ * from VI falcon task activation to frame start (see
+ * @ref capture_descriptor::frame_start_timeout).
+ */
+#define CAPTURE_VI_ENGINE_STATUS_FRAME_START_TIMEOUT		MK_BIT32(0)
+
+/**
+ * Frame capture timed out. The timeout is measured from frame start
+ * to frame completion (see @ref capture_descriptor::frame_timeout).
+ */
+#define CAPTURE_VI_ENGINE_STATUS_FRAME_COMPLETION_TIMEOUT	MK_BIT32(1)
+
+/** Missing line-end packet in pixel data line */
+#define	CAPTURE_VI_ENGINE_STATUS_PIXEL_MISSING_LE		MK_BIT32(5)
+
+/** Frame has too many lines */
+#define	CAPTURE_VI_ENGINE_STATUS_PIXEL_RUNAWAY			MK_BIT32(6)
+
+/** Pixel data received without line-start packet */
+#define	CAPTURE_VI_ENGINE_STATUS_PIXEL_SPURIOUS			MK_BIT32(7)
+
+/** Pixel line is too long */
+#define	CAPTURE_VI_ENGINE_STATUS_PIXEL_LONG_LINE		MK_BIT32(8)
+
+/** Pixel line is too short */
+#define	CAPTURE_VI_ENGINE_STATUS_PIXEL_SHORT_LINE		MK_BIT32(9)
+
+/** Missing line-end packet in embedded data line */
+#define	CAPTURE_VI_ENGINE_STATUS_EMBED_MISSING_LE		MK_BIT32(10)
+
+/** Frame has too many lines of embedded data */
+#define	CAPTURE_VI_ENGINE_STATUS_EMBED_RUNAWAY			MK_BIT32(11)
+
+/** Embedded data received without line-start packet */
+#define	CAPTURE_VI_ENGINE_STATUS_EMBED_SPURIOUS			MK_BIT32(12)
+
+/** Embedded data line is too long */
+#define	CAPTURE_VI_ENGINE_STATUS_EMBED_LONG_LINE		MK_BIT32(13)
+
+/**
+ * Embedded data received when not expected. Sensor has been
+ * programmed to send embedded data but the capture has
+ * not been programmed to expect it.
+ */
+#define	CAPTURE_VI_ENGINE_STATUS_EMBED_INFRINGE			MK_BIT32(14)
+
+/** Invalid pixel datatype in pixel packet or line-start packet */
+#define	CAPTURE_VI_ENGINE_STATUS_DTYPE_MISMATCH			MK_BIT32(15)
+
+/** Reserved */
+#define	CAPTURE_VI_ENGINE_STATUS_FORCE_FE			MK_BIT32(16)
+
+/** Short frame: frame has too few pixel lines */
+#define CAPTURE_VI_ENGINE_STATUS_PIXEL_INCOMPLETE		MK_BIT32(17)
+
+/** Short frame: frame has too few embedded data lines */
+#define CAPTURE_VI_ENGINE_STATUS_EMBED_INCOMPLETE		MK_BIT32(18)
+
+/**
+ * VI hardware failure detected by VI PFSD
+ * (see @ref CAPTURE_CHANNEL_FLAG_ENABLE_VI_PFSD).
+ */
+#define CAPTURE_VI_ENGINE_STATUS_PFSD_FAULT			MK_BIT32(19)
+/**@}*/
+
+/** @brief Engine status record written by VI */
+struct capture_vi_engine_status {
+	/**
+	 * TSC based timestamp in nanoseconds, representing the time at which
+	 * the engine status was written.
+	 */
+	uint64_t timestamp;
+
+	/** @ref CapViEngineStatus "VI engine status bits". */
+	uint32_t status_engine;
+
+	/** Number of subframes processed. */
+	uint16_t subframe;
+
+	/**
+	 * Task status (0 = success, 1 = failure).
+	 */
+	uint16_t status_task;
+};
+
+/**
  * @brief Memory buffer for engine status.
  *
  * This structure is used to between UMD and KMD to share a buffer
@@ -1330,6 +1543,7 @@ struct engine_status_surface {
 	 *
 	 * In the UMD-KMD interface this carries an Offset into a memory
 	 * buffer identified by the buffer handle stored in @ref offset_hi.
+	 * Must be a multiple of @ref NV_ENGINE_STATUS_SURFACE_SIZE.
 	 *
 	 * Valid only in UMD-KMD interface.
 	 */
@@ -1601,15 +1815,16 @@ struct capture_status {
 #define CAPTURE_STATUS_CSIMUX_STREAM		MK_U32(3)
 
 /**
- * Unused. @deprecated
- *
+ * @deprecated
+ * Not supported from T194 onwards.
  * CHANSEL_FAULT errors are reported with @ref
  * CAPTURE_STATUS_FALCON_ERROR.
  */
 #define CAPTURE_STATUS_CHANSEL_FAULT		MK_U32(4)
 
 /**
- * Unused. @deprecated
+ * @deprecated
+ * Not supported from T194 onwards.
  *
  * CHANSEL_FAULT_FE errors are reported with @ref
  * CAPTURE_STATUS_FALCON_ERROR.
@@ -1632,7 +1847,8 @@ struct capture_status {
 #define CAPTURE_STATUS_CHANSEL_COLLISION	MK_U32(6)
 
 /**
- * Unused. @deprecated.
+ * @deprecated.
+ * Not supported from T194 onwards.
  *
  * CHANSEL_SHORT_FRAME errors are reported with @ref
  * CAPTURE_STATUS_FALCON_ERROR.
@@ -1672,9 +1888,8 @@ struct capture_status {
 #define CAPTURE_STATUS_ATOMP_FRAME_TOSSED	MK_U32(10)
 
 /**
- * Unused. @deprecated
- *
- * ISPBUF FIFO interfaces are not used.
+ * @deprecated
+ * Not supported from T194 onwards.
  */
 #define CAPTURE_STATUS_ISPBUF_FIFO_OVERFLOW	MK_U32(11)
 
@@ -1686,7 +1901,8 @@ struct capture_status {
 #define CAPTURE_STATUS_SYNC_FAILURE		MK_U32(12)
 
 /**
- * Unused. @deprecated
+ * @deprecated
+ * Not supported from T194 onwards.
  */
 #define CAPTURE_STATUS_NOTIFIER_BACKEND_DOWN	MK_U32(13)
 
@@ -1724,7 +1940,7 @@ struct capture_status {
 
 	/**
 	 * @deprecated
-	 *
+	 * Not fully supported from T194 onwards.
 	 * See @ref notify_bits for error details.
 	 */
 	uint32_t err_data;
@@ -1737,7 +1953,7 @@ struct capture_status {
 #define CAPTURE_STATUS_FLAG_CHANNEL_IN_ERROR			MK_BIT32(1)
 /** @} */
 
-	/** See @ref CaptureStatusFlags "Capture status flags" */
+	/** See @ref CaptureStatusFlags "Capture status flags". */
 	uint32_t flags;
 
 	/**
@@ -1943,8 +2159,11 @@ struct capture_status {
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_COLLISION			MK_BIT64(47)
 
 	/**
-	 * Channel reconfigured while in frame. This is not an error and
-	 * this status should not been seen in practice.  @deprecated
+	 * Channel reconfigured while in frame.
+	 *
+	 * @deprecated
+	 * This is not an error and this status should not been seen
+	 * in practice.
 	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_CHANSEL_LOAD_FRAMED			MK_BIT64(48)
 
@@ -1971,7 +2190,10 @@ struct capture_status {
 	/** Unclassified error. Should not happen. */
 	#define CAPTURE_STATUS_NOTIFY_BIT_UNCLASSIFIED_ERROR			MK_BIT64(63)
 
-	/** Unclassified error. Should not happen. @deprecated */
+	/**
+	 * @deprecated
+	 * Replaced by @ref CAPTURE_STATUS_NOTIFY_BIT_UNCLASSIFIED_ERROR.
+	 */
 	#define CAPTURE_STATUS_NOTIFY_BIT_NON_CLASSIFIED_0			MK_BIT64(63)
 	/** @} */
 
@@ -2162,12 +2384,18 @@ struct vi_pfsd_config {
  */
 struct memoryinfo_surface {
 	/**
-	 * Surface IOVA address. Must be a multiple of 16.
+	 * Surface IOVA address. Must be a multiple of
+	 * @ref NV_ENGINE_STATUS_SURFACE_SIZE for engine status
+	 * buffers. Must be a multiple of 64 for image buffers.
 	 * Must be non-zero if @ref size > 0.
 	 */
 	uint64_t base_address;
 
-	/** Surface size. Must be a multiple of 16. */
+	/**
+	 * Surface size. Must be a multiple of
+	 * @ref NV_ENGINE_STATUS_SURFACE_SIZE for engine status
+	 * buffers. Must be multiple of 64 for image buffers.
+	 */
 	uint64_t size;
 };
 
@@ -2184,8 +2412,10 @@ struct capture_descriptor_memoryinfo {
 	struct memoryinfo_surface surface[VI_NUM_ATOMP_SURFACES];
 
 	/**
-	 * Base IOVA of engine status surface. Must be a multiple of 16.
-	 * Must be non-zero if @ref engine_status_surface_size > 0.
+	 * Base IOVA of @ref capture_vi_engine_status
+	 * "VI engine status" surface. Must be a multiple of
+	 * @ref NV_ENGINE_STATUS_SURFACE_SIZE. Must be non-zero if
+	 * @ref engine_status_surface_size > 0.
 	 */
 	uint64_t engine_status_surface_base_address;
 
@@ -2226,9 +2456,16 @@ struct capture_descriptor {
 
 #define CAPTURE_PREFENCE_ARRAY_SIZE		2
 
-	/** @deprecated  */
+	/**
+	 * @deprecated
+	 * Not supported.
+	 */
 	uint32_t prefence_count CAMRTC_DEPRECATED;
-	/** @deprecated */
+
+	/**
+	 * @deprecated
+	 * Not supported.
+	 */
 	struct syncpoint_info prefence[CAPTURE_PREFENCE_ARRAY_SIZE] CAMRTC_DEPRECATED;
 
 	/** VI Channel configuration. */
@@ -2242,8 +2479,9 @@ struct capture_descriptor {
 	struct vi_pfsd_config pfsd_cfg;
 
 	/**
-	 * Engine status surface for downstream synchronization.
-	 * Engine status is written by VI when a frame is complete.
+	 * Memory buffer for @ref capture_vi_engine_status
+	 * "VI engine status", written by VI when a frame
+	 * is complete.
 	 *
 	 * This is only valid in the UMD-KMD interface.
 	 * The content is undefined in the RCE FW interface.
@@ -2333,7 +2571,10 @@ struct vi_hsm_chansel_error_mask_config {
 /** Use MIPI CSI protocol. */
 #define NVPHY_TYPE_CSI		MK_U32(0)
 
-/** Use Sony SLVSEC protocol. @deprecated */
+/**
+ * @deprecated
+ * Sony SLVSEC protocol not supported from T234 onwards.
+ */
 #define NVPHY_TYPE_SLVSEC	MK_U32(1)
 /**@}*/
 
@@ -2648,7 +2889,10 @@ struct nvcsi_cil_config {
 	 */
 	uint8_t t_clk_settle;
 
-	/** @deprecated  */
+	/**
+	 * @deprecated
+	 * Not supported.
+	 */
 	uint32_t cil_clock_rate CAMRTC_DEPRECATED;
 
 	/**
@@ -3031,7 +3275,6 @@ struct nvcsi_error_config {
 	 * @brief Host1x client global interrupt mask.
 	 *        Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS.
 	 *        Mask host1x errors reported locally in RCE.
-	 *        @deprecated
 	 *
 	 * @note By default, this mask should be initialized to
 	 *       @ref NVCSI_ERROR_CFG_DFLT_HOST1X_LIC.
@@ -3039,6 +3282,9 @@ struct nvcsi_error_config {
 	 * @note RCE does not enable the host1x read access timeout,
 	 *       which is the only host1x error supported by the
 	 *       hardware, so this control has no effect in practise.
+	 *
+	 * @deprecated
+	 *       This control may be removed in the future.
 	 */
 	uint32_t host1x_intr_mask_lic;
 
@@ -3046,7 +3292,6 @@ struct nvcsi_error_config {
 	 * @brief Host1x client global safety error mask.
 	 *        Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS.
 	 *        Mask host1x errors reported to SEH.
-	 *        @deprecated
 	 *
 	 * @note By default, this mask should be initialized to
 	 *       @ref NVCSI_ERROR_CFG_DFLT_HOST1X_HSM.
@@ -3054,13 +3299,17 @@ struct nvcsi_error_config {
 	 * @note RCE does not enable the host1x read access timeout,
 	 *       which is the only host1x error supported by the
 	 *       hardware, so this control has no effect in practise.
+	 *       This control may be removed in the future.
+	 *
+	 * @deprecated
+	 *       This control may be removed in the future.
 	 */
 	uint32_t host1x_intr_mask_hsm;
 
 	/**
 	 * @brief Host1x client global safety error classification.
 	 *        Bit field mapping: @ref NVCSI_HOST1X_INTR_FLAGS
-	 *        (0 - corrected, 1 - uncorrected). @deprecated
+	 *        (0 - corrected, 1 - uncorrected).
 	 *
 	 * @note By default, this mask should be initialized to
 	 *       @ref NVCSI_ERROR_CFG_DFLT_HOST1X_TYPE_HSM.
@@ -3068,6 +3317,9 @@ struct nvcsi_error_config {
 	 * @note RCE does not enable the host1x read access timeout,
 	 *       which is the only host1x error supported by the
 	 *       hardware, so this control has no effect in practise.
+	 *
+	 * @deprecated
+	 *       This control may be removed in the future.
 	 */
 	uint32_t host1x_intr_type_hsm;
 
@@ -3086,10 +3338,12 @@ struct nvcsi_error_config {
 	 * @brief NVCSI stream error interrupt mask.
 	 *        Mask NVCSI stream errors reported locally in RCE.
 	 *        Bit field mapping: @ref NVCSI_STREAM_INTR_FLAGS.
-	 *        @deprecated
 	 *
 	 * @note By default, this mask should be initialized to
 	 *       @ref NVCSI_ERROR_CFG_DFLT_STREAM_LIC.
+	 *
+	 * @deprecated
+	 *       This control may be removed in the future.
 	 */
 	uint32_t stream_intr_mask_lic;
 
@@ -3140,6 +3394,9 @@ struct nvcsi_error_config {
 	 *
 	 * @note By default, this mask should be initialized to
 	 *       @ref NVCSI_ERROR_CFG_DFLT_CIL_INTR0_LIC.
+	 *
+	 * @deprecated
+	 *       This control may be removed in the future.
 	 */
 	uint32_t cil_intr0_mask_lic;
 
@@ -3150,6 +3407,9 @@ struct nvcsi_error_config {
 	 *
 	 * @note By default, this mask should be initialized to
 	 *       @ref NVCSI_ERROR_CFG_DFLT_CIL_INTR1_LIC.
+	 *
+	 * @deprecated
+	 *       This control may be removed in the future.
 	 */
 	uint32_t cil_intr1_mask_lic;
 
@@ -3625,7 +3885,7 @@ struct nvcsi_tpg_rate_config {
  */
 
 /**
- * @defgroup IspErrorMask ISP Channel error mask
+ * @defgroup IspErrorMask ISP extended error status
  */
 /** @{ */
 #define CAPTURE_ISP_CHANNEL_ERROR_DMA_PBUF_ERR		MK_BIT32(0)
@@ -3649,7 +3909,7 @@ struct nvcsi_tpg_rate_config {
  * @brief Describes RTCPU side resources for a ISP capture pipe-line.
  */
 struct capture_channel_isp_config {
-	/** Unused. @deprecated */
+	/** @deprecated Not supported. */
 	uint8_t channel_id;
 
 	/** Reserved */
@@ -3674,8 +3934,13 @@ struct capture_channel_isp_config {
 
 	/**
 	 * Size of the buffer reserved for each ISP capture descriptor.
-	 * Must be >= sizeof(@ref isp_capture_descriptor) and a multiple
-	 * of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
+	 * Each @ref isp_capture_descriptor is followed by some empty
+	 * space for an associated ISP push buffer2 (PB2) which will be
+	 * filled in by RCE FW. Thus the request size must be >=
+	 * (sizeof(@ref isp_capture_descriptor) + @ref ISP_PB2_MAX_SIZE)
+	 * and a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES. The
+	 * start of the PB2 part inside the buffer will be aligned at
+	 * @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
 	 */
 	uint32_t request_size;
 
@@ -3693,7 +3958,11 @@ struct capture_channel_isp_config {
 	 */
 	uint32_t program_queue_depth;
 
-	/** Size of each ISP process request (@ref isp_program_descriptor). */
+	/**
+	 * Size of the buffer reserved for each ISP program descriptor.
+	 * Thus the ISP program size must be >= sizeof(@ref isp5_program_entry)
+	 * and a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN_BYTES.
+	 */
 	uint32_t program_size;
 
 	/**
@@ -3755,29 +4024,95 @@ struct capture_channel_isp_config {
 #define HAVE_ISP_GOS_TABLES
 	/**
 	 * Number of elements in @ref isp_gos_tables array
-	 * [0, @ref ISP_NUM_GOS_TABLES].
+	 * [0, @ref ISP_NUM_GOS_TABLES]. (non-safety)
+	 *
+	 * @deprecated This field may be removed in the future.
 	 */
 	uint32_t num_isp_gos_tables;
 
 	/**
-	 * Array of IOVA pointers to ISP Grid-of-Semaphores (GoS) tables
-	 * (non-safety).
+	 * Array of IOVA pointers to ISP Grid-of-Semaphores (GoS) tables.
+	 * (non-safety)
 	 *
 	 * GoS table configuration, if present, must be the same on all
 	 * active channels. The IOVA addresses must be a multiple of 256.
+	 *
+	 * @deprecated This field may be removed in the future.
 	 */
 	iova_t isp_gos_tables[ISP_NUM_GOS_TABLES];
 } CAPTURE_IVC_ALIGN;
 
 /**
- * @defgroup IspProcesStatus ISP process status codes
+ * @defgroup CapIspEngineStatus ISP engine status bits
+ * @{
+ */
+
+/**
+ * This is asserted whenever the ISP MSR engine encounters an opcode that it
+ * does not recognize. This will essentially mean that the pushbuffer content
+ * could be corrupted.
+ */
+#define CAPTURE_ISP_ENGINE_STATUS_ORB_OPCODE_ERR		MK_BIT32(0)
+
+/**
+ * This error is triggered during the state restore operation, when the
+ * ISP MSR DMA detects that the incoming word-count is greater than what
+ * is programmed as DMA size for that client or the incoming word-count
+ * value is zero.
+ */
+#define CAPTURE_ISP_ENGINE_STATUS_SPB_WORDCOUNT_ERR		MK_BIT32(1)
+
+/**
+ * An illegal state transition occurred on one of the client-MSW interfaces.
+ */
+#define	CAPTURE_ISP_ENGINE_STATUS_MSW_SEQUENCING_ERR		MK_BIT32(2)
+
+/**
+ * Frame ID or stream ID mismatch in the the client-MSW interface
+ * (see @ref isp_capture_descriptor::mr_image_def1).
+ */
+#define	CAPTURE_ISP_ENGINE_STATUS_MSW_INCORRECT_MSW_ID		MK_BIT32(3)
+
+/**
+ * ISP task timeout. ISP task has failed to finish in time, indicating
+ * that the engine may have ended up in a bad state. The task has been
+ * aborted and the engine has been reset.
+ */
+#define	CAPTURE_ISP_ENGINE_STATUS_TASK_TIMEOUT			MK_BIT32(20)
+/** @} */
+
+/** @brief Engine status record written by ISP */
+struct capture_isp_engine_status {
+	/**
+	 * TSC based timestamp in nanoseconds, representing the time at which
+	 * the engine status was written.
+	 */
+	uint64_t timestamp;
+
+	/** @ref CapIspEngineStatus "ISP engine status bits". */
+	uint32_t status_engine;
+
+	/** The subframe that this status notifier was written with respect to */
+	/** Number of subframes processed. */
+	uint16_t subframe;
+
+	/**
+	 * Task status (0 = success, 1 = failure).
+	 */
+	uint16_t status_task;
+};
+
+/**
+ * @defgroup IspRequestStatus ISP request status codes
  */
 /** @{ */
-/** ISP frame processing status unknown */
+/** ISP request status unknown */
 #define CAPTURE_ISP_STATUS_UNKNOWN		MK_U32(0)
-/** ISP frame processing succeeded */
+
+/** ISP request succeeded */
 #define CAPTURE_ISP_STATUS_SUCCESS		MK_U32(1)
-/** ISP frame processing encountered an error */
+
+/** ISP request encountered an error */
 #define CAPTURE_ISP_STATUS_ERROR		MK_U32(2)
 /** @} */
 
@@ -3785,20 +4120,30 @@ struct capture_channel_isp_config {
  * @brief ISP process request status
  */
 struct capture_isp_status {
-	/** ISP channel id */
+	/**
+	 * ISP physical channel id.
+	 *
+	 * @deprecated This field may be removed in the future.
+	 */
 	uint8_t chan_id;
+
 	/** Reserved */
 	uint8_t pad__;
-	/** Frame sequence number */
-	uint16_t frame_id;
-	/** See @ref IspProcesStatus "ISP process status codes" */
-	uint32_t status;
+
 	/**
-	 * Error status of ISP process request.
-	 * Zero in case of SUCCESS, non-zero value case of ERROR.
-	 * See @ref IspErrorMask "ISP Channel error mask".
+	 * Frame sequence number. Contains the low 16 bits from
+	 * @ref isp_capture_descriptor::sequence.
+	 *
+	 * @deprecated This field may be removed in the future.
 	 */
+	uint16_t frame_id;
+
+	/** @ref IspRequestStatus "ISP request status code" */
+	uint32_t status;
+
+	/** @ref IspErrorMask "ISP extended error status". */
 	uint32_t error_mask;
+
 	/** Reserved */
 	uint32_t pad2__;
 } CAPTURE_IVC_ALIGN;
@@ -3807,13 +4152,17 @@ struct capture_isp_status {
  * @defgroup IspProgramStatus ISP program status codes
  */
 /** @{ */
+
 /** ISP program status unknown */
 #define CAPTURE_ISP_PROGRAM_STATUS_UNKNOWN	MK_U32(0)
+
 /** ISP program was used successfully for frame processing */
 #define CAPTURE_ISP_PROGRAM_STATUS_SUCCESS	MK_U32(1)
+
 /** ISP program encountered an error */
 #define CAPTURE_ISP_PROGRAM_STATUS_ERROR	MK_U32(2)
-/** ISP program has expired and is not being used by any active process requests */
+
+/** ISP program has expired and is not referenced by any active ISP requests */
 #define CAPTURE_ISP_PROGRAM_STATUS_STALE	MK_U32(3)
 /** @} */
 
@@ -3821,24 +4170,32 @@ struct capture_isp_status {
  * @brief ISP program request status
  */
 struct capture_isp_program_status {
-	/** ISP channel id */
-	uint8_t chan_id;
 	/**
-	 * The settings_id uniquely identifies the ISP program.
+	 * ISP physical channel id.
+	 *
+	 * @deprecated This field may be removed in the future.
+	 */
+	uint8_t chan_id;
+
+	/**
+	 * The @a settings_id uniquely identifies the ISP program.
 	 * The ID is assigned by application and copied here from
 	 * the @ref isp_program_descriptor structure.
 	 */
 	uint8_t settings_id;
+
 	/** Reserved */
 	uint16_t pad_id__;
+
 	/** @ref IspProgramStatus "Program status" */
 	uint32_t status;
+
 	/**
-	 * Error status from last ISP process request using this ISP program.
-	 * Zero in case of SUCCESS, non-zero value case of ERROR.
-	 * See @ref IspErrorMask "ISP Channel error mask".
+	 * @ref IspErrorMask "ISP extended error status" from the last
+	 * ISP request to use this ISP program.
 	 */
 	uint32_t error_mask;
+
 	/** Reserved */
 	uint32_t pad2__;
 } CAPTURE_IVC_ALIGN;
@@ -3847,42 +4204,85 @@ struct capture_isp_program_status {
  * @defgroup IspActivateFlag ISP program activation flag
  */
 /** @{ */
-/** Program request will when the frame sequence id reaches a certain threshold */
+
+/**
+ * ISP program will be activated when the
+ * @ref isp_capture_descriptor::sequence "sequence number"
+ * of a submitted ISP request meets the
+ * @ref isp_program_descriptor::sequence "sequence threshold"
+ * of the ISP program.
+ */
 #define CAPTURE_ACTIVATE_FLAG_ON_SEQUENCE_ID	MK_U32(0x1)
-/** Program request will be activate when the frame settings id reaches a certain threshold */
+
+/**
+ * Program request will be activate when the frame settings id reaches
+ * a certain threshold.
+ */
 #define CAPTURE_ACTIVATE_FLAG_ON_SETTINGS_ID	MK_U32(0x2)
-/** Each Process request is coupled with a Program request */
+
+/** Each ISP request is coupled with an ISP program request. */
 #define CAPTURE_ACTIVATE_FLAG_COUPLED		MK_U32(0x4)
 /** @} */
 
 /**
- * @brief Describes ISP program structure;
+ * @brief ISP program descriptor
  */
 struct isp_program_descriptor {
-	/** ISP settings_id which uniquely identifies isp_program. */
-	uint8_t settings_id;
 	/**
-	 * VI channel bound to the isp channel.
-	 * In case of mem_isp_mem set this to CAPTURE_NO_VI_ISP_BINDING
+	 * ISP settings_id which uniquely identifies isp_program [0,255].
+	 * Assigned by application. The settings_id is reflected back
+	 * in @ref capture_isp_program_status::settings_id.
+	 *
+	 * @deprecated This field may be removed in the future.
+	 */
+	uint8_t settings_id;
+
+	/**
+	 * VI channel ID associated with this ISP program. Frames produced
+	 * by the VI channel will be processed using this ISP program when
+	 * the ISP program is active.
+	 *
+	 * In case of memory-to-memory processing, this should be set to
+	 * the value @ref CAPTURE_NO_VI_ISP_BINDING.
+	 *
+	 * @note Valid VI channel IDs are currently guaranteed to be
+	 *       in the range [0,254] even though the capture channel ID
+	 *       is defined as a 32-bit value elsewhere.
 	 */
 	uint8_t vi_channel_id;
+
+/** Indicates that ISP program is not bound to a specific VI channel. */
 #define CAPTURE_NO_VI_ISP_BINDING MK_U8(0xFF)
+
 	/** Reserved */
 	uint8_t pad_sid__[2];
+
 	/**
-	 * Capture sequence id, frame id; Given ISP program will be used from this frame ID onwards
-	 * until new ISP program does replace it.
+	 * Sequence number trigger for the ISP program. The ISP program is
+	 * activated when the first @ref CAPTURE_ISP_REQUEST_REQ "ISP request"
+	 * with an equal or higher @ref isp_capture_descriptor "sequence number"
+	 * is submitted to ISP for processing. A previously active ISP program
+	 * with a lower sequence number will automatically expire when all
+	 * active ISP requests using it have finished.
+	 *
+	 * @note sequence number comparisons are done with 2^32 modulo
+	 *       arithmetics, allowing the sequence number to wrap.
 	 */
 	uint32_t sequence;
 
 	/**
-	 * Offset to memory mapped ISP program buffer from ISP program descriptor base address,
-	 * which contains the ISP configs and PB1 containing HW settings. Ideally the offset is
-	 * the size(ATOM aligned) of ISP program descriptor only, as each isp_program would be placed
-	 * just after it's corresponding ISP program descriptor in memory.
+	 * Offset to the base of an @ref isp5_program "ISP program" buffer.
+	 * The IOVA address of the ISP program is calculated by adding the
+	 * @a isp_program_offset to the base IOVA address of this
+	 * @ref isp_capture_descriptor. The resulting address must be a multiple
+	 * of @ref CAPTURE_DESCRIPTOR_ALIGN.
 	 */
 	uint32_t isp_program_offset;
-	/** Size of isp program structure */
+
+	/**
+	 * Size of isp program structure. Must be >= sizeof(@ref isp5_program) 
+	 * and a multiple of @ref CAPTURE_DESCRIPTOR_ALIGN.
+	 */
 	uint32_t isp_program_size;
 
 	/**
@@ -3917,15 +4317,211 @@ struct isp_program_descriptor {
 #define ISP_PROGRAM_MAX_SIZE 16512
 
 /**
+ * @defgroup IspPixFmt ISP Pixel Formats
+ */
+/**@{*/
+/** NvColorFormat_L8 */
+#define ISP_MW_FORMAT_T_L8			MK_U8(4)
+
+/** NvColorFormat_A8B8G8R8 */
+#define ISP_MW_FORMAT_T_A8B8G8R8		MK_U8(8)
+
+/** NvColorFormat_A8R8G8B8 */
+#define ISP_MW_FORMAT_T_A8R8G8B8		MK_U8(9)
+
+/** NvColorFormat_B8G8R8A8 */
+#define ISP_MW_FORMAT_T_B8G8R8A8		MK_U8(10)
+
+/** NvColorFormat_R8G8B8A8 */
+#define ISP_MW_FORMAT_T_R8G8B8A8		MK_U8(11)
+
+/** NvColorFormat_A8Y8U8V8 */
+#define ISP_MW_FORMAT_T_A8Y8U8V8		MK_U8(13)
+
+/** NvColorFormat_V8U8Y8A8 */
+#define ISP_MW_FORMAT_T_V8U8Y8A8		MK_U8(14)
+
+/** NvColorFormat_Y8_U8__Y8_V8 or NvColorFormat_YUYV */
+#define ISP_MW_FORMAT_T_Y8_U8__Y8_V8		MK_U8(16)
+
+/** NvColorFormat_Y8_V8__Y8_U8 or NvColorFormat_YVYU */
+#define ISP_MW_FORMAT_T_Y8_V8__Y8_U8		MK_U8(17)
+
+/** NvColorFormat_V8_Y8__U8_Y8 or NvColorFormat_VYUY */
+#define ISP_MW_FORMAT_T_V8_Y8__U8_Y8		MK_U8(18)
+
+/** NvColorFormat_U8_Y8__V8_Y8 or NvColorFormat_UYVY */
+#define ISP_MW_FORMAT_T_U8_Y8__V8_Y8		MK_U8(19)
+
+/** YUV444 semi-planar: Y8,U8V8 */
+#define ISP_MW_FORMAT_T_Y8___U8V8_N444		MK_U8(32)
+
+/** YUV444 semi-planar: Y8,V8U8 */
+#define ISP_MW_FORMAT_T_Y8___V8U8_N444		MK_U8(33)
+
+/** NV21 format (YUV420 semi-planar: Y8,U8V8) */
+#define ISP_MW_FORMAT_T_Y8___U8V8_N420		MK_U8(34)
+
+/** NV12 format (YUV420 semi-planar: Y8,V8U8) */
+#define ISP_MW_FORMAT_T_Y8___V8U8_N420		MK_U8(35)
+
+/** YUV420 semi-planar: Y16,U8V8 */
+#define ISP_MW_FORMAT_T_Y16I___U8V8_N420	MK_U8(38)
+
+/** YUV420 semi-planar: Y16,V8U8 */
+#define ISP_MW_FORMAT_T_Y16I___V8U8_N420	MK_U8(39)
+
+/** YUV420 semi-planar: Y16,U8V8 */
+#define ISP_MW_FORMAT_T_Y16F___U8V8_N420	MK_U8(40)
+
+/** YUV420 semi-planar: Y16,V8U8 */
+#define ISP_MW_FORMAT_T_Y16F___V8U8_N420	MK_U8(41)
+
+/** NvColorFormat_A2B10G10R10 */
+#define ISP_MW_FORMAT_T_A2B10G10R10		MK_U8(68)
+
+/** NvColorFormat_A2R10G10B10 */
+#define ISP_MW_FORMAT_T_A2R10G10B10		MK_U8(69)
+
+/** NvColorFormat_B10G10R10A2 */
+#define ISP_MW_FORMAT_T_B10G10R10A2		MK_U8(70)
+
+/** NvColorFormat_R10G10B10A2 */
+#define ISP_MW_FORMAT_T_R10G10B10A2		MK_U8(71)
+
+/** NvColorFormat_A2Y10U10V10 */
+#define ISP_MW_FORMAT_T_A2Y10U10V10		MK_U8(73)
+
+/** NvColorFormat_V10U10Y10A2 */
+#define ISP_MW_FORMAT_T_V10U10Y10A2		MK_U8(74)
+
+/** NvColorFormat_L16 */
+#define ISP_MW_FORMAT_T_L16			MK_U8(186)
+
+/** NvColorFormat_Float_L16 */
+#define ISP_MW_FORMAT_T_L16_F			MK_U8(188)
+
+/** NvColorFormat_Int_L16 */
+#define ISP_MW_FORMAT_T_L16_I			MK_U8(190)
+
+/** NvColorFormat_R16 */
+#define ISP_MW_FORMAT_T_R16			MK_U8(192)
+
+/** RAW ISP encoded float, 20-bit fixed */
+#define ISP_MW_FORMAT_T_R16_X_ISP20		MK_U8(194)
+
+/** NvColorFormat_Float_R16 */
+#define ISP_MW_FORMAT_T_R16_F			MK_U8(195)
+
+/** NvColorFormat_Int_R16 */
+#define ISP_MW_FORMAT_T_R16_I			MK_U8(197)
+
+/** NvColorFormat_R32 */
+#define ISP_MW_FORMAT_T_R32			MK_U8(230)
+
+/** NvColorFormat_Float_R32 */
+#define ISP_MW_FORMAT_T_R32_F			MK_U8(232)
+
+/** NvColorFormat_Int_R32 */
+#define ISP_MW_FORMAT_T_R32_I			MK_U8(233)
+
+/** NvColorFormat_L32 */
+#define ISP_MW_FORMAT_T_L32			MK_U8(236)
+
+/** NvColorFormat_Float_L32 */
+#define ISP_MW_FORMAT_T_L32_F			MK_U8(238)
+
+/** NvColorFormat_Int_L32 */
+#define ISP_MW_FORMAT_T_L32_I			MK_U8(239)
+
+/** NvColorFormat_R24 */
+#define ISP_MW_FORMAT_T_R24			MK_U8(240)
+
+/** NvColorFormat_R16_X_ISP24 (RAW ISP encoded float, 24-bit fixed) */
+#define ISP_MW_FORMAT_T_R16_X_ISP24		MK_U8(241)
+
+/** NvColorFormat_X16B16G16R16 */
+#define ISP_MW_FORMAT_T_X16B16G16R16		MK_U8(203)
+
+/** NvColorFormat_Int_X16B16G16R16 */
+#define ISP_MW_FORMAT_T_X16B16G16R16_I		MK_U8(198)
+
+/** NvColorFormat_Float_X16B16G16R16 */
+#define ISP_MW_FORMAT_T_X16B16G16R16_F		MK_U8(212)
+
+/** A16Y16U16V16 (ISP encoded float, 20-bit fixed) */
+#define ISP_MW_FORMAT_T_A16Y16U16V16_X_ISP20	MK_U8(200)
+
+/** NvColorFormat_Int_A16Y16U16V16 */
+#define ISP_MW_FORMAT_T_A16Y16U16V16_I		MK_U8(201)
+
+/** NvColorFormat_Int_V16U16Y16A16 */
+#define ISP_MW_FORMAT_T_V16U16Y16A16_I		MK_U8(202)
+
+/** NvColorFormat_Uint_A16Y16U16V16 */
+#define ISP_MW_FORMAT_T_A16Y16U16V16		MK_U8(204)
+
+/** NvColorFormat_Uint_V16U16Y16A16 */
+#define ISP_MW_FORMAT_T_V16U16Y16A16		MK_U8(205)
+
+/** A16B16G16R16 (ISP encoded float, 20-bit fixed) */
+#define ISP_MW_FORMAT_T_A16B16G16R16_X_ISP20	MK_U8(210)
+
+/** NvColorFormat_Float_A16B16G16R16 */
+#define ISP_MW_FORMAT_T_A16B16G16R16_F		MK_U8(211)
+
+/** NvColorFormat_Float_A16Y16U16V16 */
+#define ISP_MW_FORMAT_T_A16Y16U16V16_F		MK_U8(216)
+
+/** YUV444 semi-planar: Y16,V16U16 */
+#define ISP_MW_FORMAT_T_Y16___V16U16_N444	MK_U8(224)
+
+/** YUV444 semi-planar: Y16,U16V16 */
+#define ISP_MW_FORMAT_T_Y16___U16V16_N444	MK_U8(225)
+
+/** NV12 format (YUV420 semi-planar: Y16,V16U16) */
+#define ISP_MW_FORMAT_T_Y16___V16U16_N420	MK_U8(226)
+
+/** NV21 format (YUV420 semi-planar: Y16,U16V16) */
+#define ISP_MW_FORMAT_T_Y16___U16V16_N420	MK_U8(227)
+
+/** NvColorFormat_Float_A32B32G32R32 */
+#define ISP_MW_FORMAT_T_A32B32G32R32_F		MK_U8(248)
+
+/** NvColorFormat_Float_A32Y32U32V32 */
+#define ISP_MW_FORMAT_T_A32Y32U32V32_F		MK_U8(250)
+
+/**@}*/
+
+/**
  * @brief ISP image surface info
  */
 struct image_surface {
-	/** Lower 32-bit of the buffer's base address */
+	/**
+	 * Undefined in RCE-FW interface.
+	 *
+	 * In the UMD-KMD shared memory interface this carries
+	 * an offset into the memory buffer identified by
+	 * a memory handle stored in @ref offset_hi. Must be
+	 * a multiple of 64.
+	 */
 	uint32_t offset;
-	/** Upper 8-bit of the buffer's base address */
+
+	/**
+	 * Undefined in RCE-FW interface.
+	 *
+	 * In the UMD-KMD interface this carries a memory
+	 * handle for the output buffer. See KMD documentation
+	 * for the constraints.
+	 */
 	uint32_t offset_hi;
-	/** The surface stride in bytes */
+
+	/**
+	 * The surface stride in bytes [0, 0x3FFFF].
+	 * Must be a multiple of 64.
+	 */
 	uint32_t surface_stride;
+
 	/** Reserved */
 	uint32_t pad_surf__;
 } CAPTURE_IVC_ALIGN;
@@ -3934,9 +4530,23 @@ struct image_surface {
  * @brief Output image surface info
  */
 struct stats_surface {
-	/** Lower 32-bit of the statistics buffer base address */
+	/**
+	 * Undefined in RCE-FW interface.
+	 *
+	 * In the UMD-KMD shared memory interface this carries
+	 * an offset into the memory buffer identified by
+	 * a memory handle stored in @ref offset_hi. Must be
+	 * a multiple of 64.
+	 */
 	uint32_t offset;
-	/** Upper 8-bit of the statistics buffer base address */
+
+	/**
+	 * Undefined in RCE-FW interface.
+	 *
+	 * In the UMD-KMD interface this carries a memory
+	 * handle for the output buffer. See KMD documentation
+	 * for the constraints.
+	 */
 	uint32_t offset_hi;
 } CAPTURE_IVC_ALIGN;
 
@@ -3946,23 +4556,29 @@ struct stats_surface {
 struct isp_crop_rect {
 	/** Topmost line stored in memory (inclusive) relative to the MW input image */
 	uint16_t top;
+
 	/** Bottommost line stored in memory (inclusive) relative to the MW input image */
 	uint16_t bottom;
+
 	/** Leftmost pixel stored in memory (inclusive) relative to the MW input image */
 	uint16_t left;
+
 	/** Rightmost pixel stored in memory (inclusive) relative to the MW input image */
 	uint16_t right;
 };
 
 /**
- * @defgroup IspProcessFlag ISP process frame specific flags.
+ * @defgroup IspProcessFlag ISP request flags.
  */
 /** @{ */
-/** Enables process status reporting for the channel */
+
+/** Enable process status reporting for the channel */
 #define CAPTURE_ISP_FLAG_STATUS_REPORT_ENABLE	MK_BIT32(0)
-/** Enables error reporting for the channel */
+
+/** Enable error reporting for the channel */
 #define CAPTURE_ISP_FLAG_ERROR_REPORT_ENABLE	MK_BIT32(1)
-/** Enables process and program request binding for the channel */
+
+/** Enable process and program request binding for the channel */
 #define CAPTURE_ISP_FLAG_ISP_PROGRAM_BINDING	MK_BIT32(2)
 /** @} */
 
@@ -3970,139 +4586,339 @@ struct isp_crop_rect {
  * @brief ISP capture descriptor
  */
 struct isp_capture_descriptor {
-	/** Process request sequence number, frame id */
+	/** ISP request sequence number [0, UINT32_MAX]. */
 	uint32_t sequence;
-	/** See @ref IspProcessFlag "ISP process frame specific flags." */
+
+	/**@ref IspProcessFlag "ISP request flags". */
 	uint32_t capture_flags;
 
-	/** 1 MR port, max 3 input surfaces */
+	/** 1 MR port, max 3 input surfaces. */
 #define ISP_MAX_INPUT_SURFACES		MK_U32(3)
 
-	/** Input images surfaces */
+	/** Input image surfaces. */
 	struct image_surface input_mr_surfaces[ISP_MAX_INPUT_SURFACES];
 
-	/**
-	 * 3 MW ports, max 2 surfaces (multiplanar) per port.
-	 */
+	/** 3 memory write ports. */
 #define ISP_MAX_OUTPUTS			MK_U32(3)
+
+	/** Maximum of 2 surfaces (multiplanar) per memory write port. */
 #define ISP_MAX_OUTPUT_SURFACES		MK_U32(2)
 
 	struct {
-		/** Memory write port output surfaces */
+		/** Memory write port output surfaces. */
 		struct image_surface surfaces[ISP_MAX_OUTPUT_SURFACES];
-		/* TODO: Should we have here just image format enum value + block height instead?
-		Dither settings would logically be part of ISP program */
-		/** Image format definition for output surface */
+
+		/**
+		 * Image format definition for output surface.
+		 *
+		 * @rststar
+		 * +-------+---------------------------------------------------+
+		 * | Bits  | Description                                       |
+		 * +=======+===================================================+
+		 * | 26:24 | Height of block linear blocks as log2(GOBs)       |
+		 * |       | [0, 5].                                           |
+		 * +-------+---------------------------------------------------+
+		 * | 23:16 | 0 = pich linear                                   |
+		 * |       | 254 = block linear 16BX2                          |
+		 * +-------+---------------------------------------------------+
+		 * | 12    | 0 = Write RED values to RED channel               |
+		 * |       | 1 = Write ALPHA values to RED channel             |
+		 * +-------+---------------------------------------------------+
+		 * | 11:10 | Initial dither value at the start of a tile [0,3] |
+		 * +-------+---------------------------------------------------+
+		 * | 9     | Dither mode (0=fixed, 1= diffuse)                 |
+		 * +-------+---------------------------------------------------+
+		 * | 8     | Dither enable (0=disable, 1=enable)               |
+		 * +-------+---------------------------------------------------+
+		 * | 7:0   | ISP output pixel format. See 1)                   |
+		 * +-------+---------------------------------------------------+
+		 * @endrst
+		 *
+		 * 1) @ref IspPixFmt "ISP Pixel Formats". Note: the 8-bit
+		 *    YUV444 semi-planar formats are not supported on output.
+		 */
 		uint32_t image_def;
-		/** Width of the output surface in pixels */
+
+		/**
+		 * Width of the output image in pixels
+		 * [@ref ISP5_MIN_TILE_WIDTH,
+		 * @ref ISP5_MAX_NUM_TILES * @ref ISP5_MAX_TILE_WIDTH].
+		 * Must be an even number.
+		 */
 		uint16_t width;
-		/** Height of the output surface in pixels */
+
+		/**
+		 * Height of the output image in pixels
+		 * [@ref ISP5_MIN_SLICE_HEIGHT,
+		 * @ref ISP5_MAX_NUM_SLICES * @ref ISP5_MAX_SLICE_HEIGHT].
+		 */
 		uint16_t height;
 		/** Unique ID for the output buffer used for watermarking */
 		uint64_t output_buffer_id;
 	} outputs_mw[ISP_MAX_OUTPUTS];
+	/**< Configurations for output surfaces for each memory write port. */
 
-	/** Flicker band (FB) statistics buffer */
+	/** Flicker band (FB) statistics buffer. */
 	struct stats_surface fb_surface;
-	/** Focus metrics (FM) statistics buffer */
+
+	/** Focus metrics (FM) statistics buffer. */
 	struct stats_surface fm_surface;
-	/** Auto Focus Metrics (AFM) statistics buffer */
+
+	/** Auto Focus Metrics (AFM) statistics buffer. */
 	struct stats_surface afm_surface;
-	/** Local Average Clipping (LAC0) unit 0 statistics buffer */
+
+	/** Local Average Clipping (LAC0) unit 0 statistics buffer. */
 	struct stats_surface lac0_surface;
-	/** Local Average Clipping (LAC1) unit 1 statistics buffer */
+
+	/** Local Average Clipping (LAC1) unit 1 statistics buffer. */
 	struct stats_surface lac1_surface;
-	/** Histogram (H0) unit 0 statistics buffer */
+
+	/** Histogram (H0) unit 0 statistics buffer. */
 	struct stats_surface h0_surface;
-	/** Histogram (H1) unit 1 statistics buffer */
+
+	/** Histogram (H1) unit 1 statistics buffer. */
 	struct stats_surface h1_surface;
+
 	/** Histogram (H2) unit 2 statistics buffer, for ISP7 only */
 	struct stats_surface h2_surface;
+
 	/** Pixel Replacement Unit (PRU) statistics buffer */
 	struct stats_surface pru_bad_surface;
-	/** RAW24 Histogram Unit statistics buffer */
+
+	/** RAW24 Histogram Unit statistics buffer. */
 	struct stats_surface hist_raw24_surface;
-	/** Local Tone Mapping statistics buffer */
+
+	/** Local Tone Mapping statistics buffer. */
 	struct stats_surface ltm_surface;
 
-	/** Surfaces related configuration */
 	struct {
-		/** Input image surface width in pixels */
+		/**
+		 * Width of the input image in pixels
+		 * [@ref ISP5_MIN_TILE_WIDTH,
+		 * @ref ISP5_MAX_NUM_TILES * @ref ISP5_MAX_TILE_WIDTH].
+		 * Must be an even number.
+		 */
 		uint16_t mr_width;
-		/** Input image surface height in pixels */
+
+		/**
+		 * Height of the input image in pixels
+		 * [@ref ISP5_MIN_SLICE_HEIGHT,
+		 * @ref ISP5_MAX_NUM_SLICES * @ref ISP5_MAX_SLICE_HEIGHT].
+		 */
 		uint16_t mr_height;
 
-		/** Height of slices used for processing the image */
-		uint16_t slice_height;
-		/** Width of first VI chunk in a line */
-		uint16_t chunk_width_first;
 		/**
-		 * Width of VI chunks in the middle of a line, and/or width of
-		 *  ISP tiles in middle of a slice
+		 * Height of slices used for processing the image
+		 * [@ref ISP5_MIN_SLICE_HEIGHT, @ref ISP5_MAX_SLICE_HEIGHT].
+		 */
+		uint16_t slice_height;
+
+		/** @deprecated Not supported. */
+		uint16_t chunk_width_first;
+
+		/**
+		 * Width of the ISP tiles in the middle of a slice
+		 * [@ref ISP5_MIN_TILE_WIDTH, @ref ISP5_MAX_TILE_WIDTH].
 		 */
 		uint16_t chunk_width_middle;
-		/** Width of overfetch area in the beginning of VI chunks */
+
+		/** @deprecated Not supported. */
 		uint16_t chunk_overfetch_width;
-		/** Width of the leftmost ISP tile in a slice */
+
+		/**
+		 * Width of the leftmost ISP tile in a slice
+		 * [@ref ISP5_MIN_TILE_WIDTH, @ref ISP5_MAX_TILE_WIDTH].
+		 * Must be an even number.
+		 */
 		uint16_t tile_width_first;
-		/** Input image cfa */
+
+		/** @deprecated Not supported. */
 		uint8_t mr_image_cfa;
+
 		/** Reserved */
 		uint8_t pad__;
-		/** MR unit input image format value */
+
+		/**
+		 * Image format definition for input surface.
+		 *
+		 * @rststar
+		 * +-------+---------------------------------------------------+
+		 * | Bits  | Description                                       |
+		 * +=======+===================================================+
+		 * | 29:28 | Set how pixels are formtted in internal pipeline. |
+		 * |       | Color space must match pipeline data format.      |
+		 * |       | 0 = QUAD24                                        |
+		 * |       | 1 = QUAD                                          |
+		 * |       | 2 = RGB                                           |
+		 * |       | 3 = YUV                                           |
+		 * +-------+---------------------------------------------------+
+		 * | 27:24 | Height of block linear blocks as log2(GOBs)       |
+		 * |       | [0, 5].                                           |
+		 * +-------+---------------------------------------------------+
+		 * | 23:16 | 0 = pich linear                                   |
+		 * |       | 254 = block linear 16BX2 (not supported)          |
+		 * +-------+---------------------------------------------------+
+		 * | 14:12 | Sensor RAW format.                                |
+		 * |       | 0 = RAW8                                          |
+		 * |       | 1 = RAW10                                         |
+		 * |       | 2 = RAW12                                         |
+		 * |       | 3 = RAW14                                         |
+		 * |       | 4 = RAW16                                         |
+		 * |       | 5 = RAW20                                         |
+		 * |       | 6 = RAW24                                         |
+		 * +-------+---------------------------------------------------+
+		 * | 9:8   | Enable padding on T_R16 or T_R32 format.          |
+		 * |       | 0 = Legacy mode (no padding)                      |
+		 * |       | 1 = Right aligned, pad MSB with 0                 |
+		 * |       | 2 = Left aligned, pad LSB with 0                  |
+		 * +-------+---------------------------------------------------+
+		 * | 7:0   | ISP input pixel format. See 1)                    |
+		 * +-------+---------------------------------------------------+
+		 * @endrst
+		 *
+		 * 1) @ref IspPixFmt "ISP Pixel Formats"
+		 */
 		uint32_t mr_image_def;
-		/* TODO: should this be exposed to user mode? */
-		/** MR unit input image format value */
+
+		/**
+		 * Frame identification. Used internally by ISP.
+		 *
+		 * @rststar
+		 * +-------+---------------------------------------------------+
+		 * | Bits  | Description                                       |
+		 * +=======+===================================================+
+		 * | 23:16 | Camera stream ID [0,255]. Should be set to a      |
+		 * |       | unique value for each stream source.              |
+		 * +-------+---------------------------------------------------+
+		 * | 15:0  | Frame ID [0,UINT16_MAX]. Should be set to a       |
+		 * |       | unique value for each frame.                      |
+		 * +-------+---------------------------------------------------+
+		 * @endrst
+		 */
 		uint32_t mr_image_def1;
-		/** SURFACE_CTL_MR register value */
+
+		/**
+		 * Surface control settings for multi-exposure.
+		 *
+		 * @rststar
+		 * +-------+---------------------------------------------------+
+		 * | Bits  | Description                                       |
+		 * +=======+===================================================+
+		 * | 17    | Arrangement of dual-exposure components on RV/GY: |
+		 * |       | 0 = 1st exposure on RV, 2nd exposure on GY        |
+		 * |       | 1 = 1st exposure on GY, 2nd exposure on RV        |
+		 * +-------+---------------------------------------------------+
+		 * | 16    | Exposure interleave enable (0=disable, 1=enable)  |
+		 * |       | Separate the pixels for PRU processing.           |
+		 * +-------+---------------------------------------------------+
+		 * | 11:8  | Must be programmed to 1.                          |
+		 * +-------+---------------------------------------------------+
+		 * | 2:1   | Number of surfaces when reading multi-exposure    |
+		 * |       | [0,3]. Not for semi-planar formats. Must be set   |
+		 * |       | when exposure interleave is enabled.              |
+		 * +-------+---------------------------------------------------+
+		 * | 0     | Enable large requests on AXI bus                  |
+		 * |       | (0=disable,1=enable).                             |
+		 * +-------+---------------------------------------------------+
+		 * @endrst
+		 */
 		uint32_t surf_ctrl;
-		/** Byte stride between start of lines. Must be ATOM aligned */
+
+		/**
+		 * Byte stride between start of lines [0,0x3FFFF]. Must be a
+		 * multiple of 64.
+		 *
+		 * @deprecated Not supported from T234 onwards.
+		 */
 		uint32_t surf_stride_line;
-		/** Byte stride between start of DPCM chunks. Must be ATOM aligned */
+
+		/**
+		 * Byte stride between start of DPCM chunks [0,UINT32_MAX].
+		 * Must be a multiple of 64. (non-safety)
+		 *
+		 * @deprecated Not supported from T234 onwards.
+		 */
 		uint32_t surf_stride_chunk;
 	} surface_configs;
+	/**< Configuration for input surfaces. */
 
 	/** Reserved */
 	uint32_t pad2__;
-	/** Base address of ISP PB2 memory */
-	iova_t isp_pb2_mem;
-	/* TODO: Isn't PB2 size constant, do we need this? */
-	/** Size of the pushbuffer 2 memory */
-	uint32_t isp_pb2_size;
-	/** Reserved */
-	uint32_t pad_pb__;
 
-	/** Frame processing timeout in microseconds */
+	/**
+	 * Undefined in RCE-FW interface.
+	 *
+	 * In the UMD-KMD shared memory interface this specifies
+	 * the memory handle and offset for the ISP program.
+	 *
+	 * @rststar
+	 * +-------+---------------------------------------------------+
+	 * | Bits  | Description                                       |
+	 * +=======+===================================================+
+	 * | 63:32 | Memory handle [0,UINT32_MAX].                     |
+	 * +-------+---------------------------------------------------+
+	 * | 31:0  | ISP program offset in the buffer [0,UINT32_MAX].  |
+	 * +-------+---------------------------------------------------+
+	 * @endrst
+	 */
+	iova_t isp_pb2_mem;
+
+	/** Reserved */
+	uint32_t pad_pb__[2];
+
+	/** Reserved. Not supported. */
 	uint32_t frame_timeout;
 
 	/**
-	 * Number of inputfences for given capture request.
-	 * These fences are exclusively associated with ISP input ports and
-	 * they support subframe sychronization.
+	 * Number of inputfences for given capture request
+	 * [0, @ref ISP_MAX_INPUT_SURFACES]. These fences are exclusively
+	 * associated with ISP input ports and they support subframe
+	 * sychronization with upstream. Input fences are not required
+	 * for input ports where the data is already present in memory.
 	 */
 	uint32_t num_inputfences;
-	/** Progress syncpoint for each one of inputfences */
+
+	/**
+	 * Array of input fences. Each input fence specifies a fence value for
+	 * an upstream progress syncpoint, indicating the completion of the
+	 * first subframe of the associated input surface. Each subsequent
+	 * progress syncpoint increment beyond the input fence value indicates
+	 * the completion of an additional subframe.
+	 */
 	struct syncpoint_info inputfences[ISP_MAX_INPUT_SURFACES];
 
 	/* GID-STKHLDREQPLCL123-3812735 */
+
+/** Maximum number of prefences supported */
 #define ISP_MAX_PREFENCES	MK_U32(14)
 
 	/**
-	 * Number of traditional prefences for given capture request.
-	 * They are generic, so can be used for any pre-condition but do not
-	 * support subframe synchronization
+	 * Number of traditional prefences for a given capture request
+	 * [0, @ref ISP_MAX_PREFENCES]. Prefences are generic and can
+	 * be used for to gate the ISP processing on any pre-condition.
 	 */
 	uint32_t num_prefences;
+
 	/** Reserved */
 	uint32_t pad_prefences__;
 
-	/** Syncpoint for each one of prefences */
+	/** Array of prefences. */
 	struct syncpoint_info prefences[ISP_MAX_PREFENCES];
 
-	/** Engine result record – written by Falcon */
+	/**
+	 * Memory buffer for @ref capture_isp_engine_status
+	 * "ISP engine status surface", written by ISP when a
+	 * frame is complete.
+	 *
+	 * This is only valid in the UMD-KMD interface.
+	 * The content is undefined in the RCE FW interface.
+	 */
 	struct engine_status_surface engine_status;
 
-	/** Frame processing result record – written by RTCPU */
+	/**
+	 * ISP request status record. Written by RCE when the ISP
+	 * request is completed.
+	 */
 	struct capture_isp_status status;
 
 	/** Offset for the next watermark within the watermark surface */
@@ -4111,7 +4927,11 @@ struct isp_capture_descriptor {
 	/** Unique ID for ISP input buffer */
 	uint64_t input_buffer_id;
 
-	/* Information regarding the ISP program bound to this capture */
+	/**
+	 * Buffer index identifying an ISP program bound to this ISP request.
+	 * Valid if flag @ref CAPTURE_ISP_FLAG_ISP_PROGRAM_BINDING is set in
+	 * @ref capture_flags.
+	 */
 	uint32_t program_buffer_index;
 
 	/** Reserved */
@@ -4127,39 +4947,60 @@ struct isp_capture_descriptor {
  * application.
  */
 struct isp_capture_descriptor_memoryinfo {
-	struct memoryinfo_surface input_mr_surfaces[ISP_MAX_INPUT_SURFACES];	// TODO RCE
+	/** ISP input surfaces */
+	struct memoryinfo_surface input_mr_surfaces[ISP_MAX_INPUT_SURFACES];
+
 	struct {
+		/** ISP output surfaces for memory port */
 		struct memoryinfo_surface surfaces[ISP_MAX_OUTPUT_SURFACES];
 	} outputs_mw[ISP_MAX_OUTPUTS];
+	/**< ISP output surfaces for each write port */
 
 	/** Flicker band (FB) statistics buffer */
 	struct memoryinfo_surface fb_surface;
+
 	/** Focus metrics (FM) statistics buffer */
 	struct memoryinfo_surface fm_surface;
+
 	/** Auto Focus Metrics (AFM) statistics buffer */
-	struct memoryinfo_surface afm_surface; //
+	struct memoryinfo_surface afm_surface;
+
 	/** Local Average Clipping (LAC0) unit 0 statistics buffer */
 	struct memoryinfo_surface lac0_surface;
+
 	/** Local Average Clipping (LAC1) unit 1 statistics buffer */
 	struct memoryinfo_surface lac1_surface;
+
 	/** Histogram (H0) unit 0 statistics buffer */
 	struct memoryinfo_surface h0_surface;
+
 	/** Histogram (H1) unit 1 statistics buffer */
 	struct memoryinfo_surface h1_surface;
+
 	/** Histogram (H2) unit 2 statistics buffer for ISP7 only*/
 	struct memoryinfo_surface h2_surface;
+
 	/** Pixel Replacement Unit (PRU) statistics buffer */
 	struct memoryinfo_surface pru_bad_surface;
+
 	/** Local Tone Mapping statistics buffer */
 	struct memoryinfo_surface ltm_surface;
+
 	/** RAW24 Histogram Unit statistics buffer */
 	struct memoryinfo_surface hist_raw24_surface;
+
 	/** Base address of ISP PB2 memory */
 	struct memoryinfo_surface isp_pb2_mem;
-	/** Engine result record – written by Falcon */
+
+	/**
+	 * Memory surface for @ref capture_isp_engine_status
+	 * "ISP engine status ".
+	 */
 	struct memoryinfo_surface engine_status;
+
 	/** Memory surface for watermark ring buffer written by ISP FW */
 	struct memoryinfo_surface watermark_surface;
+
 	/* Reserved */
 	uint64_t reserved[2];
 } CAPTURE_DESCRIPTOR_ALIGN;
@@ -4190,77 +5031,100 @@ struct isp_capture_descriptor_memoryinfo {
 #define NV_ENGINE_STATUS_SURFACE_SIZE		MK_SIZE(16)
 
 /**
- * @ brief Downscaler configuration information that is needed for building ISP config buffer.
- *
- * These registers cannot be included in push buffer but they must be provided in a structure
- * that RCE can parse. Format of the fields is same as in corresponding ISP registers.
+ * @defgroup IspSubUnitEnables ISP sub-unit enable bits.
+ * @{
  */
-struct isp5_downscaler_configbuf {
-	/**
-	* Horizontal pixel increment, in U5.20 format. I.e. 2.5 means downscaling
-	* by factor of 2.5. Corresponds to ISP_DM_H_PI register
-	*/
-	uint32_t pixel_incr_h;
-	/**
-	* Vertical pixel increment, in U5.20 format. I.e. 2.5 means downscaling
-	* by factor of 2.5. Corresponds to ISP_DM_v_PI register
-	*/
-	uint32_t pixel_incr_v;
-
-	/**
-	* Offset of the first source image pixel to be used.
-	* Topmost 16 bits - the leftmost column to be used
-	* Lower 16 bits - the topmost line to be used
-	*/
-	uint32_t offset;
-
-	/**
-	* Size of the scaled destination image in pixels
-	* Topmost 16 bits - height of destination image
-	* Lowest 16 bits - Width of destination image
-	*/
-	uint32_t destsize;
-};
-
-/**
- * @brief ISP sub-units enabled bits.
- */
+/** Enable PRU outlier rejection */
 #define ISP5BLOCK_ENABLED_PRU_OUTLIER_REJECTION		MK_BIT32(0)
+
+/** Enable PRU statistics */
 #define	ISP5BLOCK_ENABLED_PRU_STATS			MK_BIT32(1)
+
+/** Enable PRU HDR mode */
 #define	ISP5BLOCK_ENABLED_PRU_HDR			MK_BIT32(2)
-#define	ISP6BLOCK_ENABLED_PRU_RAW24_HIST		MK_BIT32(3) /* ISP6 */
+
+/** Enable IPS6 PRU RAW24 histogram */
+#define	ISP6BLOCK_ENABLED_PRU_RAW24_HIST		MK_BIT32(3)
+
+/** Enable AP demosaic */
 #define	ISP5BLOCK_ENABLED_AP_DEMOSAIC			MK_BIT32(4)
+
+/** Enable AP color artifact reduction */
 #define	ISP5BLOCK_ENABLED_AP_CAR			MK_BIT32(5)
+
+/** Enable AP LTM modify */
 #define	ISP5BLOCK_ENABLED_AP_LTM_MODIFY			MK_BIT32(6)
+
+/** Enable AP LTM stats */
 #define	ISP5BLOCK_ENABLED_AP_LTM_STATS			MK_BIT32(7)
+
+/** Enable AP focus metric */
 #define	ISP5BLOCK_ENABLED_AP_FOCUS_METRIC		MK_BIT32(8)
+
+/** Enable flickerband */
 #define	ISP5BLOCK_ENABLED_FLICKERBAND			MK_BIT32(9)
+
+/** Enable histogram (H0) */
 #define	ISP5BLOCK_ENABLED_HISTOGRAM0			MK_BIT32(10)
+
+/** Enable histogram (H1) */
 #define	ISP5BLOCK_ENABLED_HISTOGRAM1			MK_BIT32(11)
+
+/* Enable horizontal downscaling on DS0 */
 #define	ISP5BLOCK_ENABLED_DOWNSCALER0_HOR		MK_BIT32(12)
+
+/* Enable vertical downscaling on DS0 */
 #define	ISP5BLOCK_ENABLED_DOWNSCALER0_VERT		MK_BIT32(13)
+
+/* Enable horizontal downscaling on DS1 */
 #define	ISP5BLOCK_ENABLED_DOWNSCALER1_HOR		MK_BIT32(14)
+
+/* Enable vertical downscaling on DS1 */
 #define	ISP5BLOCK_ENABLED_DOWNSCALER1_VERT		MK_BIT32(15)
+
+/* Enable horizontal downscaling on DS2 */
 #define	ISP5BLOCK_ENABLED_DOWNSCALER2_HOR		MK_BIT32(16)
+
+/* Enable vertical downscaling on DS2 */
 #define	ISP5BLOCK_ENABLED_DOWNSCALER2_VERT		MK_BIT32(17)
+
+/** Enable sharpen (SHARP0) */
 #define	ISP5BLOCK_ENABLED_SHARPEN0			MK_BIT32(18)
+
+/** Enable sharpen (SHARP1) */
 #define	ISP5BLOCK_ENABLED_SHARPEN1			MK_BIT32(19)
+
+/** Enable LAC0 region 0 */
 #define	ISP5BLOCK_ENABLED_LAC0_REGION0			MK_BIT32(20)
+
+/** Enable LAC0 region 1 */
 #define	ISP5BLOCK_ENABLED_LAC0_REGION1			MK_BIT32(21)
+
+/** Enable LAC0 region 2 */
 #define	ISP5BLOCK_ENABLED_LAC0_REGION2			MK_BIT32(22)
+
+/** Enable LAC0 region 3 */
 #define	ISP5BLOCK_ENABLED_LAC0_REGION3			MK_BIT32(23)
+
+/** Enable LAC1 region 0 */
 #define	ISP5BLOCK_ENABLED_LAC1_REGION0			MK_BIT32(24)
+
+/** Enable LAC1 region 1 */
 #define	ISP5BLOCK_ENABLED_LAC1_REGION1			MK_BIT32(25)
+
+/** Enable LAC1 region 2 */
 #define	ISP5BLOCK_ENABLED_LAC1_REGION2			MK_BIT32(26)
+
+/** Enable LAC1 region 3 */
 #define	ISP5BLOCK_ENABLED_LAC1_REGION3			MK_BIT32(27)
-/**
- * Enable ISP6 LTM Softkey automatic update feature
- */
+
+/** Enable ISP6 LTM Softkey automatic update feature */
 #define ISP6BLOCK_ENABLED_AP_LTM_SK_UPDATE		MK_BIT32(28)
-/**
- * Enable ISP7 HIST2
- */
+
+/** Enable ISP7 HIST2 */
 #define	ISP7BLOCK_ENABLED_HISTOGRAM2			MK_BIT32(29)
+/** @} */
+
 /**
  * @brief ISP overfetch requirements.
  *
@@ -4274,55 +5138,80 @@ struct isp5_downscaler_configbuf {
  */
 
 struct isp_overfetch {
-	/** Number of pixels needed from the left side of tile */
-	uint8_t left;
-	/** Number of pixels needed from the right side of tile */
-	uint8_t right;
-	/** Number of pixels needed from above the tile */
-	uint8_t top;
-	/** Number of pixels needed from below the tile */
-	uint8_t bottom;
 	/**
-	 * Number of pixels needed by PRU unit from left and right sides of the tile.
-	 * This is needed to adjust tile border locations so that they align correctly
-	 * at demosaic input.
+	 * Number of pixels needed from the left side of tile [0,UINT8_MAX].
+	 * The functional range is [0,18].
+	 */
+	uint8_t left;
+
+	/**
+	 * Number of pixels needed from the right side of tile [0,UINT8_MAX].
+	 * The functional range is [0,30].
+	 */
+	uint8_t right;
+
+	/**
+	 * Number of pixels needed from above the tile [0,UINT8_MAX].
+	 * The functional range is [0,18].
+	 */
+	uint8_t top;
+
+	/**
+	 * Number of pixels needed from below the tile [0,UINT8_MAX]
+	 * The functional range is [0,18].
+	 */
+	uint8_t bottom;
+
+	/**
+	 * Number of pixels needed by PRU unit from left and right sides of
+	 * the tile. This is needed to adjust tile border locations so that
+	 * they align correctly at demosaic input [0,UINT8_MAX].
+	 * The functional range is [0,4].
 	 */
 	uint8_t pru_ovf_h;
+
 	/**
-	 * Alignment requirement for tile width. Minimum alignment is 2 pixels, but
-	 * if CAR is used this must be set to half of LPF kernel width.
+	 * Alignment requirement for tile width. Minimum alignment is 2 pixels,
+	 * but if CAR is used (@ref ISP5BLOCK_ENABLED_AP_CAR is set in
+	 * @ref isp5_program::enables_config) this must be set to half of the
+	 * LPF kernel width.
 	 */
 	uint8_t alignment;
+
 	/** Reserved */
 	uint8_t pad1__[2];
 };
 
 /**
- * @brief Identifier for ISP5
+ * @defgroup IspTypeId ISP Type
+ * @{
+ */
+
+/**
+ * Identifier for ISP5
  */
 #define ISP_TYPE_ID_ISP5 MK_U16(3)
 
 /**
- * @brief Identifier for ISP6
+ * Identifier for ISP6
  */
 #define ISP_TYPE_ID_ISP6 MK_U16(4)
 
 /**
- * @brief Identifier for ISP7
+ * Identifier for ISP7
  */
 #define ISP_TYPE_ID_ISP7 MK_U16(5)
+/** @} */
 
 /**
- * @brief Magic bytes to detect ISP program struct with version information
+ * Magic bytes to detect ISP program struct with version information
  */
-
 #define ISP5_PROGRAM_STRUCT_ID MK_U32(0x50505349)
 
 /**
- * @brief Version of ISP program struct layout
- *
- * Value of this constant must be increased every time when the memory layout of
- * isp5_program struct changes.
+ * Version of ISP program struct layout. The value of this constant must
+ * be increased every time when the memory layout of isp5_program struct
+ * changes.
  */
 #define ISP5_PROGRAM_STRUCT_VERSION MK_U16(3)
 
@@ -4330,23 +5219,25 @@ struct isp_overfetch {
 /**
  * @brief ISP program buffer
  *
- * Settings needed by RCE ISP driver to generate config buffer.
- * Content and format of these fields is the same as corresponding ISP config buffer fields.
- * See ISP_Microcode.docx for detailed description.
+ * Settings needed by RCE ISP driver to generate a config buffer for ISP.
+ * Content and format of these fields is the same as corresponding ISP
+ * config buffer fields. See ISP_Microcode.docx for detailed description.
  */
 struct isp5_program {
 	/**
-	 * @brief "Magic bytes" to identify memory area as an ISP program
+	 * Magic bytes to identify memory area as an ISP program.
+	 * Initialize with @ref ISP5_PROGRAM_STRUCT_ID.
 	 */
 	uint32_t isp_program_struct_id;
 
 	/**
-	 * @brief Version of the ISP program structure
+	 * ISP program structure version. Current version is defined by
+	 * @ref ISP5_PROGRAM_STRUCT_VERSION.
 	 */
 	uint16_t isp_program_struct_version;
 
 	/**
-	 * @brief Target ISP for the ISP program.
+	 * @ref IspTypeId "Target ISP version" for the ISP program.
 	 */
 	uint16_t isp_type;
 
@@ -4355,6 +5246,67 @@ struct isp5_program {
 	 * Format is same as in ISP's XB_SRC_0 register
 	 * For ISP7, this is the stats crossbar used for
 	 * HIST1 and LAC1, with ISP_STATS_XB_SRC register format.
+	 *
+	 * @rststar
+	 * +-------+---------------------------------------------------+
+	 * | Bits  | Description                                       |
+	 * +=======+===================================================+
+	 * | 14:10 | Source for LS unit:                               |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       |  2 = PRU                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 9:5   | Source for AP unit:                               |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 4:0   | Source for PRU unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * +-------+---------------------------------------------------+
+	 * @endrst
 	 */
 	uint32_t xbsrc0;
 
@@ -4363,6 +5315,117 @@ struct isp5_program {
 	 * Format is same as in ISP's XB_SRC_1 register
 	 * For ISP7, this is the output crossbar used for
 	 * TF0, DS[0-2], with ISP_OUT_XB_SRC register format.
+	 *
+	 * @rststar
+	 * +-------+---------------------------------------------------+
+	 * | Bits  | Description                                       |
+	 * +=======+===================================================+
+	 * | 24:20 | Source for AT2 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 19:15 | Source for AT1 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 14:10 | Source for AT0 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 9:5   | Source for TF1 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 4:0   | Source for TF0 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * @endrst
 	 */
 	uint32_t xbsrc1;
 
@@ -4371,6 +5434,141 @@ struct isp5_program {
 	 * Format is same as in ISP's XB_SRC_2 register
 	 * For ISP7, this is the AT1 MuxSelect used for
 	 * AT1, with ISP_AT1_XB_SRC register format.
+	 *
+	 * @rststar
+	 * +-------+---------------------------------------------------+
+	 * | Bits  | Description                                       |
+	 * +=======+===================================================+
+	 * | 29:25 | Source for DS2 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 15 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 24:20 | Source for DS1 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 15 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 19:15 | Source for DS0 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 14:10 | Source for MW2 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 9:5   | Source for MW1 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 4:0   | Source for MW0 unit:                              |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * @endrst
 	 */
 	uint32_t xbsrc2;
 
@@ -4378,48 +5576,270 @@ struct isp5_program {
 	 * Sources for FB, LAC[0-1] and HIST[0-1] blocks
 	 * Format is same as in ISP's XB_SRC_3 register
 	 * For ISP7, this is not used.
+	 *
+	 * @rststar
+	 * +-------+---------------------------------------------------+
+	 * | Bits  | Description                                       |
+	 * +=======+===================================================+
+	 * | 29:25 | Source for FB unit:                               |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 15 = AT2                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 19:15 | Source for LAC1 unit:                             |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 15 = AT2                                          |
+	 * |       | 19 = SHARP0                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 14:10 | Source for LAC0 unit:                             |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       | 20 = SHARP1                                       |
+	 * |       | 21 = AFM                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 9:5   | Source for H1 unit:                               |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  7 = H0                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 4:0   | Source for H0 unit:                               |
+	 * |       |  0 = NONE                                         |
+	 * |       |  1 = MR0                                          |
+	 * |       | 22 = LS                                           |
+	 * |       |  8 = H1                                           |
+	 * |       |  3 = DMCV                                         |
+	 * |       |  4 = APEX                                         |
+	 * |       |  5 = APEXCV                                       |
+	 * |       |  9 = LAC0                                         |
+	 * |       | 10 = LAC1                                         |
+	 * |       |  6 = FB                                           |
+	 * |       | 17 = TF0                                          |
+	 * |       | 18 = TF1                                          |
+	 * |       | 14 = AT0                                          |
+	 * |       | 15 = AT1                                          |
+	 * |       | 16 = AT2                                          |
+	 * |       |  2 = PRU                                          |
+	 * +-------+---------------------------------------------------+
+	 * @endrst
 	 */
 	uint32_t xbsrc3;
 
 	/**
-	 * Bitmask to describe which of ISP blocks are enabled.
-	 * See microcode documentation for details.
+	 * @ref IspSubUnitEnables "ISP sub-unit enable bits"
+	 * specify which of the ISP blocks are enabled for this
+	 * ISP program.
 	 */
 	uint32_t enables_config;
 
 	/**
 	 * AFM configuration. See microcode documentation for details.
+	 *
+	 * @rststar
+	 * +-------+---------------------------------------------------+
+	 * | Bits  | Description                                       |
+	 * +=======+===================================================+
+	 * | 31    | AFM output mode on pixel bus:                     |
+	 * |       |  0 = original pixel data (bypass mode)            |
+	 * |       |  1 = metric data output, no original pixel data   |
+	 * +-------+---------------------------------------------------+
+	 * | 23    | AFM metric mode for ROI7:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 22    | AFM metric mode for ROI6:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 21    | AFM metric mode for ROI5:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 20    | AFM metric mode for ROI4:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 19    | AFM metric mode for ROI3:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 18    | AFM metric mode for ROI2:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 17    | AFM metric mode for ROI1:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 16    | AFM metric mode for ROI0:                         |
+	 * |       |  0 = accumulate using signed metric               |
+	 * |       |  1 = accumulate using ABS(metric)                 |
+	 * +-------+---------------------------------------------------+
+	 * | 7     | AFM ROI7 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * | 6     | AFM ROI6 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * | 5     | AFM ROI5 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * | 4     | AFM ROI3 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * | 3     | AFM ROI3 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * | 2     | AFM ROI2 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * | 1     | AFM ROI1 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * | 0     | AFM ROI0 enable (0 = disable, 1 = enable)         |
+	 * +-------+---------------------------------------------------+
+	 * @endrst
 	 */
 	uint32_t afm_ctrl;
 
 	/**
-	 * Mask for stats blocks enabled.
+	 * Bit mask for stats blocks enabled (1 = enabled, 0 = disable).
+	 * Must be consistent with other configuration and pushbuffer.
+	 *
+	 * +-------+---------------------------------------------------+
+	 * | Bits  | Description                                       |
+	 * +=======+===================================================+
+	 * | 0     | HIST0                                             |
+	 * +-------+---------------------------------------------------+
+	 * | 1     | HIST1                                             |
+	 * +-------+---------------------------------------------------+
+	 * | 2     | PRU OR                                            |
+	 * +-------+---------------------------------------------------+
+	 * | 3     | LAC0 ROI0                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 4     | LAC0 ROI1                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 5     | LAC0 ROI2                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 6     | LAC0 ROI3                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 7     | LAC1 ROI0                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 8     | LAC1 ROI1                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 9     | LAC1 ROI2                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 10    | LAC1 ROI3                                         |
+	 * +-------+---------------------------------------------------+
+	 * | 11    | FB                                                |
+	 * +-------+---------------------------------------------------+
+	 * | 12    | FM                                                |
+	 * +-------+---------------------------------------------------+
+	 * | 13    | AFM ROI0                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 14    | AFM ROI1                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 15    | AFM ROI2                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 16    | AFM ROI3                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 17    | AFM ROI4                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 18    | AFM ROI5                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 19    | AFM ROI6                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 20    | AFM ROI7                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 21    | LTM                                               |
+	 * +-------+---------------------------------------------------+
+	 * | 22    | PRU hist                                          |
+	 * +-------+---------------------------------------------------+
+	 * | 23    | LTM auto sk                                       |
+	 * +-------+---------------------------------------------------+
 	 */
 	uint32_t stats_aidx_flag;
 
 	/**
-	 * Size used for the push buffer in 4-byte words.
+	 * Number of slots filled in @ref pushbuffer array.
 	 */
 	uint32_t pushbuffer_size;
 
 	/**
-	 * Horizontal pixel increment for downscalers, in
-	 * U5.20 format. I.e. 2.5 means downscaling
-	 * by factor of 2.5. Corresponds to ISP_DM_H_PI register.
-	 * This is needed by ISP Falcon firmware to program
-	 * tile starting state correctly.
+	 * Horizontal pixel increment for DS0 downscaler in U5.20 format.
+	 * I.e. 2.5 implies downscaling by a factor of 2.5 [0,0x1FFFFFF].
+	 * Must be >= 1.0: either down-scaling or non-scaling.
 	 */
 	uint32_t ds0_pixel_incr_h;
+
+	/**
+	 * Horizontal pixel increment for DS1 downscaler in U5.20 format.
+	 * I.e. 2.5 implies downscaling by a factor of 2.5 [0,0x1FFFFFF].
+	 * Must be >= 1.0: either down-scaling or non-scaling.
+	 */
 	uint32_t ds1_pixel_incr_h;
+
+	/**
+	 * Horizontal pixel increment for DS2 downscaler in U5.20 format.
+	 * I.e. 2.5 implies downscaling by a factor of 2.5 [0,0x1FFFFFF].
+	 * Must be >= 1.0: either down-scaling or non-scaling.
+	 */
 	uint32_t ds2_pixel_incr_h;
 
 	/** ISP overfetch requirements */
 	struct isp_overfetch overfetch;
 
-	/** memory write crop region info*/
 	struct {
 		struct isp_crop_rect mw_crop;
 	} outputs_mw[ISP_MAX_OUTPUTS];
+	/**< Memory write crop region for each write port. */
 
 	/** Reserved */
 	uint32_t pad1__[11];
@@ -4438,12 +5858,13 @@ struct isp5_program {
 /**
  * @brief ISP Program ringbuffer element
  *
- * Each element in the ISP program ringbuffer contains a program descriptor immediately followed
- * isp program.
+ * Each element in the ISP program ringbuffer contains a program descriptor
+ * immediately followed by the @ref isp5_program "ISP program".
  */
 struct isp5_program_entry {
-	/** ISP capture descriptor */
+	/** ISP program descriptor */
 	struct isp_program_descriptor prog_desc;
+
 	/** ISP program buffer */
 	struct isp5_program isp_prog;
 } CAPTURE_DESCRIPTOR_ALIGN;
