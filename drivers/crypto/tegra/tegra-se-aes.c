@@ -1664,6 +1664,9 @@ static void tegra_cmac_cra_exit(struct crypto_tfm *tfm)
 	struct tegra_cmac_ctx *ctx = crypto_tfm_ctx(tfm);
 
 	tegra_key_invalidate(ctx->se, ctx->key_id);
+
+	if (ctx->fallback_tfm)
+		crypto_free_shash(ctx->fallback_tfm);
 }
 
 static int tegra_cmac_init(struct ahash_request *req)
