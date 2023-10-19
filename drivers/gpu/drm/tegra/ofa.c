@@ -164,9 +164,17 @@ static int ofa_exit(struct host1x_client *client)
 	return 0;
 }
 
+static unsigned long ofa_get_rate(struct host1x_client *client)
+{
+	struct ofa *ofa = dev_get_drvdata(client->dev);
+
+	return clk_get_rate(ofa->clk);
+}
+
 static const struct host1x_client_ops ofa_client_ops = {
 	.init = ofa_init,
 	.exit = ofa_exit,
+	.get_rate = ofa_get_rate,
 };
 
 static int ofa_load_firmware(struct ofa *ofa)
