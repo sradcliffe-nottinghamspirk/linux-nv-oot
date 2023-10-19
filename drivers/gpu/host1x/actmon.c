@@ -7,6 +7,7 @@
 
 #include <linux/clk.h>
 #include <linux/debugfs.h>
+#include <linux/errno.h>
 #include <linux/fs.h>
 #include <linux/host1x-next.h>
 
@@ -190,6 +191,9 @@ static int host1x_actmon_module_avg_norm_get(void *data, u64 *val)
 	struct host1x_client *client = actmon->client;
 	unsigned long client_freq;
 	u32 active_clks, client_clks;
+
+	if (!client->ops->get_rate)
+		return -ENOTSUPP;
 
 	active_clks = actmon_module_readl(module, HOST1X_ACTMON_MODULE_AVG_COUNT_REG);
 
