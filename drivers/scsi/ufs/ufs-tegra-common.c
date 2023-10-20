@@ -1447,6 +1447,7 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 	resource_size_t mphy_l0_addr_base, mphy_l1_addr_base;
 	resource_size_t ufs_virt_base_addr = 0, ufs_virt_addr_range = 0;
 	struct iommu_fwspec *fwspec;
+	u32 virt_ctrl_en = 0;
 
 	ufs_tegra = devm_kzalloc(dev, sizeof(*ufs_tegra), GFP_KERNEL);
 	if (!ufs_tegra) {
@@ -1476,6 +1477,8 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 		mphy_addr_range = MPHY_ADDR_RANGE_T264;
 		ufs_virt_base_addr = NV_ADDRESS_MAP_T264_UFSHC_VIRT_BASE;
 		ufs_virt_addr_range = UFS_AUX_ADDR_VIRT_RANGE_264;
+		virt_ctrl_en = UFS_AUX_ADDR_VIRT_CTRL_EN |
+				UFS_AUX_ADDR_VIRT_PA_VA_CTRL;
 	} else if (ufs_tegra->soc->chip_id == TEGRA234) {
 		ufs_aux_base_addr = NV_ADDRESS_MAP_T23X_UFSHC_AUX_BASE;
 		ufs_aux_addr_range = UFS_AUX_ADDR_RANGE_23X;
@@ -1484,6 +1487,7 @@ static int ufs_tegra_init(struct ufs_hba *hba)
 		mphy_addr_range = MPHY_ADDR_RANGE_T234;
 		ufs_virt_base_addr = NV_ADDRESS_MAP_T23X_UFSHC_VIRT_BASE;
 		ufs_virt_addr_range = UFS_AUX_ADDR_VIRT_RANGE_23X;
+		virt_ctrl_en = UFS_AUX_ADDR_VIRT_CTRL_EN;
 	} else {
 		ufs_aux_base_addr = NV_ADDRESS_MAP_UFSHC_AUX_BASE;
 		ufs_aux_addr_range = UFS_AUX_ADDR_RANGE;
@@ -1579,7 +1583,7 @@ aux_init:
 	ufs_tegra_set_clk_div(hba, UFS_VNDR_HCLKDIV_1US_TICK);
 	ufs_tegra_eq_timeout(ufs_tegra);
 
-	if (ufs_tegra->soc->chip_id == TEGRA234) {
+	if (ufs_tegra->soc->chip_id >= TEGRA234) {
 		fwspec = dev_iommu_fwspec_get(dev);
 		if (fwspec == NULL) {
 			err = -ENODEV;
@@ -1587,7 +1591,7 @@ aux_init:
 			goto out_disable_mphylane_clks;
 		} else {
 			ufs_tegra->streamid = fwspec->ids[0] & 0xffff;
-			writel(UFS_AUX_ADDR_VIRT_CTRL_EN,
+			writel(virt_ctrl_en,
 				ufs_tegra->ufs_virtualization_base +
 				UFS_AUX_ADDR_VIRT_CTRL_0);
 			writel(ufs_tegra->streamid,
