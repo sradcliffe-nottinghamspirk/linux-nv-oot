@@ -5,6 +5,8 @@
 
 #include <linux/clk.h>
 #include <linux/delay.h>
+#include <linux/devfreq.h>
+#include <linux/devfreq/tegra_wmark.h>
 #include <linux/host1x-next.h>
 #include <linux/iommu.h>
 #include <linux/iopoll.h>
@@ -27,6 +29,7 @@
 #define OFA_TFBIF_TRANSCFG		0x1444
 #define OFA_TFBIF_ACTMON_ACTIVE_MASK	0x144c
 #define OFA_TFBIF_ACTMON_ACTIVE_BORPS	0x1450
+#define OFA_TFBIF_ACTMON_ACTIVE_WEIGHT	0x1454
 #define OFA_SAFETY_RAM_INIT_REQ		0x3320
 #define OFA_SAFETY_RAM_INIT_DONE	0x3324
 
@@ -50,6 +53,8 @@ struct ofa {
 	struct host1x_channel *channel;
 	struct device *dev;
 	struct clk *clk;
+	struct devfreq *devfreq;
+	struct devfreq_dev_profile *devfreq_profile;
 
 	/* Platform configuration */
 	const struct ofa_config *config;
@@ -90,6 +95,116 @@ static int ofa_boot(struct ofa *ofa)
 	}
 
 	return 0;
+}
+
+static void ofa_devfreq_update_wmark_threshold(struct devfreq *devfreq,
+						 struct devfreq_tegra_wmark_config *cfg)
+{
+	struct ofa *ofa = dev_get_drvdata(devfreq->dev.parent);
+	struct host1x_client *client = &ofa->client.base;
+
+	host1x_actmon_update_active_wmark(client,
+					  cfg->avg_upper_wmark,
+					  cfg->avg_lower_wmark,
+					  cfg->consec_upper_wmark,
+					  cfg->consec_lower_wmark,
+					  cfg->upper_wmark_enabled,
+					  cfg->lower_wmark_enabled);
+}
+
+static int ofa_devfreq_target(struct device *dev, unsigned long *freq, u32 flags)
+{
+	struct ofa *ofa = dev_get_drvdata(dev);
+	int err;
+
+	err = clk_set_rate(ofa->clk, *freq);
+	if (err < 0) {
+		dev_err(dev, "failed to set clock rate\n");
+		return err;
+	}
+
+	*freq = clk_get_rate(ofa->clk);
+
+	return 0;
+}
+
+static int ofa_devfreq_get_dev_status(struct device *dev, struct devfreq_dev_status *stat)
+{
+	struct ofa *ofa = dev_get_drvdata(dev);
+	struct host1x_client *client = &ofa->client.base;
+	unsigned long usage;
+
+	/* Update load information */
+	host1x_actmon_read_active_norm(client, &usage);
+	stat->total_time = 1000;
+	stat->busy_time = usage;
+
+	/* Update device frequency */
+	stat->current_frequency = clk_get_rate(ofa->clk);
+
+	return 0;
+}
+
+static int ofa_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
+{
+	struct ofa *ofa = dev_get_drvdata(dev);
+
+	*freq = clk_get_rate(ofa->clk);
+
+	return 0;
+}
+
+static int ofa_devfreq_init(struct ofa *ofa)
+{
+	unsigned long max_rate = clk_round_rate(ofa->clk, ULONG_MAX);
+	unsigned long min_rate = clk_round_rate(ofa->clk, 0);
+	unsigned long margin = clk_round_rate(ofa->clk, min_rate + 1) - min_rate;
+	unsigned long rate = min_rate;
+	struct devfreq_tegra_wmark_data *data;
+	struct devfreq_dev_profile *devfreq_profile;
+	struct devfreq *devfreq;
+
+	while (rate <= max_rate) {
+		dev_pm_opp_add(ofa->dev, rate, 0);
+		rate += margin;
+	}
+
+	data = devm_kzalloc(ofa->dev, sizeof(*data), GFP_KERNEL);
+	if (!data)
+		return -ENOMEM;
+
+	data->event = DEVFREQ_TEGRA_AVG_WMARK_BELOW;
+	data->update_wmark_threshold = ofa_devfreq_update_wmark_threshold;
+
+	devfreq_profile = devm_kzalloc(ofa->dev, sizeof(*devfreq_profile), GFP_KERNEL);
+	if (!devfreq_profile)
+		return -ENOMEM;
+
+	devfreq_profile->target = ofa_devfreq_target;
+	devfreq_profile->get_dev_status = ofa_devfreq_get_dev_status;
+	devfreq_profile->get_cur_freq = ofa_devfreq_get_cur_freq;
+	devfreq_profile->initial_freq = max_rate;
+	devfreq_profile->polling_ms = 100;
+
+	devfreq = devm_devfreq_add_device(ofa->dev,
+					  devfreq_profile,
+					  DEVFREQ_GOV_USERSPACE,
+					  data);
+	if (IS_ERR(devfreq))
+		return PTR_ERR(devfreq);
+
+	ofa->devfreq = devfreq;
+
+	return 0;
+}
+
+static void ofa_devfreq_deinit(struct ofa *ofa)
+{
+	if (!ofa->devfreq)
+		return;
+
+	devm_devfreq_remove_device(ofa->dev, ofa->devfreq);
+	ofa->devfreq = NULL;
 }
 
 static int ofa_init(struct host1x_client *client)
@@ -171,10 +286,45 @@ static unsigned long ofa_get_rate(struct host1x_client *client)
 	return clk_get_rate(ofa->clk);
 }
 
+static void ofa_actmon_event(struct host1x_client *client,
+			     enum host1x_actmon_wmark_event event)
+{
+	struct ofa *ofa = dev_get_drvdata(client->dev);
+	struct devfreq *df = ofa->devfreq;
+	struct devfreq_tegra_wmark_data *data;
+
+	if (!df)
+		return;
+
+	data = df->data;
+
+	switch (event) {
+	case HOST1X_ACTMON_AVG_WMARK_BELOW:
+		data->event = DEVFREQ_TEGRA_AVG_WMARK_BELOW;
+		break;
+	case HOST1X_ACTMON_AVG_WMARK_ABOVE:
+		data->event = DEVFREQ_TEGRA_AVG_WMARK_ABOVE;
+		break;
+	case HOST1X_ACTMON_CONSEC_WMARK_BELOW:
+		data->event = DEVFREQ_TEGRA_CONSEC_WMARK_BELOW;
+		break;
+	case HOST1X_ACTMON_CONSEC_WMARK_ABOVE:
+		data->event = DEVFREQ_TEGRA_CONSEC_WMARK_ABOVE;
+		break;
+	default:
+		return;
+	}
+
+	mutex_lock(&df->lock);
+	update_devfreq(df);
+	mutex_unlock(&df->lock);
+}
+
 static const struct host1x_client_ops ofa_client_ops = {
 	.init = ofa_init,
 	.exit = ofa_exit,
 	.get_rate = ofa_get_rate,
+	.actmon_event = ofa_actmon_event,
 };
 
 static int ofa_load_firmware(struct ofa *ofa)
@@ -227,6 +377,17 @@ static void ofa_actmon_reg_init(struct ofa *ofa)
 		   OFA_TFBIF_ACTMON_ACTIVE_BORPS);
 }
 
+static void ofa_count_weight_init(struct ofa *ofa, unsigned long rate)
+{
+	struct host1x_client *client = &ofa->client.base;
+	u32 weight = 0;
+
+	host1x_actmon_update_client_rate(client, rate, &weight);
+
+	if (weight)
+		ofa_writel(ofa, weight, OFA_TFBIF_ACTMON_ACTIVE_WEIGHT);
+}
+
 static __maybe_unused int ofa_runtime_resume(struct device *dev)
 {
 	struct ofa *ofa = dev_get_drvdata(dev);
@@ -246,7 +407,14 @@ static __maybe_unused int ofa_runtime_resume(struct device *dev)
 	if (err < 0)
 		goto disable;
 
+	ofa->devfreq->resume_freq = ofa->devfreq->scaling_max_freq;
+	err = devfreq_resume_device(ofa->devfreq);
+	if (err < 0)
+		goto disable;
+
 	ofa_actmon_reg_init(ofa);
+
+	ofa_count_weight_init(ofa, ofa->devfreq->scaling_max_freq);
 
 	host1x_actmon_enable(&ofa->client.base);
 
@@ -260,6 +428,11 @@ disable:
 static __maybe_unused int ofa_runtime_suspend(struct device *dev)
 {
 	struct ofa *ofa = dev_get_drvdata(dev);
+	int err;
+
+	err = devfreq_suspend_device(ofa->devfreq);
+	if (err < 0)
+		return err;
 
 	host1x_channel_stop(ofa->channel);
 
@@ -407,6 +580,12 @@ static int ofa_probe(struct platform_device *pdev)
 	if (err < 0)
 		dev_info(dev, "failed to register host1x actmon: %d\n", err);
 
+	err = ofa_devfreq_init(ofa);
+	if (err < 0) {
+		dev_err(&pdev->dev, "failed to init devfreq: %d\n", err);
+		goto exit_actmon;
+	}
+
 	ofa->hwpm.dev = dev;
 	ofa->hwpm.regs = ofa->regs;
 	tegra_drm_hwpm_register(&ofa->hwpm, pdev->resource[0].start,
@@ -418,6 +597,9 @@ static int ofa_probe(struct platform_device *pdev)
 
 	return 0;
 
+exit_actmon:
+	host1x_actmon_unregister(&ofa->client.base);
+	host1x_client_unregister(&ofa->client.base);
 exit_falcon:
 	falcon_exit(&ofa->falcon);
 
@@ -429,6 +611,8 @@ static int ofa_remove(struct platform_device *pdev)
 	struct ofa *ofa = platform_get_drvdata(pdev);
 
 	pm_runtime_disable(&pdev->dev);
+
+	ofa_devfreq_deinit(ofa);
 
 	tegra_drm_hwpm_unregister(&ofa->hwpm, pdev->resource[0].start,
 		TEGRA_DRM_HWPM_IP_OFA);
