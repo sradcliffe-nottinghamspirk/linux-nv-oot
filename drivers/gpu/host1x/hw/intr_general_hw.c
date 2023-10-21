@@ -31,6 +31,9 @@ static irqreturn_t host1x_general_isr(int irq, void *dev_id)
 	if (status & HOST1X_COMMON_THOST_INTRSTATUS_NVJPG1_ACTMON_INTR)
 		host1x_actmon_handle_interrupt(host, HOST1X_CLASS_NVJPG1);
 
+	if (status & HOST1X_COMMON_THOST_INTRSTATUS_OFA_ACTMON_INTR)
+		host1x_actmon_handle_interrupt(host, HOST1X_CLASS_OFA);
+
 	host1x_common_writel(host, status, HOST1X_COMMON_THOST_INTRSTATUS);
 
 	return IRQ_HANDLED;
@@ -72,7 +75,8 @@ static void host1x_intr_enable_general_intrs(struct host1x *host)
 		HOST1X_COMMON_THOST_INTRMASK_VIC_ACTMON(1)   |
 		HOST1X_COMMON_THOST_INTRMASK_NVDEC_ACTMON(1) |
 		HOST1X_COMMON_THOST_INTRMASK_NVJPG_ACTMON(1) |
-		HOST1X_COMMON_THOST_INTRMASK_NVJPG1_ACTMON(1),
+		HOST1X_COMMON_THOST_INTRMASK_NVJPG1_ACTMON(1)|
+		HOST1X_COMMON_THOST_INTRMASK_OFA_ACTMON(1),
 		HOST1X_COMMON_THOST_INTRMASK);
 }
 
