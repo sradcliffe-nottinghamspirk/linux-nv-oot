@@ -119,7 +119,7 @@ static int dev_file_ioctl_fence_extract(struct host1x *host1x, void __user *data
 	struct dma_fence *fence, **fences;
 	struct host1x_fence_extract args;
 	struct dma_fence_array *array;
-	unsigned int num_fences, i;
+	unsigned int num_fences, i, j;
 	unsigned long copy_err;
 	int err;
 
@@ -145,21 +145,29 @@ static int dev_file_ioctl_fence_extract(struct host1x *host1x, void __user *data
 		num_fences = 1;
 	}
 
-	for (i = 0; i < min(num_fences, args.num_fences); i++) {
+	for (i = 0, j = 0; i < num_fences; i++) {
 		struct host1x_fence_extract_fence f;
 
 		err = host1x_fence_extract(fences[i], &f.id, &f.threshold);
-		if (err)
-			goto put_fence;
-
-		copy_err = copy_to_user(fences_user_ptr + i, &f, sizeof(f));
-		if (copy_err) {
-			err = -EFAULT;
+		if (err == -EINVAL && dma_fence_is_signaled(fences[i])) {
+			/* Likely stub fence */
+			continue;
+		} else if (err) {
 			goto put_fence;
 		}
+
+		if (j < args.num_fences) {
+			copy_err = copy_to_user(fences_user_ptr + j, &f, sizeof(f));
+			if (copy_err) {
+				err = -EFAULT;
+				goto put_fence;
+			}
+		}
+
+		j++;
 	}
 
-	args.num_fences = num_fences;
+	args.num_fences = j;
 
 	copy_err = copy_to_user(data, &args, sizeof(args));
 	if (copy_err) {
