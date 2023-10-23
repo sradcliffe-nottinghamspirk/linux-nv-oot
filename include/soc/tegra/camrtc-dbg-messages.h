@@ -57,8 +57,8 @@
 #define CAMRTC_STATUS_NOT_IMPLEMENTED	MK_U32(3) /* Request not implemented */
 #define CAMRTC_STATUS_INVALID_PARAM	MK_U32(4) /* Invalid parameter */
 
-#define CAMRTC_DBG_FRAME_SIZE		MK_U32(448)
-#define CAMRTC_DBG_MAX_DATA		MK_U32(440)
+#define CAMRTC_DBG_FRAME_SIZE		MK_U32(512)
+#define CAMRTC_DBG_MAX_DATA		MK_U32(504)
 #define CAMRTC_DBG_TASK_STAT_MAX	MK_U32(16)
 
 /*
@@ -198,6 +198,7 @@ struct camrtc_dbg_test_mem {
 	uint64_t vi_iova;
 	uint64_t vi2_iova;
 	uint64_t isp_iova;
+	uint64_t isp1_iova;
 };
 
 struct camrtc_dbg_streamids {
@@ -205,6 +206,8 @@ struct camrtc_dbg_streamids {
 	uint8_t vi;
 	uint8_t vi2;
 	uint8_t isp;
+	uint8_t isp1;
+	uint8_t _pad[3];
 };
 
 /* This structure is used pass memory areas and textual input data to
