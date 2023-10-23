@@ -324,7 +324,7 @@ typedef struct syncpoint_info {
 /** ISP unit 0 */
 #define ISP_UNIT_ISP                              MK_U32(0x0000)
 /** ISP unit 1 */
-#define ISP_UNIT_ISP2                             MK_U32(0x0001)
+#define ISP_UNIT_ISP1                             MK_U32(0x0001)
 /**@}*/
 
 #define VI_NUM_GOS_TABLES	MK_U32(12)
