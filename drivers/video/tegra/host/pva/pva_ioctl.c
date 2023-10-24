@@ -170,7 +170,11 @@ static int pva_copy_task(struct nvpva_ioctl_task *ioctl_task,
 	 * copy them.
 	 */
 	task->exe_id1 = ioctl_task->exe_id1;
-	task->exe_id2 = ioctl_task->exe_id2;
+	if (task->pva->version <= PVA_HW_GEN2)
+		task->exe_id2 = NVPVA_NOOP_EXE_ID;
+	else
+		task->exe_id2 = ioctl_task->exe_id2;
+
 	task->stream_id = ioctl_task->stream_id;
 	task->prog_id = ioctl_task->prog_id;
 	task->l2_alloc_size = ioctl_task->l2_alloc_size;
