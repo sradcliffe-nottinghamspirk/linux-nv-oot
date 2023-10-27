@@ -14,6 +14,9 @@ LINUX_VERSION_6_3 := $(shell expr 6 \* 256 + 3)
 # For Linux v6.2 kernels, don't build any drivers that requires this.
 ifeq ($(shell test $(LINUX_VERSION) -ge $(LINUX_VERSION_6_2); echo $$?),0)
 export CONFIG_TEGRA_IVC_LEGACY_DISABLE=y
+endif
+
+ifeq ($(CONFIG_TEGRA_IVC_LEGACY_DISABLE),y)
 subdir-ccflags-y += -DCONFIG_TEGRA_IVC_LEGACY_DISABLE
 endif
 
