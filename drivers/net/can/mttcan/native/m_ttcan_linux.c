@@ -12,7 +12,7 @@
 #define CAN_MSG_FLUSH_TIMEOUT	100
 static void mttcan_start(struct net_device *dev);
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 #define MTTCAN_PROD_FIELD(name, rindex, roffset, fname)  \
 {							\
 	.field_name = name,				\

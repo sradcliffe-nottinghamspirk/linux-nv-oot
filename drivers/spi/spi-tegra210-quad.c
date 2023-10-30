@@ -254,14 +254,14 @@ struct tegra_qspi {
 	dma_addr_t				tx_dma_phys;
 	struct dma_async_tx_descriptor		*tx_dma_desc;
 	const struct tegra_qspi_soc_data	*soc_data;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	struct tegra_prod_cfg_list *prod_list;
 #else
 	struct tegra_prod *prod_list;
 #endif
 };
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 #define QSPI_PROD_FIELD(name, rindex, roffset, fname)  \
 {						\
 	.field_name = name,			\
@@ -996,7 +996,7 @@ static void tegra_qspi_set_gr_registers(struct tegra_qspi *tqspi)
 	/* If available, initialise the config registers
 	 * for QSPI with the values mentioned in prod list.
 	 */
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 	err = tegra_prod_set_by_name(&tqspi->base, "prod", tqspi->prod_list);
 	if (err < 0)
 		dev_info_once(tqspi->dev,
@@ -1726,7 +1726,7 @@ static int tegra_qspi_probe(struct platform_device *pdev)
 
 	tqspi->master = master;
 	tqspi->dev = &pdev->dev;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 	tqspi->prod_list = devm_tegra_prod_get(&pdev->dev);
 #else
 	tqspi->prod_list = devm_tegra_prod_get_list(&pdev->dev, &qspi_prod_dev_info);
