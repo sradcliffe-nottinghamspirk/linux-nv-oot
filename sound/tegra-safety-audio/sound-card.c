@@ -98,7 +98,7 @@ static int alwayson_control_put(struct snd_kcontrol *kctl,
 				struct snd_ctl_elem_value *uc)
 {
 	int rx = (int)kctl->private_value & 1;
-	int id = (int)kctl->private_value >> 1;
+	uint32_t id = (uint32_t)kctl->private_value >> 1;
 	int enable = uc->value.integer.value[0];
 	struct i2s_config *i2s_config = &i2s[id].config;
 
@@ -120,7 +120,7 @@ static int alwayson_control_get(struct snd_kcontrol *kctl,
 				struct snd_ctl_elem_value *uc)
 {
 	int rx = (int)kctl->private_value & 1;
-	int id = (int)kctl->private_value >> 1;
+	uint32_t id = (uint32_t)kctl->private_value >> 1;
 	struct i2s_config *i2s_config = &i2s[id].config;
 
 	if (rx)
@@ -208,7 +208,7 @@ static const struct snd_kcontrol_new controls_i2s8[] = {
 
 static int safety_i2s_add_kcontrols(struct snd_card *card, int id)
 {
-	int num_of_controls, i, ret;
+	int num_of_controls, i = 0, ret = 0;
 
 	if (id == 0) {
 		num_of_controls = ARRAY_SIZE(controls_i2s7);
