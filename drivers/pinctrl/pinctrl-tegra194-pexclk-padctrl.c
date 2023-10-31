@@ -29,7 +29,7 @@ enum t194_pexclk_pinconf_param {
 static const struct pinconf_generic_params t194_pexclk_cfg_params[] = {
 	{
 		.property = "nvidia,pexclk-single-end",
-		.param = T194_PEXCLK_SINGLE_ENDED,
+		.param = (enum pin_config_param)T194_PEXCLK_SINGLE_ENDED,
 	},
 };
 
