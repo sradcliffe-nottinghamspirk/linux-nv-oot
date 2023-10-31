@@ -34,6 +34,9 @@ subdir-ccflags-y += -DNV_SND_SOC_DAI_OPS_STRUCT_HAS_PROBE_ARG
 
 # probe_new is removed from i2c driver structure
 subdir-ccflags-y += -DNV_I2C_LEGACY_PROBE_NEW_REMOVED
+
+# API changes to replace u8 with unsigned char
+subdir-ccflags-y += -DNV_TTY_SERIAL_TYPE_U8_CHANGE
 endif
 
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)
