@@ -31,6 +31,9 @@ ifeq ($(shell test $(LINUX_VERSION) -ge $(LINUX_VERSION_6_6); echo $$?),0)
 # Move probe to DAI Ops.
 export CONFIG_SND_SOC_MOVE_DAI_PROBE_TO_OPS=y
 subdir-ccflags-y += -DNV_SND_SOC_DAI_OPS_STRUCT_HAS_PROBE_ARG
+
+# probe_new is removed from i2c driver structure
+subdir-ccflags-y += -DNV_I2C_LEGACY_PROBE_NEW_REMOVED
 endif
 
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)

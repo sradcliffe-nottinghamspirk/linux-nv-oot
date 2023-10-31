@@ -1256,7 +1256,11 @@ static struct i2c_driver f75308_driver = {
 		.of_match_table = of_match_ptr(f75308_match_table),
 	},
 	.detect = f75308_detect,
+#if defined(NV_I2C_LEGACY_PROBE_NEW_REMOVED)
+	.probe     = f75308_probe,
+#else
 	.probe_new = f75308_probe,
+#endif
 	.remove = f75308_remove,
 	.address_list = f75308_addr,
 	.id_table = f75308_id,
