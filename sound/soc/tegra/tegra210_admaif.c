@@ -447,13 +447,6 @@ static int tegra_admaif_trigger(struct snd_pcm_substream *substream, int cmd,
 	}
 }
 
-static const struct snd_soc_dai_ops tegra_admaif_dai_ops = {
-	.hw_params	= tegra_admaif_hw_params,
-	.trigger	= tegra_admaif_trigger,
-	.shutdown	= tegra_admaif_shutdown,
-	.prepare	= tegra_admaif_prepare,
-};
-
 static void tegra_admaif_reg_dump(struct device *dev)
 {
 	struct tegra_admaif *admaif = dev_get_drvdata(dev);
@@ -797,6 +790,43 @@ static int tegra_admaif_dai_probe(struct snd_soc_dai *dai)
 	return 0;
 }
 
+static const struct snd_soc_dai_ops tegra_admaif_dai_ops = {
+#if defined(NV_SND_SOC_DAI_OPS_STRUCT_HAS_PROBE_ARG)
+	.probe = tegra_admaif_dai_probe,
+#endif
+	.hw_params	= tegra_admaif_hw_params,
+	.trigger	= tegra_admaif_trigger,
+	.shutdown	= tegra_admaif_shutdown,
+	.prepare	= tegra_admaif_prepare,
+};
+
+#if defined(NV_SND_SOC_DAI_OPS_STRUCT_HAS_PROBE_ARG)
+#define DAI(dai_name)					\
+	{							\
+		.name = dai_name,				\
+		.playback = {					\
+			.stream_name = dai_name " Playback",	\
+			.channels_min = 1,			\
+			.channels_max = 16,			\
+			.rates = SNDRV_PCM_RATE_KNOT,		\
+			.formats = SNDRV_PCM_FMTBIT_S8 |	\
+				SNDRV_PCM_FMTBIT_S16_LE |	\
+				SNDRV_PCM_FMTBIT_S24_LE |	\
+				SNDRV_PCM_FMTBIT_S32_LE,	\
+		},						\
+		.capture = {					\
+			.stream_name = dai_name " Capture",	\
+			.channels_min = 1,			\
+			.channels_max = 16,			\
+			.rates = SNDRV_PCM_RATE_KNOT,		\
+			.formats = SNDRV_PCM_FMTBIT_S8 |	\
+				SNDRV_PCM_FMTBIT_S16_LE |	\
+				SNDRV_PCM_FMTBIT_S24_LE |	\
+				SNDRV_PCM_FMTBIT_S32_LE,	\
+		},						\
+		.ops = &tegra_admaif_dai_ops,			\
+	}
+#else
 #define DAI(dai_name)					\
 	{							\
 		.name = dai_name,				\
@@ -823,6 +853,8 @@ static int tegra_admaif_dai_probe(struct snd_soc_dai *dai)
 		},						\
 		.ops = &tegra_admaif_dai_ops,			\
 	}
+#endif
+
 
 #define ADMAIF_CODEC_FIFO_DAI(id)                                       \
 	{								\

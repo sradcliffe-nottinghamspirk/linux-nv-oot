@@ -228,12 +228,6 @@ static int tegra210_admaif_startup(struct snd_pcm_substream *substream,
 			SNDRV_PCM_HW_PARAM_RATE, &tegra210_rate_constraints);
 }
 
-static struct snd_soc_dai_ops tegra210_admaif_dai_ops = {
-	.hw_params	= tegra210_admaif_hw_params,
-	.trigger	= tegra210_admaif_trigger,
-	.startup	= tegra210_admaif_startup,
-};
-
 static int tegra210_admaif_dai_probe(struct snd_soc_dai *dai)
 {
 	snd_soc_dai_init_dma_data(dai, &admaif->playback_dma_data[dai->id],
@@ -242,6 +236,42 @@ static int tegra210_admaif_dai_probe(struct snd_soc_dai *dai)
 	return 0;
 }
 
+static struct snd_soc_dai_ops tegra210_admaif_dai_ops = {
+#if defined(NV_SND_SOC_DAI_OPS_STRUCT_HAS_PROBE_ARG)
+	.probe = tegra210_admaif_dai_probe,
+#endif
+	.hw_params	= tegra210_admaif_hw_params,
+	.trigger	= tegra210_admaif_trigger,
+	.startup	= tegra210_admaif_startup,
+};
+
+#if defined(NV_SND_SOC_DAI_OPS_STRUCT_HAS_PROBE_ARG)
+#define ADMAIF_DAI(id)							\
+	{							\
+		.name = "ADMAIF" #id,				\
+		.playback = {					\
+			.stream_name = "Playback " #id,		\
+			.channels_min = 1,			\
+			.channels_max = 16,			\
+			.rates = SNDRV_PCM_RATE_8000_192000,	\
+			.formats = SNDRV_PCM_FMTBIT_S8 |	\
+				SNDRV_PCM_FMTBIT_S16_LE |	\
+				SNDRV_PCM_FMTBIT_S24_LE |	\
+				SNDRV_PCM_FMTBIT_S32_LE,	\
+		},						\
+		.capture = {					\
+			.stream_name = "Capture " #id,		\
+			.channels_min = 1,			\
+			.channels_max = 16,			\
+			.rates = SNDRV_PCM_RATE_8000_192000,		\
+			.formats = SNDRV_PCM_FMTBIT_S8 |		\
+				SNDRV_PCM_FMTBIT_S16_LE |		\
+				SNDRV_PCM_FMTBIT_S24_LE |		\
+				SNDRV_PCM_FMTBIT_S32_LE,		\
+		},						\
+		.ops = &tegra210_admaif_dai_ops,			\
+	}
+#else
 #define ADMAIF_DAI(id)							\
 	{							\
 		.name = "ADMAIF" #id,				\
@@ -268,6 +298,8 @@ static int tegra210_admaif_dai_probe(struct snd_soc_dai *dai)
 		},						\
 		.ops = &tegra210_admaif_dai_ops,			\
 	}
+#endif
+
 
 static struct snd_soc_dai_driver tegra210_admaif_dais[] = {
 	ADMAIF_DAI(1),
