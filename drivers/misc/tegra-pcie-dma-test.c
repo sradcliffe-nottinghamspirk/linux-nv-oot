@@ -170,7 +170,9 @@ static int ep_test_dma_probe(struct pci_dev *pdev,
 		return ret;
 	}
 
+#if !defined(NV_DROP_PCIE_ERROR_REPORTING)
 	pci_enable_pcie_error_reporting(pdev);
+#endif
 
 	pci_set_master(pdev);
 

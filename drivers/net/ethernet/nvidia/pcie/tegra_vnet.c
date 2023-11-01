@@ -749,7 +749,9 @@ static int tvnet_host_probe(struct pci_dev *pdev,
 		goto free_netdev;
 	}
 
+#if !defined(NV_DROP_PCIE_ERROR_REPORTING)
 	pci_enable_pcie_error_reporting(pdev);
+#endif
 
 	/*
 	 * In CPU memory write case, skb->data buffer is copied to dst in BAR.
