@@ -108,10 +108,4 @@
 #   define IS_MODULE(c) 0
 #endif
 
-#if ((defined(CONFIG_ARM_FFA_TRANSPORT) || IS_MODULE(CONFIG_ARM_FFA_TRANSPORT)) && \
-	 defined(ALLOW_ARM_FFA_TRANSPORT_AS_MODULE)) || \
-	 IS_BUILTIN(CONFIG_ARM_FFA_TRANSPORT)
-#       define MODS_HAS_ARM_FFA
-#endif
-
 #endif /* _MODS_CONFIG_H_  */
