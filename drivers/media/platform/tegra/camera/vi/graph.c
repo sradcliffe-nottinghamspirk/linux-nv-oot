@@ -669,9 +669,22 @@ int tegra_vi_graph_init(struct tegra_mc_vi *vi)
 		list_for_each_entry(entity, &chan->entities, list)
 			__v4l2_async_notifier_add_subdev(&chan->notifier, &entity->asd);
 #else
+#if defined (NV_V4L2_ASYNC_NF_SUBDEVICE_INIT_RENAME)
+		v4l2_async_subdev_nf_init(&chan->notifier, tegra_channel_find_linked_csi_subdev(chan));
+		list_for_each_entry(entity, &chan->entities, list) {
+			struct v4l2_async_connection *asd;
+			asd = v4l2_async_nf_add_fwnode_remote(&chan->notifier, of_fwnode_handle(remote),
+				struct v4l2_async_connection);
+			if (IS_ERR(asd)) {
+				ret = PTR_ERR(asd);
+				goto done;
+			}
+		}
+#else
 		v4l2_async_nf_init(&chan->notifier);
 		list_for_each_entry(entity, &chan->entities, list)
 			__v4l2_async_nf_add_subdev(&chan->notifier, &entity->asd);
+#endif
 #endif
 
 		chan->link_status = 0;
@@ -682,8 +695,12 @@ int tegra_vi_graph_init(struct tegra_mc_vi *vi)
 		ret = v4l2_async_notifier_register(&vi->v4l2_dev,
 					&chan->notifier);
 #else
+#if defined (NV_V4L2_ASYNC_NF_SUBDEVICE_INIT_RENAME)
+		ret = v4l2_async_nf_register(&chan->notifier);
+#else
 		ret = v4l2_async_nf_register(&vi->v4l2_dev,
 					&chan->notifier);
+#endif
 #endif
 #else
 		dev_err(vi->dev, "CONFIG_V4L2_ASYNC is not enabled!\n");

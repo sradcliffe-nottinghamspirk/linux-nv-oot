@@ -43,6 +43,9 @@ subdir-ccflags-y += -DNV_V4L2_ASYNC_SUBDEV_RENAME
 
 # Rename V4L2_ASYNC_MATCH_FWNODE to V4L2_ASYNC_MATCH_TYPE_FWNODE
 subdir-ccflags-y += -DNV_V4L2_ASYNC_MATCH_FWNODE_RENAME
+
+# Rename async_nf_init and v4l2_async_subdev_nf_register
+subdir-ccflags-y += -DNV_V4L2_ASYNC_NF_SUBDEVICE_INIT_RENAME
 endif
 
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)
