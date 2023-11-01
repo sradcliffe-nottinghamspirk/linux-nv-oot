@@ -37,7 +37,12 @@
 #include <soc/tegra/virt/hv-ivc.h>
 #include <soc/tegra/fuse.h>
 #if IS_ENABLED(CONFIG_PAGE_POOL)
+#if defined(NV_SPLIT_PAGE_POOL_HEADER)
+#include <net/page_pool/types.h>
+#include <net/page_pool/helpers.h>
+#else
 #include <net/page_pool.h>
+#endif
 #define ETHER_PAGE_POOL
 #endif
 #include <osi_core.h>
