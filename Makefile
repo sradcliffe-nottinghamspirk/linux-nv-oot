@@ -55,6 +55,9 @@ subdir-ccflags-y += -DNV_SPLIT_PAGE_POOL_HEADER
 
 # Unexport helpers for fd/handle conversion
 subdir-ccflags-y += -DNV_UNEXPORT_FD_HANDLE_CONVERSION
+
+# FB Deferred IO helpers name alignment
+subdir-ccflags-y += -DNV_FB_DEFERRED_IO_OPS_RENAME
 endif
 
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)

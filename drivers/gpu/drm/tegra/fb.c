@@ -215,9 +215,15 @@ static int tegra_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+#if defined(NV_FB_DEFERRED_IO_OPS_RENAME)
+FB_GEN_DEFAULT_DEFERRED_IOMEM_OPS(tegra_fb,
+			       drm_fb_helper_damage_range,
+			       drm_fb_helper_damage_area)
+#else
 FB_GEN_DEFAULT_DEFERRED_IO_OPS(tegra_fb,
 			       drm_fb_helper_damage_range,
 			       drm_fb_helper_damage_area)
+#endif
 #endif
 
 static const struct fb_ops tegra_fb_ops = {
