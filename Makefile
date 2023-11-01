@@ -52,6 +52,9 @@ subdir-ccflags-y += -DNV_DROP_PCIE_ERROR_REPORTING
 
 # Split types and declaration of net/page_pool.h
 subdir-ccflags-y += -DNV_SPLIT_PAGE_POOL_HEADER
+
+# Unexport helpers for fd/handle conversion
+subdir-ccflags-y += -DNV_UNEXPORT_FD_HANDLE_CONVERSION
 endif
 
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)
