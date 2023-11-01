@@ -341,9 +341,15 @@ register_device_error:
 	return ret;
 }
 
+#if defined(NV_V4L2_ASYNC_SUBDEV_RENAME)
+static int tegra_vi_graph_notify_bound(struct v4l2_async_notifier *notifier,
+				   struct v4l2_subdev *subdev,
+				   struct v4l2_async_connection *asd)
+#else
 static int tegra_vi_graph_notify_bound(struct v4l2_async_notifier *notifier,
 				   struct v4l2_subdev *subdev,
 				   struct v4l2_async_subdev *asd)
+#endif
 {
 	struct tegra_channel *chan =
 		container_of(notifier, struct tegra_channel, notifier);
@@ -374,9 +380,15 @@ static int tegra_vi_graph_notify_bound(struct v4l2_async_notifier *notifier,
 	return -EINVAL;
 }
 
+#if defined(NV_V4L2_ASYNC_SUBDEV_RENAME)
+static void tegra_vi_graph_notify_unbind(struct v4l2_async_notifier *notifier,
+				   struct v4l2_subdev *subdev,
+				   struct v4l2_async_connection *asd)
+#else
 static void tegra_vi_graph_notify_unbind(struct v4l2_async_notifier *notifier,
 				   struct v4l2_subdev *subdev,
 				   struct v4l2_async_subdev *asd)
+#endif
 {
 	struct tegra_channel *chan =
 		container_of(notifier, struct tegra_channel, notifier);

@@ -94,7 +94,11 @@ struct tegra_vi_graph_entity {
 	struct device_node *node;
 	struct media_entity *entity;
 
+#if defined(NV_V4L2_ASYNC_SUBDEV_RENAME)
+	struct v4l2_async_connection asd;
+#else
 	struct v4l2_async_subdev asd;
+#endif
 	struct v4l2_subdev *subdev;
 };
 
