@@ -1373,7 +1373,11 @@ static struct i2c_driver max_gmsl_dp_ser_i2c_driver = {
 		.pm	= &max_gmsl_dp_ser_pm_ops,
 #endif
 	},
+#if defined(NV_I2C_LEGACY_PROBE_NEW_REMOVED)
+	.probe		= max_gmsl_dp_ser_probe,
+#else
 	.probe_new	= max_gmsl_dp_ser_probe,
+#endif
 	.remove		= max_gmsl_dp_ser_remove,
 };
 

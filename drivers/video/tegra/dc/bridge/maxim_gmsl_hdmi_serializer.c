@@ -366,7 +366,11 @@ static struct i2c_driver maxim_gmsl_hdmi_ser_i2c_driver = {
 		.pm	= &maxim_gmsl_hdmi_ser_pm_ops,
 #endif
 	},
+#if defined(NV_I2C_LEGACY_PROBE_NEW_REMOVED)
+	.probe		= maxim_gmsl_hdmi_ser_probe,
+#else
 	.probe_new	= maxim_gmsl_hdmi_ser_probe,
+#endif
 	.remove		= maxim_gmsl_hdmi_ser_remove,
 };
 
