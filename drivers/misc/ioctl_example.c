@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved. */
 
+#include <nvidia/conftest.h>
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -53,7 +55,9 @@ static long device_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 }
 
 static struct file_operations fops = {
+#if !defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG)
 	.owner = THIS_MODULE,
+#endif
 	.open = device_open,
 	.release = device_release,
 	.unlocked_ioctl = device_ioctl,
@@ -69,7 +73,12 @@ static int __init ioctl_example_init(void)
 	cdev_add(&cdev, dev_num, 1);
 
 	/* Create a device class */
+
+#if defined(NV_CLASS_CREATE_HAS_NO_OWNER_ARG)
+	dev_class = class_create("ioctl_example");
+#else
 	dev_class = class_create(THIS_MODULE, "ioctl_example");
+#endif
 	device_create(dev_class, NULL, dev_num, NULL, "ioctl_example");
 
 	pr_info("ioctl_example: Module loaded\n");
