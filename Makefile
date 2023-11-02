@@ -58,6 +58,9 @@ subdir-ccflags-y += -DNV_UNEXPORT_FD_HANDLE_CONVERSION
 
 # FB Deferred IO helpers name alignment
 subdir-ccflags-y += -DNV_FB_DEFERRED_IO_OPS_RENAME
+
+# Crypto driver has major change in it ops, skip it
+export CONFIG_SKIP_CRYPTO=y
 endif
 
 ifeq ($(CONFIG_TEGRA_VIRTUALIZATION),y)
