@@ -117,6 +117,22 @@ static int tegra_machine_respeaker_init(struct snd_soc_pcm_runtime *rtd)
 	return tegra_audio_dai_init(rtd);
 }
 
+static int tegra_machine_wm8904_init(struct snd_soc_pcm_runtime *rtd)
+{
+	struct device *dev = rtd->card->dev;
+	int err;
+
+	err = snd_soc_dai_set_sysclk(rtd->dais[rtd->dai_link->num_cpus],
+				     WM8904_CLK_MCLK, 12288000,
+				     SND_SOC_CLOCK_IN);
+	if (err) {
+		dev_err(dev, "failed to set wm89040 sysclk!\n");
+		return err;
+	}
+
+	return tegra_audio_dai_init(rtd);
+}
+
 static struct snd_soc_pcm_runtime *get_pcm_runtime(struct snd_soc_card *card,
 						   const char *link_name)
 {
@@ -274,6 +290,8 @@ int tegra_codecs_init(struct snd_soc_card *card)
 			dai_links[i].init = tegra_machine_fepi_init;
 		else if (strstr(dai_links[i].name, "respeaker-4-mic-array"))
 			dai_links[i].init = tegra_machine_respeaker_init;
+		else if (strstr(dai_links[i].name, "wm8904-playback"))
+			dai_links[i].init = tegra_machine_wm8904_init;
 	}
 
 	return 0;
