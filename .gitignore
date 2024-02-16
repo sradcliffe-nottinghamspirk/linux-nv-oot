@@ -1,0 +1,13 @@
+*.ko
+*.mod.*
+*.mod
+*.o
+*.cmd
+*.d
+*.order
+*.S
+*.dtb
+*.d
+*.tmp
+Module.symvers
+dtbs/
