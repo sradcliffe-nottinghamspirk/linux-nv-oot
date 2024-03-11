@@ -18,6 +18,7 @@
 #include <drivers-private/sound/soc/codecs/rt5640.h>
 #include <drivers-private/sound/soc/codecs/rt5659.h>
 #include <drivers-private/sound/soc/codecs/sgtl5000.h>
+#include <drivers-private/sound/soc/codecs/wm8904.h>
 
 static int tegra_audio_dai_init(struct snd_soc_pcm_runtime *rtd)
 {
@@ -123,10 +124,10 @@ static int tegra_machine_wm8904_init(struct snd_soc_pcm_runtime *rtd)
 	int err;
 
 	err = snd_soc_dai_set_sysclk(rtd->dais[rtd->dai_link->num_cpus],
-				     WM8904_CLK_MCLK, 12288000,
+				     WM8904_CLK_AUTO, 12000000,
 				     SND_SOC_CLOCK_IN);
 	if (err) {
-		dev_err(dev, "failed to set wm89040 sysclk!\n");
+		dev_err(dev, "failed to set wm8904 sysclk!\n");
 		return err;
 	}
 
